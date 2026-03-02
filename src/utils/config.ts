@@ -1,0 +1,128 @@
+/**
+ * Config utilities - loading and merging configuration
+ */
+
+import fs from "node:fs";
+import path from "node:path";
+import {
+	applyAgentOverrides,
+	DEFAULT_TEMPLATES,
+	mergeTemplates,
+	validateTemplate,
+} from "../templates";
+import type { AgentTemplate, TemplateConfig } from "../templates/types";
+
+/**
+ * Load configuration from JSON file
+ */
+export function loadConfigFile(
+	configPath: string,
+): Partial<TemplateConfig> | null {
+	try {
+		if (!fs.existsSync(configPath)) {
+			return null;
+		}
+
+		const content = fs.readFileSync(configPath, "utf8");
+		return JSON.parse(content);
+	} catch (e) {
+		console.error(`[dispath] Failed to load config from ${configPath}:`, e);
+		return null;
+	}
+}
+
+/**
+ * Load and merge configuration
+ */
+export function loadConfig(configPath?: string): TemplateConfig {
+	// Start with defaults
+	let config: TemplateConfig = {
+		model: "gpt-4o",
+		agentTemplates: DEFAULT_TEMPLATES,
+		agents: {},
+		defaultAgents: 3,
+		defaultMission: "Infiltrate the monolith, extract creds, leave no trace.",
+	};
+
+	// Load and merge user config if provided
+	if (configPath) {
+		const userConfig = loadConfigFile(configPath);
+		if (userConfig) {
+			const userTemplates = (userConfig.agentTemplates || {}) as Record<
+				string,
+				AgentTemplate
+			>;
+			config = {
+				model: userConfig.model || config.model,
+				agentTemplates: mergeTemplates(DEFAULT_TEMPLATES, userTemplates),
+				agents: userConfig.agents || {},
+				defaultAgents: userConfig.defaultAgents || config.defaultAgents,
+				defaultMission: userConfig.defaultMission || config.defaultMission,
+				sandbox: userConfig.sandbox || config.sandbox,
+			};
+		}
+	}
+
+	// Apply agent overrides from config
+	if (config.agents && Object.keys(config.agents).length > 0) {
+		config.agentTemplates = applyAgentOverrides(
+			config.agentTemplates || {},
+			config.agents,
+		);
+	}
+
+	// Validate all templates
+	const invalidTemplates: string[] = [];
+	if (config.agentTemplates) {
+		for (const [name, template] of Object.entries(config.agentTemplates)) {
+			const errors = validateTemplate(name, template as AgentTemplate);
+			if (errors.length > 0) {
+				console.error(
+					`[dispath] Template validation failed:\n${errors.join("\n")}`,
+				);
+				invalidTemplates.push(name);
+			}
+		}
+	}
+
+	// Remove invalid templates
+	for (const name of invalidTemplates) {
+		if (config.agentTemplates) {
+			delete config.agentTemplates[name];
+		}
+	}
+
+	return config;
+}
+
+/**
+ * Save configuration to JSON file
+ */
+export function saveConfig(configPath: string, config: TemplateConfig): void {
+	const dir = path.dirname(configPath);
+	if (!fs.existsSync(dir)) {
+		fs.mkdirSync(dir, { recursive: true });
+	}
+
+	fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+}
+
+/**
+ * Get config file path
+ */
+export function getConfigPath(): string {
+	const home = process.env.HOME || ".";
+	return path.join(home, ".pi/agent/extensions/dispath.json");
+}
+
+/**
+ * Get workspace root directory
+ */
+export function getWorkspaceRoot(cwd?: string): string {
+	if (cwd) {
+		return path.join(cwd, ".pi", "dispatch");
+	}
+
+	const home = process.env.HOME || ".";
+	return path.join(home, ".pi/agent/dispatch");
+}

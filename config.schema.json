@@ -1,0 +1,27 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"title": "dispath configuration",
+	"type": "object",
+	"properties": {
+		"workspaceRoot": { "type": "string", "default": "~/.pi/agent/dispath" },
+		"defaultAgents": { "type": "integer", "default": 3 },
+		"defaultMission": {
+			"type": "string",
+			"default": "Infiltrate the monolith, extract creds, leave no trace."
+		},
+		"sandbox": {
+			"type": "object",
+			"properties": {
+				"enabled": { "type": "boolean", "default": false },
+				"adapter": {
+					"type": "string",
+					"enum": ["none", "sandboxExec", "bwrap", "custom"],
+					"default": "none"
+				},
+				"profile": { "type": "string" },
+				"template": { "type": "string" },
+				"args": { "type": "array", "items": { "type": "string" } }
+			}
+		}
+	}
+}
