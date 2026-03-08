@@ -3,11 +3,7 @@
  */
 
 export { SwarmExecutor } from "./executor";
-export {
-	formatSwarmHistory,
-	formatSwarmStatus,
-	generateSwarmSummary,
-} from "./formatter";
+export { formatSwarmHistory, formatSwarmStatus } from "./formatter";
 export { parseDispatchCommand, validateDispatchRequest } from "./parser";
 export {
 	createSwarmId,
