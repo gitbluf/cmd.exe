@@ -8,30 +8,28 @@
  */
 
 import fs from "node:fs";
-import path from "node:path";
 import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
 import { createBashTool } from "@mariozechner/pi-coding-agent";
-import {
-	createSwarmId,
-	generateSwarmSummary,
-	type SwarmRecord,
-	SwarmExecutor,
-	parseDispatchCommand,
-	upsertSwarm,
-	validateDispatchRequest,
-	formatSwarmStatus,
-	formatSwarmHistory,
-	getSwarm,
-	listSwarms,
-} from "./swarms";
 import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
+import {
+	createSwarmId,
+	formatSwarmHistory,
+	formatSwarmStatus,
+	getSwarm,
+	listSwarms,
+	parseDispatchCommand,
+	SwarmExecutor,
+	type SwarmRecord,
+	upsertSwarm,
+	validateDispatchRequest,
+} from "./swarms";
 import { getTemplateNames } from "./templates";
 import type { AgentTemplate } from "./templates/types";
-import { ANSI, colorize, createSwarmStatusWidget } from "./ui";
+import { ANSI, colorize } from "./ui";
 import { getConfigPath, getWorkspaceRoot, loadConfig } from "./utils/config";
 
 /**
@@ -131,17 +129,12 @@ export default function (pi: ExtensionAPI) {
 					const swarms = listSwarms(root, 10);
 					if (swarms.length === 0) {
 						console.log(colorize("\nNo dispatch history yet.\n", ANSI.dim));
-						console.log(
-							colorize("Run /dispatch to start a task.\n", ANSI.dim),
-						);
+						console.log(colorize("Run /dispatch to start a task.\n", ANSI.dim));
 					} else {
 						const history = formatSwarmHistory(swarms);
 						console.log(history);
 						console.log(
-							colorize(
-								"View details: /dispatch:status <id>\n",
-								ANSI.dim,
-							),
+							colorize("View details: /dispatch:status <id>\n", ANSI.dim),
 						);
 					}
 				}
@@ -150,6 +143,125 @@ export default function (pi: ExtensionAPI) {
 			} catch (e) {
 				const error = e as Error;
 				console.error(colorize(`\n❌ Error: ${error.message}`, ANSI.red, true));
+				throw e;
+			}
+		},
+	});
+
+	/**
+	 * /dispatch:dashboard - Interactive swarm dashboard
+	 *
+	 * Shows all swarms with interactive navigation:
+	 *   Swarm list → Swarm detail → Task detail
+	 * Auto-refreshes from disk to pick up running swarms.
+	 */
+	pi.registerCommand("dispatch:dashboard", {
+		description: "Interactive swarm monitoring dashboard",
+		handler: async (_args: string, ctx: ExtensionCommandContext) => {
+			const root = getRoot(ctx);
+			try {
+				const { createDashboard } = await import("./ui/dashboard");
+
+				const { component: dashboard, dispose } = createDashboard({
+					loadSwarms: () => listSwarms(root),
+					refreshInterval: 1000,
+				});
+
+				await ctx.ui.custom((tui, _theme, _kb, done) => {
+					const renderInterval = setInterval(() => {
+						tui.requestRender();
+					}, 500);
+
+					dashboard.onClose = () => {
+						clearInterval(renderInterval);
+						dispose();
+						done(undefined);
+					};
+
+					return dashboard;
+				});
+			} catch (e) {
+				const error = e as Error;
+				console.error(
+					colorize(`\n❌ Dashboard error: ${error.message}`, ANSI.red, true),
+				);
+				throw e;
+			}
+		},
+	});
+
+	/**
+	 * /dispatch:task [task-id] - Task detail view
+	 *
+	 * Opens the dashboard. If a task-id is given, shows its parent swarm.
+	 * Otherwise equivalent to /dispatch:dashboard.
+	 */
+	pi.registerCommand("dispatch:task", {
+		description: "Interactive task detail panel",
+		handler: async (args: string, ctx: ExtensionCommandContext) => {
+			const root = getRoot(ctx);
+			try {
+				const taskId = args?.trim();
+
+				if (!taskId) {
+					console.log(
+						colorize("\nUsage: /dispatch:task <task-id>\n", ANSI.cyan, true),
+					);
+					console.log(colorize("View details for a specific task.", ANSI.dim));
+					console.log(
+						colorize(
+							"Tip: Run /dispatch:dashboard to browse all swarms interactively.\n",
+							ANSI.dim,
+						),
+					);
+					await ctx.ui.input("Press enter to continue...", "");
+					return;
+				}
+
+				// Find the task's parent swarm
+				const swarms = listSwarms(root, 50);
+				let foundSwarm: SwarmRecord | null = null;
+				for (const swarm of swarms) {
+					if (swarm.tasks.some((t) => t.id === taskId)) {
+						foundSwarm = swarm;
+						break;
+					}
+				}
+
+				if (!foundSwarm) {
+					console.log(
+						colorize(`\n❌ Task not found: ${taskId}\n`, ANSI.red, true),
+					);
+					await ctx.ui.input("Press enter to continue...", "");
+					return;
+				}
+
+				// Open the dashboard focused on that swarm
+				const { createDashboard } = await import("./ui/dashboard");
+
+				const { component: dashboard, dispose } = createDashboard({
+					loadSwarms: () => [foundSwarm!],
+					refreshInterval: 1000,
+				});
+
+				await ctx.ui.custom((tui, _theme, _kb, done) => {
+					const renderInterval = setInterval(() => {
+						tui.requestRender();
+					}, 500);
+
+					dashboard.onClose = () => {
+						clearInterval(renderInterval);
+						dispose();
+						done(undefined);
+					};
+
+					return dashboard;
+				});
+			} catch (e) {
+				const error = e as Error;
+				console.error(
+					colorize(`\n❌ Task panel error: ${error.message}`, ANSI.red, true),
+				);
 				throw e;
 			}
 		},
@@ -169,34 +281,12 @@ export default function (pi: ExtensionAPI) {
 			try {
 				if (!args || args.trim().length === 0) {
 					const availableAgents = getTemplateNames(config.agentTemplates);
-					console.log(
-						colorize(
-							"\n/dispatch task-id agent \"request\" | task-id agent \"request\" | ...\n",
-							ANSI.cyan,
-							true,
-						),
+					ctx.ui.notify(
+						`Usage: /dispatch task-id agent "request" | task-id agent "request"\n` +
+						`Agents: ${availableAgents.join(", ")}\n` +
+						`Options: --concurrency N, --timeout N`,
+						"info",
 					);
-					console.log(colorize("Options:", ANSI.cyan));
-					console.log("  --concurrency N    Max parallel tasks (1-20, default 5)");
-					console.log("  --timeout N        Per-task timeout in ms (default 300000)");
-					console.log("");
-					console.log(colorize(`Available agents: ${availableAgents.join(", ")}`, ANSI.dim));
-					console.log("");
-					console.log(colorize("Examples:", ANSI.dim));
-					console.log(
-						colorize(
-							'  /dispatch task-1 ghost "Add error handling to auth module"',
-							ANSI.dim,
-						),
-					);
-					console.log(
-						colorize(
-							'  /dispatch task-1 blueprint "Design API" | task-2 ghost "Implement endpoints"',
-							ANSI.dim,
-						),
-					);
-					console.log("");
-					await ctx.ui.input("Press enter to continue...", "");
 					return;
 				}
 
@@ -205,13 +295,15 @@ export default function (pi: ExtensionAPI) {
 
 				// Validate
 				const availableAgents = getTemplateNames(config.agentTemplates);
-				const validation = validateDispatchRequest(dispatchReq, availableAgents);
+				const validation = validateDispatchRequest(
+					dispatchReq,
+					availableAgents,
+				);
 				if (!validation.valid) {
-					console.log(colorize("\n❌ Invalid dispatch request:\n", ANSI.red, true));
-					for (const error of validation.errors) {
-						console.log(colorize(`  • ${error}`, ANSI.red));
-					}
-					await ctx.ui.input("Press enter to continue...", "");
+					ctx.ui.notify(
+						`Invalid dispatch: ${validation.errors.join(", ")}`,
+						"error",
+					);
 					return;
 				}
 
@@ -237,29 +329,35 @@ export default function (pi: ExtensionAPI) {
 					},
 				};
 
-				console.log(
-					colorize(`\n🔌 [DISPATCH] ${swarmId}\n`, ANSI.cyan, true),
-				);
-				console.log(colorize(`   Tasks: ${dispatchReq.tasks.length}`, ANSI.dim));
-				console.log(
-					colorize(`   Concurrency: ${dispatchReq.options.concurrency}`, ANSI.dim),
-				);
-				console.log("");
+				// Persist initial state so the dashboard can see it immediately
+				upsertSwarm(root, swarmRecord);
 
-				// Show live swarm status widget
-				const swarmWidget = createSwarmStatusWidget(
-					ctx,
-					swarmRecord.tasks,
-					dispatchReq.options.concurrency,
-				);
+				const widgetId = `dispatch-${swarmId}`;
+				const taskCount = dispatchReq.tasks.length;
+				const concurrency = dispatchReq.options.concurrency;
 
+				// Show running widget
+				ctx.ui.setWidget(widgetId, (_tui, theme) => {
+					return {
+						render: () => [
+							theme.fg("border", "─".repeat(50)),
+							` ${theme.fg("accent", "⚡ DISPATCH")} ${theme.fg("dim", swarmId)}`,
+							` ${theme.fg("dim", `${taskCount} task${taskCount !== 1 ? "s" : ""} · concurrency ${concurrency} · running…`)}`,
+							` ${theme.fg("dim", "/dispatch:dashboard to monitor")}`,
+							theme.fg("border", "─".repeat(50)),
+						],
+						invalidate: () => {},
+					};
+				});
+
+				// Create executor — persist() is called internally on every update
 				const executor = new SwarmExecutor(
 					swarmRecord,
 					root,
 					ctx.cwd,
 					config,
-					(task) => {
-						swarmWidget.updateTask(task);
+					(_task) => {
+						// Task update callback — state is persisted by executor
 					},
 					{
 						modelRegistry: ctx.modelRegistry,
@@ -267,29 +365,57 @@ export default function (pi: ExtensionAPI) {
 					},
 				);
 
-				const completed = await executor.execute();
+				// Launch execution in background — don't await, return to prompt
+				executor.execute().then((completed) => {
+					const ok = completed.stats.completedTasks;
+					const fail = completed.stats.failedTasks;
+					const total = completed.stats.totalTasks;
+					const hasFailures = fail > 0;
 
-				// Update widget
-				if (completed.status === "cancelled") {
-					swarmWidget.cancel();
-				} else if (completed.stats.failedTasks > 0) {
-					swarmWidget.fail();
-				} else {
-					swarmWidget.complete();
-				}
+					// Replace running widget with completion widget
+					ctx.ui.setWidget(widgetId, (_tui, theme) => {
+						const icon = hasFailures ? "⚠" : "✅";
+						const statusColor = hasFailures ? "warning" : "success";
+						return {
+							render: () => [
+								theme.fg("border", "─".repeat(50)),
+								` ${theme.fg(statusColor, `${icon} DISPATCH COMPLETE`)} ${theme.fg("dim", swarmId)}`,
+								` ${theme.fg("success", `${ok}✓`)} ${hasFailures ? theme.fg("error", `${fail}✗`) : ""} ${theme.fg("dim", `of ${total} tasks`)}`,
+								` ${theme.fg("dim", "/dispatch:dashboard for details")}`,
+								theme.fg("border", "─".repeat(50)),
+							],
+							invalidate: () => {},
+						};
+					});
 
-				// Persist
-				upsertSwarm(root, completed);
+					// Auto-clear after 3 seconds
+					setTimeout(() => {
+						ctx.ui.setWidget(widgetId, undefined);
+					}, 3000);
+				}).catch((e) => {
+					// Show error widget
+					ctx.ui.setWidget(widgetId, (_tui, theme) => {
+						return {
+							render: () => [
+								theme.fg("border", "─".repeat(50)),
+								` ${theme.fg("error", "❌ DISPATCH FAILED")} ${theme.fg("dim", swarmId)}`,
+								` ${theme.fg("error", (e as Error).message)}`,
+								theme.fg("border", "─".repeat(50)),
+							],
+							invalidate: () => {},
+						};
+					});
 
-				// Summary
-				const summary = generateSwarmSummary(completed);
-				console.log(`\n${summary}\n`);
+					// Auto-clear after 5 seconds
+					setTimeout(() => {
+						ctx.ui.setWidget(widgetId, undefined);
+					}, 5000);
+				});
 
-				await ctx.ui.input("Press enter to continue...", "");
+				// Return immediately — user is back at the chat
 			} catch (e) {
 				const error = e as Error;
-				console.error(colorize(`\n❌ Error: ${error.message}`, ANSI.red, true));
-				throw e;
+				ctx.ui.notify(`Dispatch error: ${error.message}`, "error");
 			}
 		},
 	});

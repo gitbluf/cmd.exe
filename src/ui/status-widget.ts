@@ -56,7 +56,13 @@ export class AgentStatusWidget {
 	private widgetId: string;
 	private autoClearTimer: ReturnType<typeof setTimeout> | null = null;
 
-	constructor(ctx: ExtensionCommandContext, phase: AgentPhase, agentType: string, model: string, mission: string) {
+	constructor(
+		ctx: ExtensionCommandContext,
+		phase: AgentPhase,
+		agentType: string,
+		model: string,
+		mission: string,
+	) {
 		this.ctx = ctx;
 		this.widgetId = "dispatch-agent-status";
 		this.state = {
@@ -132,7 +138,10 @@ export class AgentStatusWidget {
 		this.ctx.ui.setWidget(this.widgetId, (_tui, _theme) => {
 			const state = this.state;
 			const elapsed = formatElapsed(Date.now() - state.startedAt);
-			const spinner = state.status === "running" ? SPINNERS[this.spinnerIdx] : PHASE_ICONS[state.status];
+			const spinner =
+				state.status === "running"
+					? SPINNERS[this.spinnerIdx]
+					: PHASE_ICONS[state.status];
 
 			return {
 				render: (width: number) => {
@@ -143,15 +152,22 @@ export class AgentStatusWidget {
 
 					// Line 1: Phase + spinner + elapsed
 					const phaseLabel = PHASE_LABELS[state.phase];
-					const statusPart = state.status === "running"
-						? theme.fg("accent", `${spinner} ${phaseLabel}`) + theme.fg("dim", ` · ${elapsed}`)
-						: state.status === "done"
-							? theme.fg("success", `${spinner} ${phaseLabel} complete`) + theme.fg("dim", ` · ${elapsed}`)
-							: theme.fg("error", `${spinner} ${phaseLabel} failed`) + theme.fg("dim", ` · ${elapsed}`);
+					const statusPart =
+						state.status === "running"
+							? theme.fg("accent", `${spinner} ${phaseLabel}`) +
+								theme.fg("dim", ` · ${elapsed}`)
+							: state.status === "done"
+								? theme.fg("success", `${spinner} ${phaseLabel} complete`) +
+									theme.fg("dim", ` · ${elapsed}`)
+								: theme.fg("error", `${spinner} ${phaseLabel} failed`) +
+									theme.fg("dim", ` · ${elapsed}`);
 					lines.push(` ${statusPart}`);
 
 					// Line 2: Agent + model
-					const agentInfo = theme.fg("accent", `@${state.agentType}`) + theme.fg("dim", ` → `) + theme.fg("muted", state.model);
+					const agentInfo =
+						theme.fg("accent", `@${state.agentType}`) +
+						theme.fg("dim", ` → `) +
+						theme.fg("muted", state.model);
 					lines.push(` ${agentInfo}`);
 
 					// Line 3: Mission (truncated)

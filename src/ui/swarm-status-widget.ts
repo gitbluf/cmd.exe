@@ -15,7 +15,7 @@ const SPINNERS = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 
 const TASK_ICONS: Record<string, string> = {
 	pending: "○",
-	running: "",  // replaced with spinner
+	running: "", // replaced with spinner
 	completed: "✅",
 	failed: "❌",
 	timeout: "⏱️",
@@ -133,8 +133,12 @@ export class SwarmStatusWidget {
 					const lines: string[] = [];
 					const elapsed = formatElapsed(Date.now() - startedAt);
 
-					const completed = tasks.filter((t) => t.status === "completed").length;
-					const failed = tasks.filter((t) => t.status === "failed" || t.status === "timeout").length;
+					const completed = tasks.filter(
+						(t) => t.status === "completed",
+					).length;
+					const failed = tasks.filter(
+						(t) => t.status === "failed" || t.status === "timeout",
+					).length;
 					const running = tasks.filter((t) => t.status === "running").length;
 					const total = tasks.length;
 
@@ -142,46 +146,74 @@ export class SwarmStatusWidget {
 					lines.push(theme.fg("border", "─".repeat(width)));
 
 					// Header line
-					const swarmSpinner = status === "running" ? SPINNERS[spinnerIdx] : status === "done" ? "✅" : status === "cancelled" ? "⊘" : "❌";
-					const headerLabel = status === "running"
-						? theme.fg("accent", `${swarmSpinner} Swarm`) + theme.fg("dim", ` · ${running}↻ ${completed}✓ ${failed}✗ of ${total}`)
-						: status === "done"
-							? theme.fg("success", `${swarmSpinner} Swarm complete`) + theme.fg("dim", ` · ${completed}✓ ${failed}✗ of ${total}`)
-							: status === "cancelled"
-								? theme.fg("warning", `${swarmSpinner} Swarm cancelled`)
-								: theme.fg("error", `${swarmSpinner} Swarm failed`);
-					lines.push(` ${headerLabel}${theme.fg("dim", ` · ${elapsed} · ⫶${concurrency}`)}`);
+					const swarmSpinner =
+						status === "running"
+							? SPINNERS[spinnerIdx]
+							: status === "done"
+								? "✅"
+								: status === "cancelled"
+									? "⊘"
+									: "❌";
+					const headerLabel =
+						status === "running"
+							? theme.fg("accent", `${swarmSpinner} Swarm`) +
+								theme.fg(
+									"dim",
+									` · ${running}↻ ${completed}✓ ${failed}✗ of ${total}`,
+								)
+							: status === "done"
+								? theme.fg("success", `${swarmSpinner} Swarm complete`) +
+									theme.fg("dim", ` · ${completed}✓ ${failed}✗ of ${total}`)
+								: status === "cancelled"
+									? theme.fg("warning", `${swarmSpinner} Swarm cancelled`)
+									: theme.fg("error", `${swarmSpinner} Swarm failed`);
+					lines.push(
+						` ${headerLabel}${theme.fg("dim", ` · ${elapsed} · ⫶${concurrency}`)}`,
+					);
 
 					// Progress bar
 					const barWidth = Math.max(width - 4, 10);
 					const doneRatio = total > 0 ? (completed + failed) / total : 0;
 					const filledCount = Math.round(doneRatio * barWidth);
 					const emptyCount = barWidth - filledCount;
-					const bar = theme.fg("success", "█".repeat(filledCount)) + theme.fg("dim", "░".repeat(emptyCount));
+					const bar =
+						theme.fg("success", "█".repeat(filledCount)) +
+						theme.fg("dim", "░".repeat(emptyCount));
 					lines.push(` ${bar}`);
 
 					// Task list (compact: max 8 shown, collapse if more)
 					const maxVisible = 8;
-					const visibleTasks = tasks.length <= maxVisible ? tasks : tasks.slice(0, maxVisible);
+					const visibleTasks =
+						tasks.length <= maxVisible ? tasks : tasks.slice(0, maxVisible);
 
 					for (const task of visibleTasks) {
-						const icon = task.status === "running"
-							? theme.fg("accent", SPINNERS[spinnerIdx])
-							: task.status === "completed"
-								? theme.fg("success", TASK_ICONS.completed)
-								: task.status === "failed" || task.status === "timeout"
-									? theme.fg("error", TASK_ICONS[task.status] || TASK_ICONS.failed)
-									: theme.fg("dim", TASK_ICONS[task.status] || "○");
+						const icon =
+							task.status === "running"
+								? theme.fg("accent", SPINNERS[spinnerIdx])
+								: task.status === "completed"
+									? theme.fg("success", TASK_ICONS.completed)
+									: task.status === "failed" || task.status === "timeout"
+										? theme.fg(
+												"error",
+												TASK_ICONS[task.status] || TASK_ICONS.failed,
+											)
+										: theme.fg("dim", TASK_ICONS[task.status] || "○");
 
 						const agentLabel = theme.fg("accent", `@${task.agent}`);
-						const taskElapsed = task.startedAt && !task.completedAt
-							? theme.fg("dim", ` ${formatElapsed(Date.now() - new Date(task.startedAt).getTime())}`)
-							: task.duration
-								? theme.fg("dim", ` ${formatElapsed(task.duration)}`)
-								: "";
+						const taskElapsed =
+							task.startedAt && !task.completedAt
+								? theme.fg(
+										"dim",
+										` ${formatElapsed(Date.now() - new Date(task.startedAt).getTime())}`,
+									)
+								: task.duration
+									? theme.fg("dim", ` ${formatElapsed(task.duration)}`)
+									: "";
 						const request = truncate(task.request, width - 30);
 
-						lines.push(` ${icon} ${theme.fg("muted", task.id.padEnd(10))} ${agentLabel}${taskElapsed} ${theme.fg("dim", request)}`);
+						lines.push(
+							` ${icon} ${theme.fg("muted", task.id.padEnd(10))} ${agentLabel}${taskElapsed} ${theme.fg("dim", request)}`,
+						);
 					}
 
 					if (tasks.length > maxVisible) {

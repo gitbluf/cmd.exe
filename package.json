@@ -1,14 +1,20 @@
 {
-	"name": "pi-extension-dispath",
-	"version": "0.1.0",
+	"name": "cmd.exe",
+	"version": "0.1.0-alpha.0",
 	"type": "module",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
+	"pi": {
+		"extensions": [
+			"./src"
+		]
+	},
 	"keywords": [
 		"pi-package",
 		"pi-extension"
 	],
 	"scripts": {
+		"postinstall": "node scripts/postinstall.js",
 		"build": "bun x tsc",
 		"watch": "bun x tsc --watch",
 		"clean": "rm -rf dist",
@@ -20,18 +26,13 @@
 	},
 	"dependencies": {
 		"@anthropic-ai/sandbox-runtime": "0.0.39",
-		"@mariozechner/pi-coding-agent": "0.55.0",
 		"@mariozechner/pi-ai": "0.55.1",
+		"@mariozechner/pi-coding-agent": "0.55.0",
 		"@mariozechner/pi-tui": "0.55.1",
 		"@sinclair/typebox": "0.34.48"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.4.4",
 		"typescript": "5.0.4"
-	},
-	"pi": {
-		"extensions": [
-			"./dist/index.js"
-		]
 	}
 }

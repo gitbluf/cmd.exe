@@ -1,5 +1,10 @@
 /**
  * Swarm executor - handles concurrent task execution
+ *
+ * Key features:
+ *  - Incremental persistence: saves swarm state to disk on every task update
+ *  - Full output logging: writes agent output to per-task log files
+ *  - Background-friendly: designed to run while dashboard reads state from disk
  */
 
 import fs from "node:fs";
@@ -8,10 +13,35 @@ import type { AgentConfig, HostContext } from "../agents";
 import { spawnAgent } from "../agents";
 import { SessionRecorder } from "../recording";
 import type { TemplateConfig } from "../templates/types";
+import { upsertSwarm } from "./registry";
 import type { SwarmRecord, SwarmTask } from "./types";
 
+/** Directory under workspace root for swarm output logs */
+const OUTPUT_DIR = ".ai/swarm-output";
+
 /**
- * Executes a swarm of tasks with concurrency control
+ * Get the output log directory for a swarm
+ */
+function swarmOutputDir(workspaceRoot: string, swarmId: string): string {
+	return path.join(workspaceRoot, OUTPUT_DIR, swarmId);
+}
+
+/**
+ * Get the output log path for a task
+ */
+function taskOutputPath(
+	workspaceRoot: string,
+	swarmId: string,
+	taskId: string,
+): string {
+	return path.join(swarmOutputDir(workspaceRoot, swarmId), `${taskId}.log`);
+}
+
+/**
+ * Executes a swarm of tasks with concurrency control.
+ *
+ * Persists state to the registry on every task status change so external
+ * readers (like the dashboard) can poll for live updates.
  */
 export class SwarmExecutor {
 	private swarmRecord: SwarmRecord;
@@ -45,6 +75,43 @@ export class SwarmExecutor {
 		this.aborted = true;
 		this.swarmRecord.status = "cancelled";
 		this.swarmRecord.completedAt = new Date().toISOString();
+		this.persist();
+	}
+
+	/**
+	 * Persist current swarm state to disk
+	 */
+	private persist(): void {
+		try {
+			// Recalculate stats before persisting
+			this.swarmRecord.stats.completedTasks = this.swarmRecord.tasks.filter(
+				(t) => t.status === "completed",
+			).length;
+			this.swarmRecord.stats.failedTasks = this.swarmRecord.tasks.filter(
+				(t) => t.status === "failed" || t.status === "timeout",
+			).length;
+
+			upsertSwarm(this.workspaceRoot, this.swarmRecord);
+		} catch (_e) {
+			// Don't let persistence failures break execution
+		}
+	}
+
+	/**
+	 * Append text to a task's output log file
+	 */
+	private appendTaskOutput(taskId: string, text: string): void {
+		try {
+			const logPath = taskOutputPath(
+				this.workspaceRoot,
+				this.swarmRecord.id,
+				taskId,
+			);
+			fs.mkdirSync(path.dirname(logPath), { recursive: true });
+			fs.appendFileSync(logPath, text);
+		} catch (_e) {
+			// Don't let log failures break execution
+		}
 	}
 
 	/**
@@ -56,6 +123,19 @@ export class SwarmExecutor {
 		const running = new Map<string, Promise<void>>();
 
 		this.swarmRecord.status = "running";
+
+		// Create output directory
+		try {
+			fs.mkdirSync(
+				swarmOutputDir(this.workspaceRoot, this.swarmRecord.id),
+				{ recursive: true },
+			);
+		} catch (_e) {
+			// non-fatal
+		}
+
+		// Persist initial running state
+		this.persist();
 
 		while (queue.length > 0 || running.size > 0) {
 			if (this.aborted) {
@@ -73,11 +153,16 @@ export class SwarmExecutor {
 				}
 				task.status = "running";
 				task.startedAt = new Date().toISOString();
+				task.fullOutputPath = taskOutputPath(
+					this.workspaceRoot,
+					this.swarmRecord.id,
+					task.id,
+				);
 				this.onTaskUpdate(task);
+				this.persist();
 
 				const promise = this.executeTask(task)
 					.catch((e) => {
-						// Catch but don't rethrow - we handle errors in executeTask
 						console.error(`Task ${task.id} error:`, e);
 					})
 					.finally(() => {
@@ -95,19 +180,17 @@ export class SwarmExecutor {
 
 		// Update final status
 		if (!this.aborted) {
-			this.swarmRecord.status = "completed";
+			const hasFailed = this.swarmRecord.tasks.some(
+				(t) => t.status === "failed" || t.status === "timeout",
+			);
+			this.swarmRecord.status = hasFailed ? "failed" : "completed";
 		}
 
 		this.swarmRecord.completedAt = new Date().toISOString();
 		this.swarmRecord.stats.totalDuration = Date.now() - startTime;
 
-		// Calculate final stats
-		this.swarmRecord.stats.completedTasks = this.swarmRecord.tasks.filter(
-			(t) => t.status === "completed",
-		).length;
-		this.swarmRecord.stats.failedTasks = this.swarmRecord.tasks.filter(
-			(t) => t.status === "failed" || t.status === "timeout",
-		).length;
+		// Final persist
+		this.persist();
 
 		return this.swarmRecord;
 	}
@@ -159,8 +242,6 @@ export class SwarmExecutor {
 			task.sessionId = session.id;
 
 			// Execute with timeout
-			const outputLines: string[] = [];
-
 			await Promise.race([
 				spawnAgent(
 					agentConfig,
@@ -168,11 +249,12 @@ export class SwarmExecutor {
 					taskStateDir,
 					task.request,
 					(text) => {
-						outputLines.push(text);
+						// Stream output to log file
+						this.appendTaskOutput(task.id, text);
 						recorder?.logOutput(text);
 					},
 					() => {
-						// status callback - we ignore it for swarms
+						// status callback — ignored for swarms
 					},
 					this.hostContext,
 				),
@@ -183,12 +265,25 @@ export class SwarmExecutor {
 
 			recorder?.completeSession("completed");
 
-			// Record output
-			const fullOutput = outputLines.join("");
-			task.output =
-				this.swarmRecord.options.recordOutput === "none"
-					? ""
-					: fullOutput.substring(0, 500);
+			// Store truncated output in task record for quick display
+			try {
+				const logPath = task.fullOutputPath;
+				if (logPath && fs.existsSync(logPath)) {
+					const stat = fs.statSync(logPath);
+					if (this.swarmRecord.options.recordOutput === "none") {
+						task.output = "";
+					} else {
+						// Read last 500 chars for the truncated field
+						const buf = Buffer.alloc(Math.min(500, stat.size));
+						const fd = fs.openSync(logPath, "r");
+						fs.readSync(fd, buf, 0, buf.length, Math.max(0, stat.size - 500));
+						fs.closeSync(fd);
+						task.output = buf.toString("utf-8");
+					}
+				}
+			} catch (_e) {
+				// non-fatal
+			}
 
 			task.status = "completed";
 			task.completedAt = new Date().toISOString();
@@ -225,6 +320,7 @@ export class SwarmExecutor {
 			}
 
 			this.onTaskUpdate(task);
+			this.persist();
 		}
 	}
 }

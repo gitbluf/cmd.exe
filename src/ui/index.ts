@@ -12,14 +12,16 @@ export {
 	separator,
 	stripAnsi,
 } from "./components";
+export type { DashboardConfig, DashboardTheme, TaskPanelConfig } from "./dashboard";
+export { createDashboard, createSwarmDashboard, createTaskPanel } from "./dashboard";
 export {
-	AgentStatusWidget,
-	createStatusWidget,
 	type AgentPhase,
 	type AgentStatus,
+	AgentStatusWidget,
+	createStatusWidget,
 } from "./status-widget";
 export {
-	SwarmStatusWidget,
 	createSwarmStatusWidget,
+	SwarmStatusWidget,
 } from "./swarm-status-widget";
 export { createWidget } from "./widget";
