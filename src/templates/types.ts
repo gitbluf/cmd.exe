@@ -2,6 +2,8 @@
  * Agent template type definitions
  */
 
+import type { ModelConfig } from "../utils/model-resolver";
+
 export interface AgentTemplate {
 	// Identity
 	id?: string; // Agent ID (cortex, blueprint, etc.)
@@ -68,6 +70,9 @@ export interface TemplateConfig {
 	// Global defaults
 	defaultAgents?: number;
 	defaultMission?: string;
+
+	// Dynamic model selection for different action types
+	modelConfig?: ModelConfig;
 
 	// Global sandbox
 	sandbox?: {

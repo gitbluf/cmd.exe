@@ -2,6 +2,7 @@
  * Swarm executor - handles concurrent task execution
  *
  * Key features:
+ *  - Persistent agent workspaces: each task gets its own directory with .agent.json
  *  - Incremental persistence: saves swarm state to disk on every task update
  *  - Full output logging: writes agent output to per-task log files
  *  - Background-friendly: designed to run while dashboard reads state from disk
@@ -16,8 +17,31 @@ import type { TemplateConfig } from "../templates/types";
 import { upsertSwarm } from "./registry";
 import type { SwarmRecord, SwarmTask } from "./types";
 
+// ─── Path helpers ──────────────────────────────────────────────
+
+/** Root directory for all swarm workspaces */
+const WORKSPACES_DIR = "workspaces";
+
 /** Directory under workspace root for swarm output logs */
-const OUTPUT_DIR = ".ai/swarm-output";
+const OUTPUT_DIR = "output";
+
+/**
+ * Get the persistent workspace directory for a swarm
+ */
+function swarmWorkspaceDir(workspaceRoot: string, swarmId: string): string {
+	return path.join(workspaceRoot, WORKSPACES_DIR, swarmId);
+}
+
+/**
+ * Get the persistent workspace directory for a task within a swarm
+ */
+function taskWorkspaceDir(
+	workspaceRoot: string,
+	swarmId: string,
+	taskId: string,
+): string {
+	return path.join(swarmWorkspaceDir(workspaceRoot, swarmId), taskId);
+}
 
 /**
  * Get the output log directory for a swarm
@@ -37,8 +61,18 @@ function taskOutputPath(
 	return path.join(swarmOutputDir(workspaceRoot, swarmId), `${taskId}.log`);
 }
 
+// ─── Executor ──────────────────────────────────────────────────
+
 /**
  * Executes a swarm of tasks with concurrency control.
+ *
+ * Each task gets a persistent workspace at:
+ *   {workspaceRoot}/workspaces/{swarmId}/{taskId}/
+ *
+ * Workspaces contain:
+ *   .agent.json     — agent configuration and mission
+ *   .agent-state.json — post-execution state (written by AgentExecutor)
+ *   dispath-sandbox.sb — sandbox profile (macOS, written by AgentExecutor)
  *
  * Persists state to the registry on every task status change so external
  * readers (like the dashboard) can poll for live updates.
@@ -92,8 +126,8 @@ export class SwarmExecutor {
 			).length;
 
 			upsertSwarm(this.workspaceRoot, this.swarmRecord);
-		} catch (_e) {
-			// Don't let persistence failures break execution
+		} catch (e) {
+			console.error(`[dispatch] Failed to persist swarm state:`, e);
 		}
 	}
 
@@ -109,9 +143,50 @@ export class SwarmExecutor {
 			);
 			fs.mkdirSync(path.dirname(logPath), { recursive: true });
 			fs.appendFileSync(logPath, text);
-		} catch (_e) {
-			// Don't let log failures break execution
+		} catch (e) {
+			console.error(`[dispatch] Failed to write output for task ${taskId}:`, e);
 		}
+	}
+
+	/**
+	 * Create a persistent workspace directory for a task.
+	 * Writes .agent.json with the agent's configuration and mission.
+	 *
+	 * Returns the workspace path.
+	 */
+	private createTaskWorkspace(task: SwarmTask, agentConfig: AgentConfig): string {
+		const wsDir = taskWorkspaceDir(
+			this.workspaceRoot,
+			this.swarmRecord.id,
+			task.id,
+		);
+
+		fs.mkdirSync(wsDir, { recursive: true });
+
+		// Write agent config for later inspection
+		fs.writeFileSync(
+			path.join(wsDir, ".agent.json"),
+			JSON.stringify(agentConfig, null, 2),
+		);
+
+		// Write a README with mission details
+		const readme = [
+			`# Agent: ${task.agent.toUpperCase()}`,
+			``,
+			`- **Task ID:** ${task.id}`,
+			`- **Swarm:** ${this.swarmRecord.id}`,
+			`- **Created:** ${agentConfig.createdAt}`,
+			`- **Model:** ${agentConfig.template.model || "default"}`,
+			``,
+			`## Mission`,
+			``,
+			task.request,
+			``,
+		].join("\n");
+
+		fs.writeFileSync(path.join(wsDir, "README.md"), readme);
+
+		return wsDir;
 	}
 
 	/**
@@ -124,14 +199,19 @@ export class SwarmExecutor {
 
 		this.swarmRecord.status = "running";
 
-		// Create output directory
+		// Create swarm-level directories
+		const swarmWsDir = swarmWorkspaceDir(this.workspaceRoot, this.swarmRecord.id);
+		const swarmOutDir = swarmOutputDir(this.workspaceRoot, this.swarmRecord.id);
+
 		try {
-			fs.mkdirSync(
-				swarmOutputDir(this.workspaceRoot, this.swarmRecord.id),
-				{ recursive: true },
-			);
-		} catch (_e) {
-			// non-fatal
+			fs.mkdirSync(swarmWsDir, { recursive: true });
+			fs.mkdirSync(swarmOutDir, { recursive: true });
+		} catch (e) {
+			console.error(`[dispatch] Failed to create swarm directories:`, e);
+			this.swarmRecord.status = "failed";
+			this.swarmRecord.completedAt = new Date().toISOString();
+			this.persist();
+			return this.swarmRecord;
 		}
 
 		// Persist initial running state
@@ -163,7 +243,7 @@ export class SwarmExecutor {
 
 				const promise = this.executeTask(task)
 					.catch((e) => {
-						console.error(`Task ${task.id} error:`, e);
+						console.error(`[dispatch] Task ${task.id} error:`, e);
 					})
 					.finally(() => {
 						running.delete(task.id);
@@ -204,13 +284,6 @@ export class SwarmExecutor {
 		let recorder: SessionRecorder | null = null;
 
 		try {
-			// Create workspace directory for task state
-			const taskStateDir = path.join(
-				this.workspaceRoot,
-				`.tmp-swarm-${task.id}`,
-			);
-			fs.mkdirSync(taskStateDir, { recursive: true });
-
 			// Get agent template
 			const template = this.config.agentTemplates[task.agent];
 			if (!template) {
@@ -226,6 +299,12 @@ export class SwarmExecutor {
 				createdAt: new Date().toISOString(),
 			};
 
+			// Create persistent workspace with .agent.json and README
+			const workspace = this.createTaskWorkspace(task, agentConfig);
+
+			// Store workspace path on task record for dashboard/inspection
+			task.worktreeId = workspace;
+
 			recorder = new SessionRecorder(this.workspaceRoot);
 			const session = recorder.startSession(
 				task.agent,
@@ -240,13 +319,14 @@ export class SwarmExecutor {
 				},
 			);
 			task.sessionId = session.id;
+			this.persist();
 
 			// Execute with timeout
 			await Promise.race([
 				spawnAgent(
 					agentConfig,
 					this.projectCwd,
-					taskStateDir,
+					workspace,
 					task.request,
 					(text) => {
 						// Stream output to log file
@@ -309,16 +389,6 @@ export class SwarmExecutor {
 			task.completedAt = new Date().toISOString();
 			task.duration = Date.now() - startTime;
 		} finally {
-			// Cleanup temp workspace
-			try {
-				fs.rmSync(path.join(this.workspaceRoot, `.tmp-swarm-${task.id}`), {
-					recursive: true,
-					force: true,
-				});
-			} catch (_e) {
-				// Ignore cleanup errors
-			}
-
 			this.onTaskUpdate(task);
 			this.persist();
 		}

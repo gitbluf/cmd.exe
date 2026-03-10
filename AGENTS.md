@@ -1,159 +1,162 @@
-# Dispath Agent Templates
+# Swarm Agent System
 
 ## Overview
 
-Dispath can spawn agents with **pre-defined roles, prompts, models, and tools**. Each agent is a specialized cyberpunk netrunner with its own expertise.
+Swarms provide **multi-agent task orchestration** for pi. Deploy specialized agents with **pre-defined roles, prompts, models, and tools** to work on multiple tasks concurrently.
 
-## Built-in Agent Types
+## Core Commands
 
-### analyst
-- **Role:** Data Analyst
-- **Focus:** Pattern recognition, insights, reports
-- **Prompt:** Analytical, data-driven, precise
-- **Tools:** file_read, file_write, shell_exec
-- **Temperature:** 0.3 (deterministic)
+### /swarm <task-spec>
+Dispatch agents to work on tasks concurrently.
 
-### executor
-- **Role:** Task Executor  
-- **Focus:** Implementation, command execution, delivery
-- **Prompt:** Efficient, methodical, resource-aware
-- **Tools:** shell_exec, file_write, git_commit
-- **Temperature:** 0.2 (very focused)
+**Usage:**
+```bash
+/swarm task-1 ghost "implement auth" | task-2 blueprint "review design"
+/swarm --concurrency 3 task-1 ghost "do X" | task-2 cortex "do Y"
+```
 
-### researcher
-- **Role:** Information Researcher
-- **Focus:** Exploration, documentation, comprehensive findings
-- **Prompt:** Thorough, curious, detail-oriented
-- **Tools:** file_read, web_search, file_write
-- **Temperature:** 0.7 (creative)
+**Options:**
+- `--concurrency N` - Max parallel tasks (1-20, default 5)
+- `--timeout N` - Per-task timeout in ms (default 300000)
+- `--worktrees` - Enable git worktree isolation (true/false)
+- `--recordOutput` - Output recording: none, truncated, or full
+- `--retryFailed` - Retry failed tasks (true/false)
 
-### auditor
-- **Role:** Security Auditor
-- **Focus:** Code review, vulnerability detection, validation
-- **Prompt:** Critical, thorough, security-minded
-- **Tools:** file_read, shell_exec, file_write
-- **Temperature:** 0.2 (strict)
+### /swarm:list
+List all available agent templates with their roles, temperatures, and models.
 
-### architect
+### /swarm:status [swarm-id]
+View swarm execution status and history.
+- Without args: shows recent history
+- With swarm-id: shows detailed status for that swarm
+
+### /swarm:dashboard
+Interactive monitoring dashboard with real-time swarm status, task details, and output.
+
+### /swarm:task [task-id]
+View detailed information about a specific task in a swarm.
+
+## Built-in Agent Templates
+
+### ghost
+- **Role:** Implementation Specialist
+- **Focus:** Code changes, execution, delivery
+- **Prompt:** Surgical, precise, implementation-focused
+- **Tools:** read, write, edit, bash
+- **Temperature:** 0.1 (deterministic)
+
+### blueprint
 - **Role:** System Architect
-- **Focus:** Design, planning, blueprints
-- **Prompt:** Big-picture thinking, long-term strategy
-- **Tools:** file_write, file_read
+- **Focus:** Design, planning, refactoring strategy
+- **Prompt:** Big-picture thinking, design patterns
+- **Tools:** read, write
 - **Temperature:** 0.5 (balanced)
 
-## Usage Examples
+### cortex
+- **Role:** Data Analyst
+- **Focus:** Pattern recognition, insights, analysis
+- **Prompt:** Analytical, data-driven, precise
+- **Tools:** read, bash
+- **Temperature:** 0.3 (deterministic)
 
-### Spawn specific agent types
-```bash
-/dispath analyst executor researcher
-```
-This spawns 3 agents: one analyst, one executor, one researcher.
+### dataweaver
+- **Role:** Information Researcher
+- **Focus:** Documentation, exploration, findings
+- **Prompt:** Thorough, curious, detail-oriented
+- **Tools:** read, bash
+- **Temperature:** 0.7 (creative)
 
-### Spawn N agents of same type
-```bash
-/dispath 2 analyst
-```
-Spawns 2 analyst agents.
+### hardline
+- **Role:** Security Auditor
+- **Focus:** Code review, vulnerability detection
+- **Prompt:** Critical, thorough, security-minded
+- **Tools:** read, bash
+- **Temperature:** 0.2 (strict)
 
-### Spawn N random agents
-```bash
-/dispath 3
-```
-Spawns 3 agents with random types from available templates.
+### blackice
+- **Role:** Orchestrator
+- **Focus:** Request routing, task decomposition
+- **Prompt:** Strategic, decomposition-focused
+- **Tools:** coordination only
+- **Temperature:** 0.4 (balanced)
 
-### With mission briefing
-```bash
-/dispath analyst executor auditor Review codebase for security issues
-```
+## Swarm Record Structure
 
-### Interactive mode
-```bash
-/dispath
-```
-You'll be prompted for count and mission.
-
-## Agent Configuration
-
-Each agent workspace contains `.agent.json` with its configuration:
+Each swarm creates a persistent record:
 
 ```json
 {
-  "id": "1772145128544-0",
-  "type": "analyst",
-  "template": {
-    "role": "Data Analyst",
-    "systemPrompt": "...",
-    "model": "gpt-4",
-    "tools": ["file_read", "file_write", "shell_exec"],
-    "maxTokens": 4096,
-    "temperature": 0.3
-  },
-  "mission": "Infiltrate the monolith...",
-  "createdAt": "2025-02-26T23:45:00Z"
-}
-```
-
-## Customizing Templates
-
-Edit `~/.pi/agent/extensions/dispath.json`:
-
-```json
-{
-  "agentTemplates": {
-    "custom": {
-      "role": "Custom Role",
-      "description": "What this agent does",
-      "systemPrompt": "You are a custom agent...",
-      "model": "gpt-4",
-      "tools": ["file_read", "file_write"],
-      "maxTokens": 4096,
-      "temperature": 0.5
+  "id": "swarm-abc123",
+  "createdAt": "2025-02-26T23:45:00Z",
+  "status": "running|completed|failed|cancelled",
+  "completedAt": "2025-02-27T00:15:00Z",
+  "tasks": [
+    {
+      "id": "task-1",
+      "agent": "ghost",
+      "request": "implement auth module",
+      "status": "completed",
+      "output": "...",
+      "fullOutputPath": "path/to/output.log",
+      "duration": 12345,
+      "tokens": { "input": 1000, "output": 2000 }
     }
+  ],
+  "options": {
+    "concurrency": 5,
+    "timeout": 300000,
+    "worktrees": false,
+    "recordOutput": "truncated"
+  },
+  "stats": {
+    "totalTasks": 2,
+    "completedTasks": 2,
+    "failedTasks": 0,
+    "totalTokens": { "input": 5000, "output": 10000 },
+    "totalDuration": 25000
   }
 }
 ```
 
-Then use:
+## Examples
+
+### Simple dispatch
 ```bash
-/dispath custom analyst executor
+/swarm task-1 ghost "implement login form"
 ```
 
-## Accessing Agent Workspaces
-
-Each agent runs in an isolated git worktree:
-
+### Multi-task dispatch
 ```bash
-# List all agent workspaces
-cd ~/.pi/agent/dispath
-git worktree list
-
-# Enter an agent's workspace
-cd ~/.pi/agent/dispath/1772145128544-0
-cat .agent.json        # See agent config
-cat README.md          # See mission details
-git log                # See agent's commits
-
-# Clean up when done
-cd ~/.pi/agent/dispath
-git worktree remove -f 1772145128544-0
+/swarm task-1 ghost "implement auth" | task-2 blueprint "design DB schema" | task-3 cortex "analyze security"
 ```
 
-## Agent Tools
+### With options
+```bash
+/swarm --concurrency 2 --timeout 600000 task-1 ghost "X" | task-2 blueprint "Y"
+```
 
-Each template specifies which tools the agent can use:
+### Monitor swarms
+```bash
+/swarm:dashboard        # Interactive dashboard
+/swarm:status           # Recent history
+/swarm:status swarm-123 # Detailed view
+```
 
-- **file_read** - Read file contents
-- **file_write** - Write/create files
-- **shell_exec** - Execute shell commands
-- **git_commit** - Create git commits
-- **web_search** - Search the web
+## BLACKICE Orchestrator
 
-## Next: Make Agents Actually Run
+For complex task decomposition, use the BLACKICE orchestrator:
 
-Currently agents are created with config but don't automatically execute their prompts. To implement actual execution:
+```bash
+/blackice decompose this API refactor into specialized subtasks
+```
 
-1. Each agent could run a `run.sh` script in its workspace
-2. The script could invoke `pi` in agent mode with the systemPrompt
-3. Or spawn a custom executor that reads `.agent.json` and runs the agent
+BLACKICE analyzes your request and routes work to specialist agents automatically.
 
-Would you like me to implement that?
+## Next Steps
+
+The swarm system is designed for:
+- ✅ Concurrent multi-agent task execution
+- ✅ Persistent state and monitoring
+- ✅ Flexible agent roles and capabilities
+- 🔄 (Future) Git worktree isolation
+- 🔄 (Future) Advanced retry strategies

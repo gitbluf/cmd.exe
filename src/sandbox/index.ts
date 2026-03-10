@@ -13,6 +13,7 @@ export {
 	createSandboxedWriteTool,
 	DEFAULT_SANDBOX_POLICY,
 	getDefaultSandboxConfig,
+	getPlatformSandboxStrategy,
 	parseSandboxConfig,
 	wrapBashCommand,
 } from "./tools";

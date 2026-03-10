@@ -153,11 +153,31 @@ export const DEFAULT_SANDBOX_POLICY: SandboxPolicy = {
 };
 
 /**
- * Get default sandbox config
+ * Get the platform-specific sandbox strategy
+ * Returns the same strategy as the main pi session based on OS
+ *
+ * - Darwin (macOS): sandboxExec
+ * - Linux: bwrap
+ * - Other: none
+ *
+ * All agents inherit the same sandbox protection as the main pi session
+ */
+export function getPlatformSandboxStrategy(): SandboxConfig["strategy"] {
+	if (process.platform === "darwin") {
+		return "sandboxExec";
+	} else if (process.platform === "linux") {
+		return "bwrap";
+	}
+	return "none";
+}
+
+/**
+ * Get default sandbox config matching the main pi session
+ * All agents inherit the same sandbox protection as the main session
  */
 export function getDefaultSandboxConfig(): SandboxConfig {
 	return {
-		strategy: "none",
+		strategy: getPlatformSandboxStrategy(),
 		policy: DEFAULT_SANDBOX_POLICY,
 	};
 }

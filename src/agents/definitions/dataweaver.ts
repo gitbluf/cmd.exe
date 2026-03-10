@@ -6,6 +6,7 @@
  */
 
 import type { AgentDefinition } from "./types";
+import { getPlatformSandboxStrategy } from "../../sandbox";
 
 export const DATAWEAVER: AgentDefinition = {
 	id: "dataweaver",
@@ -52,6 +53,6 @@ Read-only analyst. You do not modify code or execute shell commands.
 	canExecuteShell: false,
 
 	sandbox: {
-		strategy: "none",
+		strategy: getPlatformSandboxStrategy(),
 	},
 };

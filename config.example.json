@@ -1,0 +1,77 @@
+{
+  "$schema": "https://example.com/cmd-exe-config-schema.json",
+  "$comment": "cmd.exe configuration with dynamic model selection",
+
+  "agentTemplates": {
+    "blueprint": {
+      "name": "BLUEPRINT",
+      "agentType": "blueprint",
+      "role": "System Architect",
+      "description": "Designs systems, plans implementation, analyzes architecture",
+      "systemPrompt": "You are BLUEPRINT, a system architect...",
+      "tools": ["read"],
+      "model": "github-copilot/gpt-4o",
+      "maxTokens": 4096,
+      "temperature": 0.5,
+      "canWrite": false,
+      "canExecuteShell": false
+    },
+
+    "ghost": {
+      "name": "GHOST",
+      "agentType": "ghost",
+      "role": "Implementation Specialist",
+      "description": "Executes code changes with precision and execution",
+      "systemPrompt": "You are GHOST, an implementation specialist...",
+      "tools": ["read", "write", "edit", "bash"],
+      "model": "github-copilot/gpt-4o",
+      "maxTokens": 8192,
+      "temperature": 0.1,
+      "canWrite": true,
+      "canExecuteShell": true
+    },
+
+    "cortex": {
+      "name": "CORTEX",
+      "agentType": "cortex",
+      "role": "Code Analyst",
+      "description": "Analyzes code patterns, identifies issues, provides insights",
+      "systemPrompt": "You are CORTEX, a code analyst...",
+      "tools": ["read", "bash"],
+      "model": "github-copilot/gpt-4o",
+      "maxTokens": 4096,
+      "temperature": 0.3,
+      "canWrite": false,
+      "canExecuteShell": true
+    }
+  },
+
+  "modelConfig": {
+    "$comment": "Dynamic model selection by action type for cost optimization",
+    "default": "github-copilot/gpt-4o",
+    "overrides": {
+      "auto-compat": "github-copilot/gpt-4o-mini",
+      "analysis": "github-copilot/gpt-4-turbo",
+      "testing": "github-copilot/gpt-4o-mini",
+      "research": "github-copilot/gpt-4o-mini"
+    },
+    "fallback": true
+  },
+
+  "agents": {
+    "blueprint": {
+      "disabled": false
+    },
+    "ghost": {
+      "disabled": false
+    },
+    "cortex": {
+      "disabled": false
+    }
+  },
+
+  "sandbox": {
+    "strategy": "sandboxExec",
+    "profile": "restricted"
+  }
+}

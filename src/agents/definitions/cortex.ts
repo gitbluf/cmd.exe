@@ -6,6 +6,7 @@
  */
 
 import type { AgentDefinition } from "./types";
+import { getPlatformSandboxStrategy } from "../../sandbox";
 
 export const CORTEX: AgentDefinition = {
 	id: "cortex",
@@ -60,6 +61,6 @@ You do not write code or run commands. You only analyze and report.
 	canExecuteShell: false,
 
 	sandbox: {
-		strategy: "none",
+		strategy: getPlatformSandboxStrategy(),
 	},
 };

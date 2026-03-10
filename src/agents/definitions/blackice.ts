@@ -6,6 +6,7 @@
  */
 
 import type { AgentDefinition } from "./types";
+import { getPlatformSandboxStrategy } from "../../sandbox";
 
 export const BLACKICE: AgentDefinition = {
 	id: "blackice",
@@ -58,6 +59,6 @@ Your output is concise and focused on delegation.
 	canExecuteShell: false,
 
 	sandbox: {
-		strategy: "none",
+		strategy: getPlatformSandboxStrategy(),
 	},
 };

@@ -14,4 +14,4 @@ export {
 } from "./components";
 
 export type { DashboardConfig, DashboardTheme, TaskPanelConfig } from "./dashboard";
-export { createDashboard, createSwarmDashboard, createTaskPanel } from "./dashboard";
+export { createDashboard } from "./dashboard";

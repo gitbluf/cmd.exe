@@ -6,6 +6,11 @@
  *   2. Swarm detail — tasks table for a single swarm
  *   3. Task detail  — output/tokens/error for a single task
  *
+ * Toast notifications:
+ *   When a swarm transitions from "running" to a terminal state,
+ *   a popout toast is rendered at the bottom of the current view
+ *   and auto-clears after 3 seconds.
+ *
  * Uses pi-tui Component interface with:
  *  - visibleWidth / truncateToWidth for ANSI-safe line handling
  *  - matchesKey for keyboard input
@@ -49,9 +54,19 @@ export interface TaskPanelConfig {
 	maxOutputLines?: number;
 }
 
+// ─── Toast type ────────────────────────────────────────────────
+
+interface Toast {
+	id: string;
+	lines: (t: DashboardTheme, w: number) => string[];
+	expiresAt: number;
+}
+
 // ─── Constants ─────────────────────────────────────────────────
 
 const SPINNERS = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+const TOAST_DURATION_MS = 3000;
 
 const STATUS_ICONS: Record<string, string> = {
 	pending: "○",
@@ -149,7 +164,7 @@ function boxLine(t: DashboardTheme, content: string, totalWidth: number): string
 }
 
 // ═══════════════════════════════════════════════════════════════
-//  VIEW 1 — Swarm List
+//  Dashboard Component
 // ═══════════════════════════════════════════════════════════════
 
 type View = "list" | "detail" | "task";
@@ -168,6 +183,10 @@ class DashboardComponent implements Component {
 	private selectedSwarm: SwarmRecord | null = null;
 	private selectedTask: SwarmTask | null = null;
 
+	// Toast notifications
+	private toasts: Toast[] = [];
+	private previousStatuses = new Map<string, string>();
+
 	// Callbacks
 	onClose?: () => void;
 
@@ -179,12 +198,25 @@ class DashboardComponent implements Component {
 
 	refresh(): void {
 		this.swarms = this.loadSwarms();
+
+		// Detect status transitions → push toasts
+		for (const swarm of this.swarms) {
+			const prev = this.previousStatuses.get(swarm.id);
+			if (prev === "running" && swarm.status !== "running") {
+				this.pushSwarmToast(swarm);
+			}
+			this.previousStatuses.set(swarm.id, swarm.status);
+		}
+
+		// Expire old toasts
+		const now = Date.now();
+		this.toasts = this.toasts.filter((t) => t.expiresAt > now);
+
 		// If viewing a swarm, refresh its data too
 		if (this.selectedSwarm) {
 			const updated = this.swarms.find((s) => s.id === this.selectedSwarm!.id);
 			if (updated) {
 				this.selectedSwarm = updated;
-				// If viewing a task, refresh its data from the updated swarm
 				if (this.selectedTask) {
 					const updatedTask = updated.tasks.find((t) => t.id === this.selectedTask!.id);
 					if (updatedTask) this.selectedTask = updatedTask;
@@ -192,6 +224,56 @@ class DashboardComponent implements Component {
 			}
 		}
 	}
+
+	private pushSwarmToast(swarm: SwarmRecord): void {
+		// Don't duplicate — replace if same swarm id
+		this.toasts = this.toasts.filter((t) => t.id !== swarm.id);
+
+		const ok = swarm.tasks.filter((t) => t.status === "completed").length;
+		const fail = swarm.tasks.filter((t) => t.status === "failed" || t.status === "timeout").length;
+		const total = swarm.tasks.length;
+		const status = swarm.status;
+
+		this.toasts.push({
+			id: swarm.id,
+			expiresAt: Date.now() + TOAST_DURATION_MS,
+			lines: (t, w) => {
+				const isError = status === "failed" || fail > 0;
+				const isCancelled = status === "cancelled";
+				const icon = isCancelled ? "⊘" : isError ? "⚠" : "✅";
+				const label = isCancelled ? "CANCELLED" : isError ? "COMPLETE (with failures)" : "COMPLETE";
+				const color = isCancelled ? t.warning : isError ? t.warning : t.success;
+				const toastW = Math.min(w - 4, 52);
+
+				return [
+					"",
+					`  ${t.border(`╭${"─".repeat(toastW - 2)}╮`)}`,
+					`  ${t.border("│")} ${color(`${icon} DISPATCH ${label}`)}${" ".repeat(Math.max(0, toastW - visibleWidth(` ${icon} DISPATCH ${label}`) - 3))}${t.border("│")}`,
+					`  ${t.border("│")} ${t.dim(swarm.id)}${" ".repeat(Math.max(0, toastW - visibleWidth(` ${swarm.id}`) - 3))}${t.border("│")}`,
+					`  ${t.border("│")} ${t.success(`${ok}✓`)} ${fail > 0 ? t.error(`${fail}✗`) : t.dim(`${fail}✗`)} ${t.dim(`of ${total} tasks`)}${" ".repeat(Math.max(0, toastW - visibleWidth(` ${ok}✓ ${fail}✗ of ${total} tasks`) - 3))}${t.border("│")}`,
+					`  ${t.border(`╰${"─".repeat(toastW - 2)}╯`)}`,
+				];
+			},
+		});
+	}
+
+	// ─── Toast rendering ───────────────────────────────────────
+
+	private renderToasts(width: number): string[] {
+		if (this.toasts.length === 0) return [];
+
+		const now = Date.now();
+		const active = this.toasts.filter((t) => t.expiresAt > now);
+		if (active.length === 0) return [];
+
+		const lines: string[] = [];
+		for (const toast of active) {
+			lines.push(...toast.lines(this.t, width));
+		}
+		return lines;
+	}
+
+	// ─── Input handling ────────────────────────────────────────
 
 	handleInput(data: string): void {
 		if (this._disposed) return;
@@ -206,7 +288,6 @@ class DashboardComponent implements Component {
 				this.view = "list";
 				return;
 			}
-			// At list level, close
 			this.onClose?.();
 			return;
 		}
@@ -276,7 +357,6 @@ class DashboardComponent implements Component {
 	private taskOutputScroll = 0;
 
 	private handleTaskInput(data: string): void {
-		// Scroll output with up/down
 		if (matchesKey(data, "up") && this.taskOutputScroll > 0) {
 			this.taskOutputScroll--;
 		} else if (matchesKey(data, "down")) {
@@ -284,21 +364,33 @@ class DashboardComponent implements Component {
 		}
 	}
 
+	// ─── Render ────────────────────────────────────────────────
+
 	invalidate(): void {}
 
 	render(width: number): string[] {
 		if (this._disposed) return [];
 		this.spinnerIdx++;
 
+		let viewLines: string[];
 		switch (this.view) {
-			case "list": return this.renderList(width);
-			case "detail": return this.renderDetail(width);
-			case "task": return this.renderTaskDetail(width);
+			case "list": viewLines = this.renderList(width); break;
+			case "detail": viewLines = this.renderDetail(width); break;
+			case "task": viewLines = this.renderTaskDetail(width); break;
 		}
+
+		// Append toasts below the current view
+		const toastLines = this.renderToasts(width);
+		if (toastLines.length > 0) {
+			viewLines.push(...toastLines);
+		}
+
+		return viewLines;
 	}
 
 	dispose(): void {
 		this._disposed = true;
+		this.toasts = [];
 	}
 
 	// ═══════════════════════════════════════════════════════════
@@ -320,7 +412,6 @@ class DashboardComponent implements Component {
 			lines.push(boxLine(t, ` ${t.dim("No swarms found. Run /dispatch to create one.")}`, w));
 			lines.push(boxLine(t, "", w));
 		} else {
-			// Table header
 			const cols = this.listColumns(w);
 			const header = ` ${pad(" ", 2)}${pad("STATUS", cols.status)}${pad("ID", cols.id)}${pad("TASKS", cols.tasks)}${pad("DATE", cols.date)}${pad("DURATION", cols.duration)}${pad("TOKENS", cols.tokens)}`;
 			lines.push(boxLine(t, t.dim(t.bold(header)), w));
@@ -484,7 +575,6 @@ class DashboardComponent implements Component {
 	 * Falls back to task.output if no file exists.
 	 */
 	private readTaskOutput(task: SwarmTask): string[] {
-		// Try reading from full output log file
 		if (task.fullOutputPath) {
 			try {
 				if (fs.existsSync(task.fullOutputPath)) {
@@ -498,7 +588,6 @@ class DashboardComponent implements Component {
 			}
 		}
 
-		// Fallback: truncated output from task record
 		if (task.output) {
 			return task.output.split("\n");
 		}
@@ -590,19 +679,8 @@ class DashboardComponent implements Component {
  * The dashboard dynamically discovers all swarms via `config.loadSwarms`.
  * Three views: swarm list → swarm detail → task detail.
  *
- * Usage with ctx.ui.custom():
- * ```ts
- * const { component, dispose } = createDashboard({
- *   loadSwarms: () => listSwarms(root),
- * });
- *
- * await ctx.ui.custom((tui, theme, kb, done) => {
- *   component.onClose = () => { dispose(); done(undefined); };
- *   const timer = setInterval(() => tui.requestRender(), 500);
- *   component.onClose = () => { clearInterval(timer); dispose(); done(undefined); };
- *   return component;
- * });
- * ```
+ * Toast notifications appear when a swarm transitions out of "running"
+ * and auto-clear after 3 seconds.
  */
 export function createDashboard(
 	config: DashboardConfig,
@@ -630,86 +708,5 @@ export function createDashboard(
 			}
 			dashboard.dispose();
 		},
-	};
-}
-
-// ─── Legacy convenience wrappers (kept for backward compat) ───
-
-/** @deprecated Use createDashboard() instead */
-export async function createSwarmDashboard(
-	swarmRecord: SwarmRecord,
-	config?: { height?: number; refreshInterval?: number; showDetails?: boolean },
-	theme?: DashboardTheme,
-): Promise<{
-	component: Component;
-	updateTasks: (tasks: SwarmTask[]) => void;
-	updateStatus: (status: SwarmRecord["status"]) => void;
-	dispose: () => void;
-}> {
-	let record = { ...swarmRecord };
-	const { component, dispose } = createDashboard({
-		refreshInterval: config?.refreshInterval ?? 200,
-		loadSwarms: () => [record],
-	}, theme);
-
-	return {
-		component,
-		updateTasks(tasks: SwarmTask[]) {
-			record = { ...record, tasks: [...tasks] };
-		},
-		updateStatus(status: SwarmRecord["status"]) {
-			record = { ...record, status };
-		},
-		dispose,
-	};
-}
-
-/** @deprecated Use createDashboard() instead */
-export async function createTaskPanel(
-	task: SwarmTask,
-	config?: TaskPanelConfig,
-	theme?: DashboardTheme,
-): Promise<{
-	component: Component;
-	updateTask: (task: SwarmTask) => void;
-	appendOutput: (text: string) => void;
-	dispose: () => void;
-}> {
-	// Wrap as single-task swarm so it goes straight to task detail
-	let record: SwarmRecord = {
-		id: "single-task",
-		createdAt: task.startedAt ?? new Date().toISOString(),
-		status: task.status === "completed" ? "completed" : task.status === "failed" ? "failed" : "running",
-		tasks: [task],
-		options: { concurrency: 1, timeout: 300000, worktrees: false, recordOutput: "truncated", retryFailed: false },
-		stats: {
-			totalTasks: 1,
-			completedTasks: task.status === "completed" ? 1 : 0,
-			failedTasks: task.status === "failed" ? 1 : 0,
-			totalTokens: task.tokens ?? { input: 0, output: 0 },
-			totalDuration: task.duration ?? 0,
-		},
-	};
-
-	const outputLines: string[] = [];
-	const { component, dispose } = createDashboard({
-		refreshInterval: 200,
-		loadSwarms: () => [record],
-	}, theme);
-
-	return {
-		component,
-		updateTask(t: SwarmTask) {
-			record = { ...record, tasks: [t] };
-		},
-		appendOutput(text: string) {
-			outputLines.push(...text.split("\n"));
-			const maxLines = config?.maxOutputLines ?? 100;
-			while (outputLines.length > maxLines) outputLines.shift();
-			// Update the task output field so it shows in the detail view
-			const t = record.tasks[0];
-			record = { ...record, tasks: [{ ...t, output: outputLines.join("\n") }] };
-		},
-		dispose,
 	};
 }

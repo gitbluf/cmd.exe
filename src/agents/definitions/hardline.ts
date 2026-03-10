@@ -6,6 +6,7 @@
  */
 
 import type { AgentDefinition } from "./types";
+import { getPlatformSandboxStrategy } from "../../sandbox";
 
 export const HARDLINE: AgentDefinition = {
 	id: "hardline",
@@ -52,6 +53,6 @@ Operate through shell commands and report results clearly.
 	canExecuteShell: true,
 
 	sandbox: {
-		strategy: "none",
+		strategy: getPlatformSandboxStrategy(),
 	},
 };

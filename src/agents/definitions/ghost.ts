@@ -6,6 +6,7 @@
  */
 
 import type { AgentDefinition } from "./types";
+import { getPlatformSandboxStrategy } from "../../sandbox";
 
 export const GHOST: AgentDefinition = {
 	id: "ghost",
@@ -53,6 +54,6 @@ You are the only agent that writes code. Work surgically and report changes.
 	canExecuteShell: true,
 
 	sandbox: {
-		strategy: "none",
+		strategy: getPlatformSandboxStrategy(),
 	},
 };

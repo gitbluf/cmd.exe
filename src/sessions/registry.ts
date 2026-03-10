@@ -13,7 +13,7 @@ import { calculateSessionStats } from "./types";
  * Get path to session registry file
  */
 function getRegistryPath(workspaceRoot: string): string {
-	return path.join(workspaceRoot, ".ai", ".dispath-sessions.json");
+	return path.join(workspaceRoot, ".agents", ".dispath-sessions.json");
 }
 
 /**
@@ -62,9 +62,9 @@ export function saveSessionRegistry(
 	workspaceRoot: string,
 	registry: SessionRegistry,
 ): void {
-	const aiDir = path.join(workspaceRoot, ".ai");
-	if (!fs.existsSync(aiDir)) {
-		fs.mkdirSync(aiDir, { recursive: true });
+	const agentsDir = path.join(workspaceRoot, ".agents");
+	if (!fs.existsSync(agentsDir)) {
+		fs.mkdirSync(agentsDir, { recursive: true });
 	}
 
 	const registryPath = getRegistryPath(workspaceRoot);

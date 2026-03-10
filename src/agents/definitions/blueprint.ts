@@ -6,6 +6,7 @@
  */
 
 import type { AgentDefinition } from "./types";
+import { getPlatformSandboxStrategy } from "../../sandbox";
 
 export const BLUEPRINT: AgentDefinition = {
 	id: "blueprint",
@@ -62,6 +63,6 @@ You do not implement code or execute commands. You deliver structured plans only
 	canExecuteShell: false,
 
 	sandbox: {
-		strategy: "none",
+		strategy: getPlatformSandboxStrategy(),
 	},
 };

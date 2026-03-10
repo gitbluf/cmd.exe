@@ -120,9 +120,9 @@ export function getConfigPath(): string {
  */
 export function getWorkspaceRoot(cwd?: string): string {
 	if (cwd) {
-		return path.join(cwd, ".pi", "dispatch");
+		return path.join(cwd, ".agents", "dispatch");
 	}
 
 	const home = process.env.HOME || ".";
-	return path.join(home, ".pi/agent/dispatch");
+	return path.join(home, ".agents/dispatch");
 }

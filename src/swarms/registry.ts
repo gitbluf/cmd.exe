@@ -9,9 +9,8 @@ import type { SwarmRecord, SwarmRegistry } from "./types";
 const REGISTRY_FILENAME = ".dispath-swarms.json";
 
 function getRegistryPath(workspaceRoot: string): string {
-	const aiDir = path.join(workspaceRoot, ".ai");
-	fs.mkdirSync(aiDir, { recursive: true });
-	return path.join(aiDir, REGISTRY_FILENAME);
+	fs.mkdirSync(workspaceRoot, { recursive: true });
+	return path.join(workspaceRoot, REGISTRY_FILENAME);
 }
 
 /**
