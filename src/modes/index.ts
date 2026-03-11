@@ -57,6 +57,7 @@ export function getModeStatusText(mode: SessionMode): string {
 export function getModeSystemPrompt(
 	mode: SessionMode,
 	tools: string[],
+	activePlan?: string,
 ): string {
 	const toolList = tools.map((t) => `- ${t}`).join("\n");
 
@@ -80,11 +81,13 @@ export function getModeSystemPrompt(
 			"- Provide thorough analysis, architecture recommendations, and implementation plans.",
 			"- Identify risks, trade-offs, and dependencies.",
 			"- Outline clear, actionable steps the user can execute in Build mode.",
+			"- When creating a plan, format it with a 'Plan:' header followed by numbered steps.",
 			"",
 		].join("\n");
 	}
 
-	return [
+	// Build mode
+	const buildPrompt = [
 		"",
 		"## Operating Mode: BUILD",
 		"",
@@ -93,6 +96,22 @@ export function getModeSystemPrompt(
 		"### Available tools",
 		toolList,
 		"",
+	];
+
+	// Inject active plan if present
+	if (activePlan) {
+		buildPrompt.push(
+			"### Active Plan",
+			"",
+			"You are executing the following plan. Complete steps in order.",
+			"After completing each step, include [DONE:n] in your response where n is the step number.",
+			"",
+			activePlan,
+			"",
+		);
+	}
+
+	buildPrompt.push(
 		"### Directives",
 		"- Execute changes surgically and precisely.",
 		"- Write clean, production-quality code.",
@@ -100,7 +119,9 @@ export function getModeSystemPrompt(
 		"- Commit logical, atomic units of work.",
 		"- If you need to step back and plan, suggest the user switch to Plan mode (`/mode` to toggle).",
 		"",
-	].join("\n");
+	);
+
+	return buildPrompt.join("\n");
 }
 
 /** Get the effective mode config, merging user overrides */

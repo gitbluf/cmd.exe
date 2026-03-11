@@ -20,6 +20,7 @@ export interface AgentDefinition {
 	tools: string[]; // What this agent can access
 	canWrite: boolean; // Can write/edit files
 	canExecuteShell: boolean; // Can run shell commands
+	readOnlyBash?: boolean; // If true, bash is filtered through read-only allowlist
 
 	// Sandbox configuration
 	sandbox?: {

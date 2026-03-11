@@ -5,8 +5,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type {
-  ExtensionAPI,
-  ExtensionCommandContext,
+	ExtensionAPI,
+	ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
 import { createReadTool } from "@mariozechner/pi-coding-agent";
 import { getIconRegistry } from "../../ui/icons";
@@ -15,6 +15,11 @@ import type { AgentTemplate, TemplateConfig } from "../../templates/types";
 import { resolveModel } from "../../utils/model-resolver";
 import { ANSI, colorize } from "../../ui";
 import { buildToolsFromTemplate } from "../tools";
+import { parsePlanFromMarkdown } from "../../plan/parser";
+import { createPlanId } from "../../plan/types";
+import { setPlan } from "../../plan/state";
+import { updatePlanStatus } from "../../plan/widget";
+import { getWorkspaceRoot } from "../../utils/config";
 
 export async function handleSynthPlan(
   args: string,
@@ -103,7 +108,28 @@ Generate the plan in Markdown format.`;
     }
 
     // Write the synthesized plan
-    await writePlanToFile(ctx, root, planContent, pi);
+    const planFilename = await writePlanToFile(ctx, root, planContent, pi);
+
+    // Parse plan and set as active
+    const steps = parsePlanFromMarkdown(planContent);
+    if (steps) {
+      const planState = {
+        id: createPlanId(),
+        steps,
+        source: "synth" as const,
+        createdAt: new Date().toISOString(),
+        sourceFile: `.agents/${planFilename}`,
+      };
+
+      setPlan(root, planState);
+      updatePlanStatus(ctx, planState);
+
+      const icons = getIconRegistry();
+      ctx.ui.notify(
+        `${icons.success} Plan activated with ${steps.length} steps. Use /todos to view, /mode to switch to Build mode.`,
+        "info",
+      );
+    }
   } catch (e) {
     const error = e as Error;
     const icons = getIconRegistry();
@@ -118,49 +144,51 @@ Generate the plan in Markdown format.`;
  * Helper: Write plan file with temporary write permission
  */
 async function writePlanToFile(
-  ctx: ExtensionCommandContext,
-  root: string,
-  planContent: string,
-  pi: ExtensionAPI,
-): Promise<void> {
-  const now = new Date();
-  const dateStr = now.toISOString().split("T")[0];
-  const timeStr = now
-    .toISOString()
-    .split("T")[1]
-    ?.split(".")[0]
-    .replace(/:/g, "");
-  const sessionId = `${dateStr}-${timeStr}`;
-  const planFilename = `plan-${sessionId}.md`;
-  const planPath = path.join(root, ".agents", planFilename);
+	ctx: ExtensionCommandContext,
+	root: string,
+	planContent: string,
+	pi: ExtensionAPI,
+): Promise<string> {
+	const now = new Date();
+	const dateStr = now.toISOString().split("T")[0];
+	const timeStr = now
+		.toISOString()
+		.split("T")[1]
+		?.split(".")[0]
+		.replace(/:/g, "");
+	const sessionId = `${dateStr}-${timeStr}`;
+	const planFilename = `plan-${sessionId}.md`;
+	const planPath = path.join(root, ".agents", planFilename);
 
-  const agentsDir = path.join(root, ".agents");
-  if (!fs.existsSync(agentsDir)) {
-    fs.mkdirSync(agentsDir, { recursive: true });
-  }
+	const agentsDir = path.join(root, ".agents");
+	if (!fs.existsSync(agentsDir)) {
+		fs.mkdirSync(agentsDir, { recursive: true });
+	}
 
-  const currentTools = pi.getActiveTools();
+	const currentTools = pi.getActiveTools();
 
-  try {
-    const needsWrite = !currentTools.includes("write");
-    if (needsWrite) {
-      const updatedTools = [...currentTools, "write"];
-      pi.setActiveTools(updatedTools);
-    }
+	try {
+		const needsWrite = !currentTools.includes("write");
+		if (needsWrite) {
+			const updatedTools = [...currentTools, "write"];
+			pi.setActiveTools(updatedTools);
+		}
 
-    fs.writeFileSync(planPath, planContent, "utf-8");
+		fs.writeFileSync(planPath, planContent, "utf-8");
 
-    const lines = planContent.split("\n");
-    const sizeKB = (planContent.length / 1024).toFixed(2);
-    const icons = getIconRegistry();
+		const lines = planContent.split("\n");
+		const sizeKB = (planContent.length / 1024).toFixed(2);
+		const icons = getIconRegistry();
 
-    ctx.ui.notify(
-      `${icons.success} Plan saved to .agents/${planFilename} (${lines.length} lines, ${sizeKB} KB)`,
-      "info",
-    );
-  } finally {
-    if (currentTools.length > 0) {
-      pi.setActiveTools(currentTools);
-    }
-  }
+		ctx.ui.notify(
+			`${icons.success} Plan saved to .agents/${planFilename} (${lines.length} lines, ${sizeKB} KB)`,
+			"info",
+		);
+
+		return planFilename;
+	} finally {
+		if (currentTools.length > 0) {
+			pi.setActiveTools(currentTools);
+		}
+	}
 }

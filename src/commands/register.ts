@@ -20,6 +20,7 @@ import {
   handleSynthExec,
   handleSynthOutput,
   handleMode,
+  handleTodos,
 } from "./handlers";
 import { getEffectiveModeConfig } from "../modes";
 
@@ -108,6 +109,13 @@ export function registerAllCommands(
     description: "Toggle between Plan mode (read-only) and Build mode (full tools)",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       await handleMode(args, ctx, pi, modeConfig);
+    },
+  });
+
+  pi.registerCommand("todos", {
+    description: "Show current plan progress",
+    handler: async (args: string, ctx: ExtensionCommandContext) => {
+      await handleTodos(args, ctx);
     },
   });
 }

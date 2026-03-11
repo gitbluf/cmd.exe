@@ -47,10 +47,11 @@ Read-only analyst. You do not modify code or execute shell commands.
 	temperature: 0.4,
 	maxTokens: 3000,
 
-	tools: ["file_read"],
+	tools: ["file_read", "shell_exec"],
 
 	canWrite: false,
-	canExecuteShell: false,
+	canExecuteShell: true,
+	readOnlyBash: true,
 
 	sandbox: {
 		strategy: getPlatformSandboxStrategy(),

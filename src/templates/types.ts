@@ -27,6 +27,7 @@ export interface AgentTemplate {
 	tools: string[];
 	canWrite?: boolean; // Can write/edit files
 	canExecuteShell?: boolean; // Can run shell commands
+	readOnlyBash?: boolean; // If true, bash is filtered through read-only allowlist
 
 	// Configuration
 	model: string;

@@ -11,7 +11,15 @@ import {
 	getModeSystemPrompt,
 	setCurrentMode,
 } from "../modes";
+import { loadPlanState, markStepDone, savePlanState, setPlan } from "../plan/state";
+import {
+	clearPlanWidgets,
+	flashStepComplete,
+	updatePlanStatus,
+} from "../plan/widget";
+import { getPlanStats, parsePlanFromText, createPlanId } from "../plan";
 import type { TemplateConfig } from "../templates/types";
+import { getWorkspaceRoot } from "../utils/config";
 import { trySetModel } from "../utils/model-utils";
 import {
 	createSandboxedBashOps,
@@ -44,6 +52,13 @@ export function setupLifecycleHooks(
 		// Set footer status
 		if (ctx.hasUI) {
 			ctx.ui.setStatus("mode", getModeStatusText("plan"));
+
+			// Load persisted plan state
+			const root = getWorkspaceRoot(ctx.cwd);
+			const plan = loadPlanState(root);
+			if (plan) {
+				updatePlanStatus(ctx, plan);
+			}
 		}
 
 		// Try to set the plan model
@@ -67,11 +82,91 @@ export function setupLifecycleHooks(
 		pi.setActiveTools([...tools]);
 	});
 
+	// Detect [DONE:n] markers and new plans after each turn
+	pi.on("turn_end", (event, ctx) => {
+		if (!ctx.hasUI || !event.message) return;
+
+		const root = getWorkspaceRoot(ctx.cwd);
+		const plan = loadPlanState(root);
+		const mode = getCurrentMode();
+
+		// Extract text content from message (only if it's a text message)
+		const message = event.message as any;
+		if (!message.content) return;
+
+		const content =
+			typeof message.content === "string"
+				? message.content
+				: Array.isArray(message.content)
+					? message.content
+							.filter((c: any) => c.type === "text")
+							.map((c: any) => c.text)
+							.join("")
+					: "";
+
+		if (!content) return;
+
+		// Detect [DONE:n] markers if we have an active plan
+		if (plan) {
+			const doneMatches = content.matchAll(/\[DONE:(\d+)\]/g);
+			for (const match of doneMatches) {
+				const stepNumber = Number.parseInt(match[1], 10);
+				const wasCompleted = markStepDone(root, stepNumber);
+
+				if (wasCompleted) {
+					const updatedPlan = loadPlanState(root);
+					if (updatedPlan) {
+						const stats = getPlanStats(updatedPlan);
+						const step = updatedPlan.steps.find((s) => s.number === stepNumber);
+						if (step) {
+							flashStepComplete(ctx, step, stats);
+							updatePlanStatus(ctx, updatedPlan);
+						}
+					}
+				}
+			}
+		}
+
+		// Auto-detect new plans in plan mode (only if no active plan)
+		if (mode === "plan" && !plan) {
+			const detectedSteps = parsePlanFromText(content);
+			if (detectedSteps) {
+				const newPlan = {
+					id: createPlanId(),
+					steps: detectedSteps,
+					source: "conversation" as const,
+					createdAt: new Date().toISOString(),
+				};
+				setPlan(root, newPlan);
+				updatePlanStatus(ctx, newPlan);
+				ctx.ui.notify(
+					`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /mode to execute.`,
+					"info",
+				);
+			}
+		}
+	});
+
 	// Inject mode-specific system prompt instructions before each agent turn
-	pi.on("before_agent_start", async (event, _ctx) => {
+	pi.on("before_agent_start", async (event, ctx) => {
 		const mode = getCurrentMode();
 		const tools = modeConfig[mode].tools;
-		const modePrompt = getModeSystemPrompt(mode, tools);
+
+		// Format active plan for build mode
+		let activePlanText: string | undefined;
+		if (mode === "build" && ctx.hasUI) {
+			const root = getWorkspaceRoot(ctx.cwd);
+			const plan = loadPlanState(root);
+			if (plan) {
+				const lines = plan.steps.map((s) => {
+					const icon = s.completed ? "✅" : "⬜";
+					return `${icon} ${s.number}. ${s.description}`;
+				});
+				activePlanText = lines.join("\n");
+			}
+		}
+
+		const modePrompt = getModeSystemPrompt(mode, tools, activePlanText);
 
 		return {
 			systemPrompt: event.systemPrompt + modePrompt,
@@ -94,8 +189,18 @@ export function setupLifecycleHooks(
 	});
 
 	// Reset sandbox on session shutdown
-	pi.on("session_shutdown", async () => {
+	pi.on("session_shutdown", async (_event, ctx) => {
 		await resetSandbox();
+
+		// Save plan state
+		if (ctx.hasUI) {
+			const root = getWorkspaceRoot(ctx.cwd);
+			const plan = loadPlanState(root);
+			if (plan) {
+				savePlanState(root, plan);
+			}
+			clearPlanWidgets(ctx);
+		}
 	});
 
 	// Provide sandboxed bash operations for user bash

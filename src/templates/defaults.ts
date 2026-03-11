@@ -30,6 +30,7 @@ function agentDefinitionToTemplate(agent: AgentDefinition): AgentTemplate {
 		tools: agent.tools || [],
 		canWrite: agent.canWrite || false,
 		canExecuteShell: agent.canExecuteShell || false,
+		readOnlyBash: agent.readOnlyBash,
 		sandbox: agent.sandbox,
 	};
 }

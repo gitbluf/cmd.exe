@@ -21,6 +21,7 @@ import {
 	type SandboxConfig,
 	wrapBashCommand,
 } from "../sandbox";
+import { validateCommand } from "./bash-allowlist";
 import type {
 	AgentConfig,
 	AgentEventCallbacks,
@@ -238,17 +239,42 @@ Document your progress and findings.`;
 				case "file_edit":
 					tools.push(createEditTool(this.cwd));
 					break;
-				case "shell_exec":
-					tools.push(
-						createBashTool(this.cwd, {
-							spawnHook: ({ command, cwd, env }) => ({
-								command: wrapBashCommand(command, sandboxConfig),
-								cwd,
-								env,
+				case "shell_exec": {
+					const readOnly = this.config.template.readOnlyBash;
+
+					if (readOnly) {
+						// Read-only bash with allowlist filter
+						tools.push(
+							createBashTool(this.cwd, {
+								spawnHook: ({ command, cwd, env }) => {
+									const validation = validateCommand(command);
+									if (!validation.allowed) {
+										throw new Error(
+											`Command blocked by read-only filter: ${validation.reason}`,
+										);
+									}
+									return {
+										command: wrapBashCommand(command, sandboxConfig),
+										cwd,
+										env,
+									};
+								},
 							}),
-						}),
-					);
+						);
+					} else {
+						// Standard sandboxed bash
+						tools.push(
+							createBashTool(this.cwd, {
+								spawnHook: ({ command, cwd, env }) => ({
+									command: wrapBashCommand(command, sandboxConfig),
+									cwd,
+									env,
+								}),
+							}),
+						);
+					}
 					break;
+				}
 			}
 		}
 
