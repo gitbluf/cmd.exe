@@ -6,7 +6,7 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 
 ```bash
 # Switch to Build mode (default is Plan mode - read-only)
-/mode
+/ops
 
 # Dispatch specialized agents to work in parallel
 /swarm task-1 ghost "implement auth module" | task-2 blueprint "design API schema"
@@ -18,6 +18,100 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 /synth:plan Review the codebase architecture
 /synth:exec Implement the planned changes
 ```
+
+## 📦 Installation
+
+### Prerequisites
+
+Ensure you have [pi coding agent](https://github.com/badlogic/pi) installed:
+
+```bash
+npm install -g @mariozechner/pi-coding-agent
+# or
+bun add -g @mariozechner/pi-coding-agent
+```
+
+### Option 1: Install from npm (Recommended)
+
+If the package is published to npm or GitHub Packages:
+
+```bash
+# Install globally via npm
+npm install -g cmd.exe
+
+# Or via bun
+bun add -g cmd.exe
+```
+
+The extension will be automatically discovered by pi on startup.
+
+### Option 2: Install from Git
+
+Clone and link the extension directly:
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/cmd.exe.git
+cd cmd.exe
+
+# Install dependencies
+npm install
+# or
+bun install
+
+# Build the extension
+npm run build
+# or
+bun run build
+
+# Link to pi extensions directory
+mkdir -p ~/.pi/extensions
+ln -s "$(pwd)" ~/.pi/extensions/cmd.exe
+```
+
+### Option 3: Install as Local pi Package
+
+Using pi's package management:
+
+```bash
+# From git URL
+pi install https://github.com/yourusername/cmd.exe.git
+
+# From local directory
+pi install /path/to/cmd.exe
+```
+
+### Verify Installation
+
+Start pi and check if the extension is loaded:
+
+```bash
+pi
+
+# You should see cmd.exe commands available:
+# /swarm, /ops, /synth:plan, /synth:exec, /blackice, etc.
+```
+
+### Configuration (Optional)
+
+Create custom configuration at `~/.pi/extensions/cmd.exe/config.json`:
+
+```json
+{
+  "modes": {
+    "plan": {
+      "model": "github-copilot/claude-opus-4.6",
+      "tools": ["read", "find_files"]
+    },
+    "build": {
+      "model": "github-copilot/claude-sonnet-4.5",
+      "tools": ["read", "write", "edit", "bash", "find_files"]
+    }
+  }
+}
+```
+
+See [Configuration](#️-configuration) section for full options.
 
 ## 🌟 Core Features
 
@@ -35,9 +129,9 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 - Complete tool access: read, write, edit, bash
 - Fast execution model (ex: Claude Sonnet 4.6)
 - Surgical code changes and testing
-- Footer shows: `☠️ BUILD`
+- Footer shows: `🚀 BUILD`
 
-Toggle with `/mode` command.
+Toggle with `/ops` command.
 
 ### 🐝 Multi-Agent Swarms
 
@@ -135,7 +229,7 @@ Each agent has:
 cmd.exe/
 ├── src/
 │   ├── agents/           # Agent definitions (ghost, blueprint, etc.)
-│   ├── commands/         # Command handlers (/swarm, /synth, /mode)
+│   ├── commands/         # Command handlers (/swarm, /synth, /ops)
 │   ├── swarms/           # Multi-agent orchestration engine
 │   ├── sub-agent/        # Single-agent execution runtime
 │   ├── modes/            # Plan/Build mode system
@@ -155,75 +249,61 @@ cmd.exe/
 
 ## ⚙️ Configuration
 
-Create `~/.pi/agent/extensions/cmd-exe.json`:
+Configuration files can be placed at:
+- `<workspace>/.pi/extensions/cmd.exe/config.json` (project-specific)
+- `~/.pi/extensions/cmd.exe/config.json` (user-wide)
+- `/etc/pi/extensions/cmd.exe/config.json` (global)
+
+### Quick Example
 
 ```json
 {
-  "agentTemplates": {
-    "ghost": {
-      "model": "gpt-4o",
-      "temperature": 0.1,
-      "tools": ["read", "write", "edit", "bash"]
-    },
-    "custom-agent": {
-      "id": "custom",
-      "name": "Custom Agent",
-      "role": "Custom Role",
-      "systemPrompt": "You are a specialized agent for...",
-      "model": "claude-3-5-sonnet",
-      "temperature": 0.3,
-      "tools": ["read", "bash"]
-    }
-  },
   "modes": {
     "plan": {
       "model": "github-copilot/claude-opus-4.6",
-      "tools": ["read"]
+      "tools": ["read", "find_files"]
     },
     "build": {
       "model": "github-copilot/claude-sonnet-4.5",
-      "tools": ["read", "write", "edit", "bash"]
+      "tools": ["read", "write", "edit", "bash", "find_files"]
+    }
+  },
+  "modelConfig": {
+    "default": "github-copilot/claude-sonnet-4.5",
+    "overrides": {
+      "planning": "github-copilot/claude-opus-4.6",
+      "research": "github-copilot/gpt-4o-mini",
+      "ask": "github-copilot/haiku-4.5"
     }
   },
   "icons": {
     "modePlan": "🔍",
     "modeBuild": "🔨",
-    "agentGhost": "🥷",
-    "swarm": "🐝"
-  },
-  "modelConfig": {
-    "main": "gpt-4o",
-    "planning": "claude-3-opus",
-    "cheap": "gpt-4o-mini"
+    "agentGhost": "🥷"
   }
 }
 ```
 
-### Configuration Options
+### Configuration Sections
 
-**agentTemplates** - Define or override agent templates
+- **`modes`** - Plan/Build mode settings (models, tools)
+- **`agentTemplates`** - Define or customize agent templates
+- **`agents`** - Per-agent overrides (model, temperature, disabled)
+- **`modelConfig`** - Dynamic model selection by action type
+- **`icons`** - Customize UI icons/emojis
+- **`sandbox`** - OS-level sandboxing configuration
 
-- `id`, `name`, `role`, `description` - Agent metadata
-- `systemPrompt` - Custom instructions for the agent
-- `model` - LLM model to use
-- `temperature` - Output randomness (0.0-1.0)
-- `tools` - Array of available tools
-- `maxTokens` - Response length limit
+### Full Documentation
 
-**modes** - Customize Plan/Build mode behavior
-
-- `plan.model` - Model for strategic planning
-- `plan.tools` - Tools available in Plan mode
-- `build.model` - Model for implementation
-- `build.tools` - Tools available in Build mode
-
-**icons** - Override any UI icon/emoji (see [docs/ICONS.md](docs/ICONS.md))
-
-**modelConfig** - Model selection strategy
-
-- `main` - Primary model for standard operations
-- `planning` - Model for strategic/design work
-- `cheap` - Fast model for simple tasks
+See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
+- Complete schema reference
+- All configuration options with descriptions
+- Built-in agent template definitions
+- Model resolution strategies
+- Sandbox configuration details
+- Environment variables
+- Configuration priority and merging
+- Performance optimization tips
 
 ## 🚀 Usage Examples
 
@@ -245,7 +325,7 @@ Create `~/.pi/agent/extensions/cmd-exe.json`:
 
 ```bash
 # Switch to Plan mode for analysis
-/mode
+/ops
 
 # Analyze and plan
 What are the architectural trade-offs for adding real-time features?
@@ -254,7 +334,7 @@ What are the architectural trade-offs for adding real-time features?
 /synth:plan Real-time architecture design
 
 # Switch to Build mode for execution
-/mode
+/ops
 
 # Execute the plan
 /synth:exec Implement WebSocket infrastructure per the plan
@@ -338,6 +418,7 @@ Agent output is recorded:
 - **[AGENTS.md](AGENTS.md)** - Agent types and templates
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture
 - **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Implementation details
+- **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** - Complete configuration reference
 - **[docs/ICONS.md](docs/ICONS.md)** - Icon configuration and customization
 - **[docs/FIND_FILES.md](docs/FIND_FILES.md)** - Smart file discovery tool
 
