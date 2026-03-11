@@ -1,5 +1,5 @@
 /**
- * /mode command handler - toggle session mode
+ * /ops command handler - toggle session mode
  */
 
 import type {
@@ -14,6 +14,7 @@ import {
 	setCurrentMode,
 } from "../../modes";
 import { trySetModel } from "../../utils/model-utils";
+import { getIconRegistry } from "../../ui/icons";
 
 /**
  * Apply a mode: set tools, model, and footer status
@@ -44,9 +45,9 @@ export async function applyMode(
 }
 
 /**
- * Handle /mode command - toggle between plan and build mode
+ * Handle /ops command - toggle between plan and build mode
  */
-export async function handleMode(
+export async function handleOps(
 	_args: string,
 	ctx: ExtensionCommandContext,
 	pi: ExtensionAPI,
@@ -57,6 +58,7 @@ export async function handleMode(
 
 	await applyMode(target, pi, ctx, modeConfig);
 
-	const label = target === "build" ? "☠️  BUILD" : "⚡ PLAN";
+	const icons = getIconRegistry();
+	const label = target === "build" ? `${icons.modeBuild}  BUILD` : `${icons.modePlan}  PLAN`;
 	ctx.ui.notify(`Mode → ${label}`, "info");
 }

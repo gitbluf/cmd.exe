@@ -13,7 +13,8 @@ export type ActionType =
   | "analysis"       // Code analysis, review
   | "planning"       // Plan synthesis
   | "research"       // Information gathering
-  | "testing";       // Test generation/execution
+  | "testing"        // Test generation/execution
+  | "ask";           // Ad-hoc ephemeral queries (/ask)
 
 export interface ModelConfig {
   /** Default model for all actions */

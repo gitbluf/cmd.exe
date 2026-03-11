@@ -6,112 +6,112 @@
  */
 
 export interface IconSet {
-	// Status indicators
-	success: string; // ✅
-	error: string; // ❌
-	warning: string; // ⚠
-	pending: string; // ⏳
-	running: string; // 🔄
-	timeout: string; // ⏱
-	cancelled: string; // ⊘
-	check: string; // ✓
-	cross: string; // ✗
+  // Status indicators
+  success: string; // ✅
+  error: string; // ❌
+  warning: string; // ⚠
+  pending: string; // ⏳
+  running: string; // 🔄
+  timeout: string; // ⏱
+  cancelled: string; // ⊘
+  check: string; // ✓
+  cross: string; // ✗
 
-	// Mode indicators
-	modePlan: string; // ⚡
-	modeBuild: string; // ☠️
+  // Mode indicators
+  modePlan: string; //⚡
+  modeBuild: string; //🚀 
 
-	// Agent indicators
-	agentBlackice: string; // 👁️
-	agentGhost: string; // 👻
-	agentBlueprint: string; // 🧠
-	agentDataweaver: string; // 🕸️
-	agentDefault: string; // ⚙️
+  // Agent indicators
+  agentBlackice: string; // 👁️
+  agentGhost: string; // 👻
+  agentBlueprint: string; // 🧠
+  agentDataweaver: string; // 🕸️
+  agentDefault: string; // ⚙️
 
-	// Feature indicators
-	sandbox: string; // 🔒
-	tool: string; // 🔧
-	swarm: string; // 🐝
-	dispatch: string; // ⚡
-	jack: string; // 🔌
-	net: string; // 📡
-	code: string; // 💻
-	branch: string; // 🌿
-	lock: string; // 🔒
+  // Feature indicators
+  sandbox: string; // 🔒
+  tool: string; // 🔧
+  swarm: string; // 🐝
+  dispatch: string; // ⚡
+  jack: string; // 🔌
+  net: string; // 📡
+  code: string; // 💻
+  branch: string; // 🌿
+  lock: string; // 🔒
 
-	// Decorators
-	dot: string; // ●
-	arrow: string; // →
-	spark: string; // ⚡
+  // Decorators
+  dot: string; // ●
+  arrow: string; // →
+  spark: string; // ⚡
 
-	// Dashboard status (compact single-char)
-	statusPending: string; // ○
-	statusRunning: string; // ◉
-	statusComplete: string; // ✓
-	statusFailed: string; // ✗
-	statusTimeout: string; // ⏱
-	statusCancelled: string; // ⊘
+  // Dashboard status (compact single-char)
+  statusPending: string; // ○
+  statusRunning: string; // ◉
+  statusComplete: string; // ✓
+  statusFailed: string; // ✗
+  statusTimeout: string; // ⏱
+  statusCancelled: string; // ⊘
 }
 
 /**
  * Default icon set
  */
 export const DEFAULT_ICONS: IconSet = {
-	// Status indicators
-	success: "✅",
-	error: "❌",
-	warning: "⚠",
-	pending: "⏳",
-	running: "🔄",
-	timeout: "⏱️",
-	cancelled: "⊘",
-	check: "✓",
-	cross: "✗",
+  // Status indicators
+  success: "✅",
+  error: "❌",
+  warning: "⚠",
+  pending: "⏳",
+  running: "🔄",
+  timeout: "⏱️",
+  cancelled: "⊘",
+  check: "✓",
+  cross: "✗",
 
-	// Mode indicators
-	modePlan: "⚡",
-	modeBuild: "☠️",
+  // Mode indicators
+  modePlan: "⚡",
+  modeBuild: "🚀",
 
-	// Agent indicators
-	agentBlackice: "👁️",
-	agentGhost: "👻",
-	agentBlueprint: "🧠",
-	agentDataweaver: "🕸️",
-	agentDefault: "⚙️",
+  // Agent indicators
+  agentBlackice: "👁️",
+  agentGhost: "👻",
+  agentBlueprint: "🧠",
+  agentDataweaver: "🕸️",
+  agentDefault: "⚙️",
 
-	// Feature indicators
-	sandbox: "🔒",
-	tool: "🔧",
-	swarm: "🐝",
-	dispatch: "⚡",
-	jack: "🔌",
-	net: "📡",
-	code: "💻",
-	branch: "🌿",
-	lock: "🔒",
+  // Feature indicators
+  sandbox: "🔒",
+  tool: "🔧",
+  swarm: "🐝",
+  dispatch: "⚡",
+  jack: "🔌",
+  net: "📡",
+  code: "💻",
+  branch: "🌿",
+  lock: "🔒",
 
-	// Decorators
-	dot: "●",
-	arrow: "→",
-	spark: "⚡",
+  // Decorators
+  dot: "●",
+  arrow: "→",
+  spark: "⚡",
 
-	// Dashboard status (compact single-char)
-	statusPending: "○",
-	statusRunning: "◉",
-	statusComplete: "✓",
-	statusFailed: "✗",
-	statusTimeout: "⏱",
-	statusCancelled: "⊘",
+  // Dashboard status (compact single-char)
+  statusPending: "○",
+  statusRunning: "◉",
+  statusComplete: "✓",
+  statusFailed: "✗",
+  statusTimeout: "⏱",
+  statusCancelled: "⊘",
 };
 
 /**
  * Get the effective icon set, merging user overrides with defaults
  */
 export function getIcons(overrides?: Partial<IconSet>): Readonly<IconSet> {
-	return Object.freeze({
-		...DEFAULT_ICONS,
-		...overrides,
-	});
+  return Object.freeze({
+    ...DEFAULT_ICONS,
+    ...overrides,
+  });
 }
 
 /**
@@ -123,12 +123,12 @@ let iconRegistry: Readonly<IconSet> = DEFAULT_ICONS;
  * Initialize the global icon registry with user overrides
  */
 export function initIcons(overrides?: Partial<IconSet>): void {
-	iconRegistry = getIcons(overrides);
+  iconRegistry = getIcons(overrides);
 }
 
 /**
  * Get the current icon registry
  */
 export function getIconRegistry(): Readonly<IconSet> {
-	return iconRegistry;
+  return iconRegistry;
 }

@@ -19,8 +19,9 @@ import {
   handleSynthPlan,
   handleSynthExec,
   handleSynthOutput,
-  handleMode,
+  handleOps,
   handleTodos,
+  handleAsk,
 } from "./handlers";
 import { getEffectiveModeConfig } from "../modes";
 
@@ -105,10 +106,10 @@ export function registerAllCommands(
 
   const modeConfig = getEffectiveModeConfig(config.modes);
 
-  pi.registerCommand("mode", {
+  pi.registerCommand("ops", {
     description: "Toggle between Plan mode (read-only) and Build mode (full tools)",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
-      await handleMode(args, ctx, pi, modeConfig);
+      await handleOps(args, ctx, pi, modeConfig);
     },
   });
 
@@ -116,6 +117,13 @@ export function registerAllCommands(
     description: "Show current plan progress",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       await handleTodos(args, ctx);
+    },
+  });
+
+  pi.registerCommand("ask", {
+    description: "Ask a one-off question without polluting main context (ephemeral session)",
+    handler: async (args: string, ctx: ExtensionCommandContext) => {
+      await handleAsk(args, ctx, config);
     },
   });
 }

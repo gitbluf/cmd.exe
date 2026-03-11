@@ -75,11 +75,16 @@ export function setupLifecycleHooks(
 		trySetModel(pi, ctx, modeConfig.plan.model);
 	});
 
-	pi.on("turn_start", () => {
+	pi.on("turn_start", (_event, ctx) => {
 		// Re-apply current mode tools each turn to prevent drift
 		const mode = getCurrentMode();
 		const tools = modeConfig[mode].tools;
 		pi.setActiveTools([...tools]);
+
+		// Dismiss ephemeral widgets from previous interaction
+		if (ctx.hasUI) {
+			ctx.ui.setWidget("ask", undefined);
+		}
 	});
 
 	// Detect [DONE:n] markers and new plans after each turn

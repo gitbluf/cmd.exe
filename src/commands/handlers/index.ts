@@ -11,5 +11,6 @@ export { handleBlackice } from "./blackice";
 export { handleSynthPlan } from "./synth-plan";
 export { handleSynthExec } from "./synth-exec";
 export { handleSynthOutput } from "./synth-output";
-export { handleMode, applyMode } from "./build";
+export { handleOps, applyMode } from "./build";
 export { handleTodos } from "./todos";
+export { handleAsk } from "./ask";

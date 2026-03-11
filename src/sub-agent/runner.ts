@@ -32,6 +32,10 @@ export interface RunSubAgentOptions {
   actionType?: ActionType;
   /** Optional model configuration for dynamic model selection */
   modelConfig?: ModelConfig;
+  /** Thinking level for models that support reasoning */
+  thinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+  /** Keep widget visible after completion instead of clearing it */
+  keepWidget?: boolean;
 }
 
 /**
@@ -80,6 +84,7 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
     resourceLoader: loader,
     sessionManager: SessionManager.inMemory(),
     modelRegistry: opts.modelRegistry,
+    thinkingLevel: opts.thinkingLevel,
   });
 
   let output = "";
@@ -176,9 +181,15 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
     unsubscribe();
     session.dispose();
 
-    // Clear the streaming widget
+    // Keep widget visible with final output, or clear it
     if (opts.widgetId && opts.ui) {
-      opts.ui.setWidget(opts.widgetId, undefined);
+      if (opts.keepWidget) {
+        // Show final output in "complete" state
+        updateWidget("complete");
+      } else {
+        // Clear the streaming widget
+        opts.ui.setWidget(opts.widgetId, undefined);
+      }
     }
 
     const hasOutput = output.trim().length > 0;

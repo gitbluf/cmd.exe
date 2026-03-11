@@ -21,7 +21,7 @@ Dispatch agents to work on tasks concurrently.
 - `--recordOutput` - Output recording: none, truncated, or full
 - `--retryFailed` - Retry failed tasks (true/false)
 
-### /mode
+### /ops
 
 Toggle between Plan mode (read-only analysis) and Build mode (full implementation).
 
@@ -48,6 +48,35 @@ Show current plan progress. Displays an expanded view of all plan steps with com
 ```
 
 Plan progress is also always visible in the footer status bar when a plan is active.
+
+### /ask
+
+Ask a one-off question to an LLM without polluting the main conversation context. The session is ephemeral and discarded after the answer.
+
+**Usage:**
+
+```bash
+/ask what is the purpose of the dataweaver agent?
+/ask how do I configure sandbox mode?
+/ask explain the plan tracking system
+```
+
+**Features:**
+- Ephemeral session (no memory after answer)
+- Does not pollute main conversation history
+- Default model: `github-copilot/haiku-4.5`
+- High thinking level for deeper reasoning
+- Falls back to current session model if unavailable
+- Read-only file access for context
+- Real-time streaming answer in widget
+- Widget stays visible after completion
+- Automatically dismissed when you send next prompt
+
+**Use cases:**
+- Quick factual questions about the codebase
+- Checking documentation or configuration
+- Getting explanations without derailing main conversation
+- Testing a different model's response style
 
 ### /swarm:list
 
@@ -84,7 +113,7 @@ Synthesize a comprehensive implementation plan using the BLUEPRINT agent.
 - Saves to `.agents/plan-{timestamp}.md`
 - Automatically parses and activates the plan
 - Shows progress in footer status bar
-- Use `/todos` to view, `/mode` to execute
+- Use `/todos` to view, `/ops` to execute
 
 **Plan includes:**
 1. Clear Summary
@@ -131,7 +160,7 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 - Use `/todos` to view full plan
 
 **3. Execute**
-- Switch to Build mode with `/mode`
+- Switch to Build mode with `/ops`
 - Agent receives plan in system prompt
 - Work through steps in order
 
@@ -161,7 +190,7 @@ User: /synth:plan focus on refactoring the API layer
 User: /todos
 
 # 3. Start execution
-User: /mode
+User: /ops
 User: Let's start with step 1
 
 Agent: I'll audit the API structure... [DONE:1]
@@ -275,11 +304,12 @@ Agent: I've implemented the auth service... [DONE:4]
 
 ### cortex
 
-- **Role:** Data Analyst
-- **Focus:** Pattern recognition, insights, analysis
-- **Prompt:** Analytical, data-driven, precise
-- **Tools:** read, bash
-- **Temperature:** 0.3 (deterministic)
+- **Role:** Code Reviewer
+- **Focus:** Correctness, security, performance analysis
+- **Prompt:** Critical, thorough, security-minded
+- **Tools:** read, find_files, write
+- **Temperature:** 0.2 (strict)
+- **Persistence:** Saves all reviews to `.agents/reviews/` for team reference
 
 ### dataweaver
 
