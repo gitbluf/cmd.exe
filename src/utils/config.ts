@@ -59,6 +59,8 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				defaultAgents: userConfig.defaultAgents || config.defaultAgents,
 				defaultMission: userConfig.defaultMission || config.defaultMission,
 				sandbox: userConfig.sandbox || config.sandbox,
+				modes: userConfig.modes || config.modes,
+				icons: userConfig.icons || config.icons,
 			};
 		}
 	}

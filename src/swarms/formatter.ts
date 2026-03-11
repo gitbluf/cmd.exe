@@ -3,6 +3,7 @@
  */
 
 import { ANSI, colorize } from "../ui";
+import { getIconRegistry } from "../ui/icons";
 import type { SwarmRecord } from "./types";
 
 /**
@@ -10,9 +11,10 @@ import type { SwarmRecord } from "./types";
  */
 export function formatSwarmStatus(swarm: SwarmRecord): string {
 	const lines: string[] = [];
+	const icons = getIconRegistry();
 
 	lines.push("");
-	lines.push(colorize(`🐝 Swarm Status: ${swarm.id}`, ANSI.cyan, true));
+	lines.push(colorize(`${icons.swarm} Swarm Status: ${swarm.id}`, ANSI.cyan, true));
 	lines.push("");
 
 	const statusColor =
@@ -38,14 +40,14 @@ export function formatSwarmStatus(swarm: SwarmRecord): string {
 	for (const task of swarm.tasks) {
 		const statusIcon =
 			task.status === "completed"
-				? "✅"
+				? icons.success
 				: task.status === "running"
-					? "🔄"
+					? icons.running
 					: task.status === "timeout"
-						? "⏱️"
+						? icons.timeout
 						: task.status === "pending"
-							? "⏳"
-							: "❌";
+							? icons.pending
+							: icons.error;
 
 		const statusColor =
 			task.status === "completed"
@@ -111,9 +113,10 @@ export function formatSwarmStatus(swarm: SwarmRecord): string {
  */
 export function formatSwarmHistory(swarms: SwarmRecord[]): string {
 	const lines: string[] = [];
+	const icons = getIconRegistry();
 
 	lines.push("");
-	lines.push(colorize("🐝 Recent Swarms:", ANSI.cyan, true));
+	lines.push(colorize(`${icons.swarm} Recent Swarms:`, ANSI.cyan, true));
 	lines.push("");
 
 	if (swarms.length === 0) {
@@ -124,12 +127,12 @@ export function formatSwarmHistory(swarms: SwarmRecord[]): string {
 	for (const swarm of swarms) {
 		const statusIcon =
 			swarm.status === "completed"
-				? "✅"
+				? icons.success
 				: swarm.status === "running"
-					? "🔄"
+					? icons.running
 					: swarm.status === "failed"
-						? "❌"
-						: "⏳";
+						? icons.error
+						: icons.pending;
 
 		const statusColor =
 			swarm.status === "completed"

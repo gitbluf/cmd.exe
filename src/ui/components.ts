@@ -3,6 +3,7 @@
  */
 
 import type { Component } from "@mariozechner/pi-tui";
+import { getIconRegistry } from "./icons";
 
 const ANSI = {
 	reset: "\u001b[0m",
@@ -19,17 +20,41 @@ const ANSI = {
 	bgCyan: "\u001b[46m",
 };
 
+/**
+ * Legacy ICONS export - maintained for backward compatibility
+ * Use getIconRegistry() for new code
+ */
 const ICONS = {
-	jack: "🔌",
-	net: "📡",
-	code: "💻",
-	check: "✓",
-	cross: "✗",
-	dot: "●",
-	arrow: "→",
-	spark: "⚡",
-	lock: "🔒",
-	branch: "🌿",
+	get jack() {
+		return getIconRegistry().jack;
+	},
+	get net() {
+		return getIconRegistry().net;
+	},
+	get code() {
+		return getIconRegistry().code;
+	},
+	get check() {
+		return getIconRegistry().check;
+	},
+	get cross() {
+		return getIconRegistry().cross;
+	},
+	get dot() {
+		return getIconRegistry().dot;
+	},
+	get arrow() {
+		return getIconRegistry().arrow;
+	},
+	get spark() {
+		return getIconRegistry().spark;
+	},
+	get lock() {
+		return getIconRegistry().lock;
+	},
+	get branch() {
+		return getIconRegistry().branch;
+	},
 };
 
 function colorize(text: string, color: string, bold?: boolean) {

@@ -19,7 +19,9 @@ import {
   handleSynthPlan,
   handleSynthExec,
   handleSynthOutput,
+  handleMode,
 } from "./handlers";
+import { getEffectiveModeConfig } from "../modes";
 
 /**
  * Resolve workspace root from context, ensuring directory exists
@@ -97,6 +99,15 @@ export function registerAllCommands(
     description: "View sub-agent output in scrollable overlay",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       await handleSynthOutput(args, ctx);
+    },
+  });
+
+  const modeConfig = getEffectiveModeConfig(config.modes);
+
+  pi.registerCommand("mode", {
+    description: "Toggle between Plan mode (read-only) and Build mode (full tools)",
+    handler: async (args: string, ctx: ExtensionCommandContext) => {
+      await handleMode(args, ctx, pi, modeConfig);
     },
   });
 }

@@ -5,6 +5,7 @@
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { listSwarms, type SwarmRecord } from "../../swarms";
 import { ANSI, colorize } from "../../ui";
+import { getIconRegistry } from "../../ui/icons";
 
 export async function handleSwarmTask(
   args: string,
@@ -40,8 +41,9 @@ export async function handleSwarmTask(
     }
 
     if (!foundSwarm) {
+      const icons = getIconRegistry();
       console.log(
-        colorize(`\n❌ Task not found: ${taskId}\n`, ANSI.red, true),
+        colorize(`\n${icons.error} Task not found: ${taskId}\n`, ANSI.red, true),
       );
       await ctx.ui.input("Press enter to continue...", "");
       return;
@@ -78,8 +80,9 @@ export async function handleSwarmTask(
     });
   } catch (e) {
     const error = e as Error;
+    const icons = getIconRegistry();
     console.error(
-      colorize(`\n❌ Task panel error: ${error.message}`, ANSI.red, true),
+      colorize(`\n${icons.error} Task panel error: ${error.message}`, ANSI.red, true),
     );
     throw e;
   }

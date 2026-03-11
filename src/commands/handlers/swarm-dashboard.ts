@@ -5,6 +5,7 @@
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { listSwarms } from "../../swarms";
 import { ANSI, colorize } from "../../ui";
+import { getIconRegistry } from "../../ui/icons";
 
 export async function handleSwarmDashboard(
   _args: string,
@@ -42,8 +43,9 @@ export async function handleSwarmDashboard(
     });
   } catch (e) {
     const error = e as Error;
+    const icons = getIconRegistry();
     console.error(
-      colorize(`\n❌ Dashboard error: ${error.message}`, ANSI.red, true),
+      colorize(`\n${icons.error} Dashboard error: ${error.message}`, ANSI.red, true),
     );
     throw e;
   }

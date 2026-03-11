@@ -47,7 +47,7 @@ Operate through shell commands and report results clearly.
 	temperature: 0.1,
 	maxTokens: 2000,
 
-	tools: ["shell_exec", "file_read"],
+	tools: ["shell_exec", "file_read", "find_files"],
 
 	canWrite: false,
 	canExecuteShell: true,

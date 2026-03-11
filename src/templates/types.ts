@@ -2,6 +2,8 @@
  * Agent template type definitions
  */
 
+import type { ModeConfig } from "../modes";
+import type { IconSet } from "../ui/icons";
 import type { ModelConfig } from "../utils/model-resolver";
 
 export interface AgentTemplate {
@@ -73,6 +75,12 @@ export interface TemplateConfig {
 
 	// Dynamic model selection for different action types
 	modelConfig?: ModelConfig;
+
+	// Session mode configuration (plan/build)
+	modes?: Partial<ModeConfig>;
+
+	// Icon overrides
+	icons?: Partial<IconSet>;
 
 	// Global sandbox
 	sandbox?: {

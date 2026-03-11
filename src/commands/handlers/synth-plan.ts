@@ -9,6 +9,7 @@ import type {
   ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
 import { createReadTool } from "@mariozechner/pi-coding-agent";
+import { getIconRegistry } from "../../ui/icons";
 import { runSubAgent } from "../../sub-agent";
 import type { AgentTemplate, TemplateConfig } from "../../templates/types";
 import { resolveModel } from "../../utils/model-resolver";
@@ -24,15 +25,16 @@ export async function handleSynthPlan(
 ): Promise<void> {
   try {
     const focusArea = args?.trim() || "the overall task and requirements";
+    const icons = getIconRegistry();
 
     const blueprintTemplate = config.agentTemplates.blueprint as AgentTemplate;
     if (!blueprintTemplate) {
-      ctx.ui.notify("❌ BLUEPRINT agent template not found", "error");
+      ctx.ui.notify(`${icons.error} BLUEPRINT agent template not found`, "error");
       return;
     }
 
     if (blueprintTemplate.disabled) {
-      ctx.ui.notify("❌ BLUEPRINT agent is disabled", "error");
+      ctx.ui.notify(`${icons.error} BLUEPRINT agent is disabled`, "error");
       return;
     }
 
@@ -44,7 +46,7 @@ export async function handleSynthPlan(
     });
 
     ctx.ui.notify(
-      `🧠 Spawning BLUEPRINT agent [${selectedModel.id}] to synthesize plan...`,
+      `${icons.agentBlueprint} Spawning BLUEPRINT agent [${selectedModel.id}] to synthesize plan...`,
       "info",
     );
 
@@ -65,6 +67,7 @@ Generate the plan in Markdown format.`;
     let planContent = "";
 
     try {
+      const icons = getIconRegistry();
       planContent = await runSubAgent({
         systemPrompt: blueprintTemplate.systemPrompt,
         mission,
@@ -75,7 +78,7 @@ Generate the plan in Markdown format.`;
           ? buildToolsFromTemplate(blueprintTemplate.tools, ctx.cwd)
           : [createReadTool(ctx.cwd)],
         widgetId: "blueprint-plan",
-        widgetTitle: "📐 BLUEPRINT Agent",
+        widgetTitle: `${icons.agentBlueprint} BLUEPRINT Agent`,
         ui: ctx.ui,
         pi,
         // Use "planning" action type (typically uses expensive model for quality)
@@ -84,13 +87,15 @@ Generate the plan in Markdown format.`;
       });
 
       if (!planContent || planContent.trim().length === 0) {
-        ctx.ui.notify("❌ BLUEPRINT agent returned empty output", "error");
+        const iconsError = getIconRegistry();
+        ctx.ui.notify(`${iconsError.error} BLUEPRINT agent returned empty output`, "error");
         return;
       }
     } catch (modelError) {
       const err = modelError as Error;
+      const iconsErr = getIconRegistry();
       ctx.ui.notify(
-        `❌ BLUEPRINT agent error: ${err.message}`,
+        `${iconsErr.error} BLUEPRINT agent error: ${err.message}`,
         "error",
       );
       console.error("Plan synthesis error:", err);
@@ -101,8 +106,9 @@ Generate the plan in Markdown format.`;
     await writePlanToFile(ctx, root, planContent, pi);
   } catch (e) {
     const error = e as Error;
+    const icons = getIconRegistry();
     console.error(
-      colorize(`\n❌ Plan synthesis failed: ${error.message}`, ANSI.red, true),
+      colorize(`\n${icons.error} Plan synthesis failed: ${error.message}`, ANSI.red, true),
     );
     throw e;
   }
@@ -146,9 +152,10 @@ async function writePlanToFile(
 
     const lines = planContent.split("\n");
     const sizeKB = (planContent.length / 1024).toFixed(2);
+    const icons = getIconRegistry();
 
     ctx.ui.notify(
-      `✅ Plan saved to .agents/${planFilename} (${lines.length} lines, ${sizeKB} KB)`,
+      `${icons.success} Plan saved to .agents/${planFilename} (${lines.length} lines, ${sizeKB} KB)`,
       "info",
     );
   } finally {

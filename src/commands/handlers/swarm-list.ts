@@ -5,6 +5,7 @@
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import type { AgentTemplate, TemplateConfig } from "../../templates/types";
 import { ANSI, colorize } from "../../ui";
+import { getIconRegistry } from "../../ui/icons";
 
 export async function handleSwarmList(
   _args: string,
@@ -18,7 +19,8 @@ export async function handleSwarmList(
       return;
     }
 
-    console.log(colorize("\n🔌 Available Agents:\n", ANSI.cyan, true));
+    const icons = getIconRegistry();
+    console.log(colorize(`\n${icons.jack} Available Agents:\n`, ANSI.cyan, true));
     for (const [name, template] of templates) {
       const tmpl = template as AgentTemplate;
       const status = tmpl.disabled ? colorize(" [DISABLED]", ANSI.dim) : "";
@@ -29,7 +31,8 @@ export async function handleSwarmList(
     await ctx.ui.input("Press enter to continue...", "");
   } catch (e) {
     const error = e as Error;
-    console.error(colorize(`\n❌ Error: ${error.message}`, ANSI.red, true));
+    const icons = getIconRegistry();
+    console.error(colorize(`\n${icons.error} Error: ${error.message}`, ANSI.red, true));
     throw e;
   }
 }

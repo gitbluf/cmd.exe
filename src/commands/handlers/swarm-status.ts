@@ -10,6 +10,7 @@ import {
   listSwarms,
 } from "../../swarms";
 import { ANSI, colorize } from "../../ui";
+import { getIconRegistry } from "../../ui/icons";
 
 export async function handleSwarmStatus(
   args: string,
@@ -23,8 +24,9 @@ export async function handleSwarmStatus(
       // Show specific swarm details
       const swarm = getSwarm(root, swarmId);
       if (!swarm) {
+        const icons = getIconRegistry();
         console.log(
-          colorize(`\n❌ Swarm not found: ${swarmId}\n`, ANSI.red, true),
+          colorize(`\n${icons.error} Swarm not found: ${swarmId}\n`, ANSI.red, true),
         );
         await ctx.ui.input("Press enter to continue...", "");
         return;
@@ -49,7 +51,8 @@ export async function handleSwarmStatus(
     await ctx.ui.input("Press enter to continue...", "");
   } catch (e) {
     const error = e as Error;
-    console.error(colorize(`\n❌ Error: ${error.message}`, ANSI.red, true));
+    const icons = getIconRegistry();
+    console.error(colorize(`\n${icons.error} Error: ${error.message}`, ANSI.red, true));
     throw e;
   }
 }

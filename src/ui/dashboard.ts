@@ -25,6 +25,7 @@ import {
 } from "@mariozechner/pi-tui";
 import fs from "node:fs";
 import type { SwarmRecord, SwarmTask } from "../swarms/types";
+import { getIconRegistry } from "./icons";
 
 // ─── Types ─────────────────────────────────────────────────────
 
@@ -68,14 +69,20 @@ const SPINNERS = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇",
 
 const TOAST_DURATION_MS = 3000;
 
-const STATUS_ICONS: Record<string, string> = {
-	pending: "○",
-	running: "◉",
-	completed: "✓",
-	failed: "✗",
-	timeout: "⏱",
-	cancelled: "⊘",
-};
+/**
+ * Get status icons from the registry
+ */
+function getStatusIcons(): Record<string, string> {
+	const icons = getIconRegistry();
+	return {
+		pending: icons.statusPending,
+		running: icons.statusRunning,
+		completed: icons.statusComplete,
+		failed: icons.statusFailed,
+		timeout: icons.statusTimeout,
+		cancelled: icons.statusCancelled,
+	};
+}
 
 const AGENT_COLORS: Record<string, string> = {
 	cortex: "36",
@@ -152,6 +159,7 @@ function statusStyle(t: DashboardTheme, status: string): (s: string) => string {
 }
 
 function statusIcon(status: string, spinner: string): string {
+	const STATUS_ICONS = getStatusIcons();
 	return status === "running" ? spinner : (STATUS_ICONS[status] ?? "?");
 }
 
@@ -238,9 +246,10 @@ class DashboardComponent implements Component {
 			id: swarm.id,
 			expiresAt: Date.now() + TOAST_DURATION_MS,
 			lines: (t, w) => {
+				const icons = getIconRegistry();
 				const isError = status === "failed" || fail > 0;
 				const isCancelled = status === "cancelled";
-				const icon = isCancelled ? "⊘" : isError ? "⚠" : "✅";
+				const icon = isCancelled ? icons.cancelled : isError ? icons.warning : icons.success;
 				const label = isCancelled ? "CANCELLED" : isError ? "COMPLETE (with failures)" : "COMPLETE";
 				const color = isCancelled ? t.warning : isError ? t.warning : t.success;
 				const toastW = Math.min(w - 4, 52);
@@ -250,7 +259,7 @@ class DashboardComponent implements Component {
 					`  ${t.border(`╭${"─".repeat(toastW - 2)}╮`)}`,
 					`  ${t.border("│")} ${color(`${icon} DISPATCH ${label}`)}${" ".repeat(Math.max(0, toastW - visibleWidth(` ${icon} DISPATCH ${label}`) - 3))}${t.border("│")}`,
 					`  ${t.border("│")} ${t.dim(swarm.id)}${" ".repeat(Math.max(0, toastW - visibleWidth(` ${swarm.id}`) - 3))}${t.border("│")}`,
-					`  ${t.border("│")} ${t.success(`${ok}✓`)} ${fail > 0 ? t.error(`${fail}✗`) : t.dim(`${fail}✗`)} ${t.dim(`of ${total} tasks`)}${" ".repeat(Math.max(0, toastW - visibleWidth(` ${ok}✓ ${fail}✗ of ${total} tasks`) - 3))}${t.border("│")}`,
+					`  ${t.border("│")} ${t.success(`${ok}${icons.check}`)} ${fail > 0 ? t.error(`${fail}${icons.cross}`) : t.dim(`${fail}${icons.cross}`)} ${t.dim(`of ${total} tasks`)}${" ".repeat(Math.max(0, toastW - visibleWidth(` ${ok}${icons.check} ${fail}${icons.cross} of ${total} tasks`) - 3))}${t.border("│")}`,
 					`  ${t.border(`╰${"─".repeat(toastW - 2)}╯`)}`,
 				];
 			},
@@ -402,9 +411,10 @@ class DashboardComponent implements Component {
 		const w = Math.max(width, 50);
 		const lines: string[] = [];
 		const spinner = SPINNERS[this.spinnerIdx % SPINNERS.length];
+		const icons = getIconRegistry();
 
 		lines.push(t.border(`╭${"─".repeat(w - 2)}╮`));
-		lines.push(boxLine(t, ` ${t.title("⚡ DISPATCH DASHBOARD")} ${t.dim(`│ ${this.swarms.length} swarm${this.swarms.length !== 1 ? "s" : ""}`)}`, w));
+		lines.push(boxLine(t, ` ${t.title(`${icons.dispatch} DISPATCH DASHBOARD`)} ${t.dim(`│ ${this.swarms.length} swarm${this.swarms.length !== 1 ? "s" : ""}`)}`, w));
 		lines.push(t.border(`├${"─".repeat(w - 2)}┤`));
 
 		if (this.swarms.length === 0) {
@@ -480,6 +490,7 @@ class DashboardComponent implements Component {
 
 		const spinner = SPINNERS[this.spinnerIdx % SPINNERS.length];
 		const tasks = swarm.tasks;
+		const icons = getIconRegistry();
 
 		// Header
 		lines.push(t.border(`╭${"─".repeat(w - 2)}╮`));
@@ -492,7 +503,7 @@ class DashboardComponent implements Component {
 				: "-";
 
 		lines.push(boxLine(t,
-			` ${t.title("⚡ " + swarm.id)} ${sFn(t.bold(sLabel + " " + swarm.status.toUpperCase()))} ${t.dim(`│ ⏱ ${elapsed}`)}`,
+			` ${t.title(icons.dispatch + " " + swarm.id)} ${sFn(t.bold(sLabel + " " + swarm.status.toUpperCase()))} ${t.dim(`│ ${icons.timeout} ${elapsed}`)}`,
 			w,
 		));
 		lines.push(t.border(`├${"─".repeat(w - 2)}┤`));
@@ -506,7 +517,7 @@ class DashboardComponent implements Component {
 		const filledCount = total > 0 ? Math.round((doneCount / total) * barWidth) : 0;
 		const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
 		const bar = t.success("█".repeat(filledCount)) + t.dim("░".repeat(barWidth - filledCount));
-		lines.push(boxLine(t, ` ${bar} ${t.bold(`${pct}%`)} ${t.dim(`(${completed}✓ ${failed}✗ of ${total})`)}`, w));
+		lines.push(boxLine(t, ` ${bar} ${t.bold(`${pct}%`)} ${t.dim(`(${completed}${icons.check} ${failed}${icons.cross} of ${total})`)}`, w));
 
 		lines.push(t.border(`├${"─".repeat(w - 2)}┤`));
 

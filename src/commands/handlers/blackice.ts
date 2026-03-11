@@ -4,6 +4,7 @@
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth } from "@mariozechner/pi-tui";
+import { getIconRegistry } from "../../ui/icons";
 import {
   createSwarmId,
   SwarmExecutor,
@@ -65,10 +66,11 @@ export async function handleBlackice(
     const widgetId = `blackice-${swarmId}`;
 
     ctx.ui.setWidget(widgetId, (_tui: any, theme: any) => {
+      const icons = getIconRegistry();
       return {
         render: (width: number) => [
           truncateToWidth(theme.fg("border", "─".repeat(width)), width),
-          truncateToWidth(` ${theme.fg("accent", "👁️ BLACKICE")} ${theme.fg("dim", swarmId)}`, width),
+          truncateToWidth(` ${theme.fg("accent", `${icons.agentBlackice} BLACKICE`)} ${theme.fg("dim", swarmId)}`, width),
           truncateToWidth(` ${theme.fg("dim", "routing request to specialist agents…")}`, width),
           truncateToWidth(theme.fg("border", "─".repeat(width)), width),
         ],
@@ -90,9 +92,10 @@ export async function handleBlackice(
 
     executor.execute().then((completed) => {
       const hasFailures = completed.stats.failedTasks > 0;
+      const icons = getIconRegistry();
 
       ctx.ui.setWidget(widgetId, (_tui: any, theme: any) => {
-        const icon = hasFailures ? "⚠" : "✅";
+        const icon = hasFailures ? icons.warning : icons.success;
         const statusColor = hasFailures ? "warning" : "success";
         return {
           render: (width: number) => [
@@ -110,11 +113,12 @@ export async function handleBlackice(
         ctx.ui.setWidget(widgetId, undefined);
       }, 3000);
     }).catch((e) => {
+      const icons = getIconRegistry();
       ctx.ui.setWidget(widgetId, (_tui: any, theme: any) => {
         return {
           render: (width: number) => [
             truncateToWidth(theme.fg("border", "─".repeat(width)), width),
-            truncateToWidth(` ${theme.fg("error", "❌ BLACKICE FAILED")} ${theme.fg("dim", swarmId)}`, width),
+            truncateToWidth(` ${theme.fg("error", `${icons.error} BLACKICE FAILED`)} ${theme.fg("dim", swarmId)}`, width),
             truncateToWidth(` ${theme.fg("error", (e as Error).message)}`, width),
             truncateToWidth(theme.fg("border", "─".repeat(width)), width),
           ],

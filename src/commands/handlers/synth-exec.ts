@@ -12,6 +12,7 @@ import {
   createEditTool,
   createBashTool,
 } from "@mariozechner/pi-coding-agent";
+import { getIconRegistry } from "../../ui/icons";
 import { runSubAgent } from "../../sub-agent";
 import type { AgentTemplate, TemplateConfig } from "../../templates/types";
 import { resolveModel } from "../../utils/model-resolver";
@@ -30,14 +31,15 @@ export async function handleSynthExec(
       args?.trim() ||
       "Execute the plan discussed in our conversation with precision";
 
+    const icons = getIconRegistry();
     const ghostTemplate = config.agentTemplates.ghost as AgentTemplate;
     if (!ghostTemplate) {
-      ctx.ui.notify("❌ GHOST agent template not found", "error");
+      ctx.ui.notify(`${icons.error} GHOST agent template not found`, "error");
       return;
     }
 
     if (ghostTemplate.disabled) {
-      ctx.ui.notify("❌ GHOST agent is disabled", "error");
+      ctx.ui.notify(`${icons.error} GHOST agent is disabled`, "error");
       return;
     }
 
@@ -51,11 +53,12 @@ export async function handleSynthExec(
     });
 
     ctx.ui.notify(
-      `👻 Spawning GHOST agent [${selectedModel.id}] to execute: ${mission}`,
+      `${icons.agentGhost} Spawning GHOST agent [${selectedModel.id}] to execute: ${mission}`,
       "info",
     );
 
     try {
+      const icons = getIconRegistry();
       const output = await runSubAgent({
         systemPrompt: ghostTemplate.systemPrompt,
         mission: `Mission: "${mission}"\n\nBased on our conversation, execute this mission now. Use your available tools to implement, edit files, and execute commands as needed. Report all changes and results.`,
@@ -71,7 +74,7 @@ export async function handleSynthExec(
               createBashTool(ctx.cwd),
             ],
         widgetId: "ghost-exec",
-        widgetTitle: "👻 GHOST Agent",
+        widgetTitle: `${icons.agentGhost} GHOST Agent`,
         ui: ctx.ui,
         pi,
         // Use "main" action type for primary execution (uses default/expensive model)
@@ -80,23 +83,26 @@ export async function handleSynthExec(
       });
 
       if (!output || output.trim().length === 0) {
+        const iconsWarn = getIconRegistry();
         ctx.ui.notify(
-          "⚠️ GHOST returned no output",
+          `${iconsWarn.warning} GHOST returned no output`,
           "warning",
         );
         return;
       }
 
       const duration = Date.now() - startTime;
+      const iconsSuccess = getIconRegistry();
 
       ctx.ui.notify(
-        `✅ GHOST execution complete (${(duration / 1000).toFixed(2)}s)`,
+        `${iconsSuccess.success} GHOST execution complete (${(duration / 1000).toFixed(2)}s)`,
         "info",
       );
     } catch (execError) {
       const err = execError as Error;
+      const iconsErr = getIconRegistry();
       ctx.ui.notify(
-        `❌ GHOST execution failed: ${err.message}`,
+        `${iconsErr.error} GHOST execution failed: ${err.message}`,
         "error",
       );
       console.error("GHOST execution error:", err);
@@ -104,8 +110,9 @@ export async function handleSynthExec(
     }
   } catch (e) {
     const error = e as Error;
+    const icons = getIconRegistry();
     console.error(
-      colorize(`\n❌ Sync execution failed: ${error.message}`, ANSI.red, true),
+      colorize(`\n${icons.error} Sync execution failed: ${error.message}`, ANSI.red, true),
     );
     throw e;
   }

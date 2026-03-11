@@ -1,21 +1,20 @@
 # Swarm Agent System
 
-## Overview
-
-Swarms provide **multi-agent task orchestration** for pi. Deploy specialized agents with **pre-defined roles, prompts, models, and tools** to work on multiple tasks concurrently.
-
 ## Core Commands
 
 ### /swarm <task-spec>
+
 Dispatch agents to work on tasks concurrently.
 
 **Usage:**
+
 ```bash
 /swarm task-1 ghost "implement auth" | task-2 blueprint "review design"
 /swarm --concurrency 3 task-1 ghost "do X" | task-2 cortex "do Y"
 ```
 
 **Options:**
+
 - `--concurrency N` - Max parallel tasks (1-20, default 5)
 - `--timeout N` - Per-task timeout in ms (default 300000)
 - `--worktrees` - Enable git worktree isolation (true/false)
@@ -23,22 +22,28 @@ Dispatch agents to work on tasks concurrently.
 - `--retryFailed` - Retry failed tasks (true/false)
 
 ### /swarm:list
+
 List all available agent templates with their roles, temperatures, and models.
 
 ### /swarm:status [swarm-id]
+
 View swarm execution status and history.
+
 - Without args: shows recent history
 - With swarm-id: shows detailed status for that swarm
 
 ### /swarm:dashboard
+
 Interactive monitoring dashboard with real-time swarm status, task details, and output.
 
 ### /swarm:task [task-id]
+
 View detailed information about a specific task in a swarm.
 
 ## Built-in Agent Templates
 
 ### ghost
+
 - **Role:** Implementation Specialist
 - **Focus:** Code changes, execution, delivery
 - **Prompt:** Surgical, precise, implementation-focused
@@ -46,6 +51,7 @@ View detailed information about a specific task in a swarm.
 - **Temperature:** 0.1 (deterministic)
 
 ### blueprint
+
 - **Role:** System Architect
 - **Focus:** Design, planning, refactoring strategy
 - **Prompt:** Big-picture thinking, design patterns
@@ -53,6 +59,7 @@ View detailed information about a specific task in a swarm.
 - **Temperature:** 0.5 (balanced)
 
 ### cortex
+
 - **Role:** Data Analyst
 - **Focus:** Pattern recognition, insights, analysis
 - **Prompt:** Analytical, data-driven, precise
@@ -60,6 +67,7 @@ View detailed information about a specific task in a swarm.
 - **Temperature:** 0.3 (deterministic)
 
 ### dataweaver
+
 - **Role:** Information Researcher
 - **Focus:** Documentation, exploration, findings
 - **Prompt:** Thorough, curious, detail-oriented
@@ -67,6 +75,7 @@ View detailed information about a specific task in a swarm.
 - **Temperature:** 0.7 (creative)
 
 ### hardline
+
 - **Role:** Security Auditor
 - **Focus:** Code review, vulnerability detection
 - **Prompt:** Critical, thorough, security-minded
@@ -74,6 +83,7 @@ View detailed information about a specific task in a swarm.
 - **Temperature:** 0.2 (strict)
 
 ### blackice
+
 - **Role:** Orchestrator
 - **Focus:** Request routing, task decomposition
 - **Prompt:** Strategic, decomposition-focused
@@ -121,21 +131,25 @@ Each swarm creates a persistent record:
 ## Examples
 
 ### Simple dispatch
+
 ```bash
 /swarm task-1 ghost "implement login form"
 ```
 
 ### Multi-task dispatch
+
 ```bash
 /swarm task-1 ghost "implement auth" | task-2 blueprint "design DB schema" | task-3 cortex "analyze security"
 ```
 
 ### With options
+
 ```bash
 /swarm --concurrency 2 --timeout 600000 task-1 ghost "X" | task-2 blueprint "Y"
 ```
 
 ### Monitor swarms
+
 ```bash
 /swarm:dashboard        # Interactive dashboard
 /swarm:status           # Recent history
@@ -155,6 +169,7 @@ BLACKICE analyzes your request and routes work to specialist agents automaticall
 ## Next Steps
 
 The swarm system is designed for:
+
 - ✅ Concurrent multi-agent task execution
 - ✅ Persistent state and monitoring
 - ✅ Flexible agent roles and capabilities

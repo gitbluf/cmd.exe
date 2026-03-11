@@ -11,6 +11,7 @@
  *   /synth:plan [focus]       - Synthesize plan via BLUEPRINT agent
  *   /synth:exec [mission]     - Execute plan via GHOST agent
  *   /synth:output [n]         - View sub-agent output overlay
+ *   /mode                      - Toggle Plan/Build mode
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -19,7 +20,9 @@ import { Box, Text, truncateToWidth } from "@mariozechner/pi-tui";
 import { registerAllCommands } from "./commands/register";
 import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
+import { getIconRegistry, initIcons } from "./ui/icons";
 import { getConfigPath, loadConfig } from "./utils/config";
+import { createFindFilesTool } from "./tools";
 
 // ─── Sub-agent output message renderer ──────────────────────
 
@@ -30,13 +33,14 @@ import { getConfigPath, loadConfig } from "./utils/config";
 function registerOutputRenderer(pi: ExtensionAPI): void {
   pi.registerMessageRenderer("sub-agent-output", (message: any, _options: any, theme: any) => {
     const { agentTitle, totalLines, truncated, failed } = message.details || {};
-    const title = agentTitle || "⚙️ Sub-Agent";
+    const icons = getIconRegistry();
+    const title = agentTitle || `${icons.agentDefault} Sub-Agent`;
 
     let header: string;
     if (failed) {
-      header = `${theme.fg("error", "✗")} ${theme.fg("accent", theme.bold(title))} ${theme.fg("error", "failed")}`;
+      header = `${theme.fg("error", icons.cross)} ${theme.fg("accent", theme.bold(title))} ${theme.fg("error", "failed")}`;
     } else {
-      header = `${theme.fg("success", "✓")} ${theme.fg("accent", theme.bold(title))} ${theme.fg("dim", "complete")}`;
+      header = `${theme.fg("success", icons.check)} ${theme.fg("accent", theme.bold(title))} ${theme.fg("dim", "complete")}`;
     }
     if (truncated) {
       header += ` ${theme.fg("dim", `(${totalLines} lines — /synth:output to expand)`)}`;
@@ -87,9 +91,11 @@ export default function (pi: ExtensionAPI) {
   const configPath = getConfigPath();
   const config = loadConfig(configPath);
 
-  // Lifecycle hooks (sandbox init, cleanup)
-  const baseTools = ["read", "write", "edit"] as const;
-  setupLifecycleHooks(pi, baseTools);
+  // Initialize icon registry with user overrides
+  initIcons(config.icons);
+
+  // Lifecycle hooks (sandbox init, cleanup, mode management)
+  setupLifecycleHooks(pi, config);
 
   // Register UI components
   registerOutputRenderer(pi);
@@ -103,6 +109,33 @@ export default function (pi: ExtensionAPI) {
 
   // Register sandboxed bash tool
   registerSandboxedBash(pi);
+
+  // Register find_files tool
+  // Create a closure that captures pi and config, then override execute to use runtime ctx
+  const findFilesTemplate = createFindFilesTool({
+    cwd: process.cwd(),
+    modelRegistry: null as any,
+    model: null as any,
+    ui: undefined,
+    pi,
+    modelConfig: config.modelConfig,
+  });
+
+  pi.registerTool({
+    ...findFilesTemplate,
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      // Create fresh tool with runtime context
+      const tool = createFindFilesTool({
+        cwd: ctx.cwd,
+        modelRegistry: ctx.modelRegistry,
+        model: ctx.model,
+        ui: ctx.ui,
+        pi,
+        modelConfig: config.modelConfig,
+      });
+      return tool.execute(toolCallId, params, signal, onUpdate, ctx);
+    },
+  });
 
   // Register all slash commands
   registerAllCommands(pi, config);

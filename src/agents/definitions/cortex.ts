@@ -55,7 +55,7 @@ You do not write code or run commands. You only analyze and report.
 	temperature: 0.2,
 	maxTokens: 3000,
 
-	tools: ["file_read"],
+	tools: ["file_read", "find_files"],
 
 	canWrite: false,
 	canExecuteShell: false,

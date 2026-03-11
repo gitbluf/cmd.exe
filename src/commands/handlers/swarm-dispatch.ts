@@ -4,6 +4,7 @@
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth } from "@mariozechner/pi-tui";
+import { getIconRegistry } from "../../ui/icons";
 import {
   createSwarmId,
   parseDispatchCommand,
@@ -78,10 +79,11 @@ export async function handleSwarmDispatch(
 
     // Show running widget
     ctx.ui.setWidget(widgetId, (_tui: any, theme: any) => {
+      const icons = getIconRegistry();
       return {
         render: (width: number) => [
           truncateToWidth(theme.fg("border", "─".repeat(width)), width),
-          truncateToWidth(` ${theme.fg("accent", "⚡ SWARM")} ${theme.fg("dim", swarmId)}`, width),
+          truncateToWidth(` ${theme.fg("accent", `${icons.dispatch} SWARM`)} ${theme.fg("dim", swarmId)}`, width),
           truncateToWidth(` ${theme.fg("dim", `${taskCount} task${taskCount !== 1 ? "s" : ""} · concurrency ${concurrency} · running…`)}`, width),
           truncateToWidth(` ${theme.fg("dim", "/swarm:dashboard to monitor")}`, width),
           truncateToWidth(theme.fg("border", "─".repeat(width)), width),
@@ -109,15 +111,16 @@ export async function handleSwarmDispatch(
       const fail = completed.stats.failedTasks;
       const total = completed.stats.totalTasks;
       const hasFailures = fail > 0;
+      const icons = getIconRegistry();
 
       ctx.ui.setWidget(widgetId, (_tui: any, theme: any) => {
-        const icon = hasFailures ? "⚠" : "✅";
+        const icon = hasFailures ? icons.warning : icons.success;
         const statusColor = hasFailures ? "warning" : "success";
         return {
           render: (width: number) => [
             truncateToWidth(theme.fg("border", "─".repeat(width)), width),
             truncateToWidth(` ${theme.fg(statusColor, `${icon} SWARM COMPLETE`)} ${theme.fg("dim", swarmId)}`, width),
-            truncateToWidth(` ${theme.fg("success", `${ok}✓`)} ${hasFailures ? theme.fg("error", `${fail}✗`) : ""} ${theme.fg("dim", `of ${total} tasks`)}`, width),
+            truncateToWidth(` ${theme.fg("success", `${ok}${icons.check}`)} ${hasFailures ? theme.fg("error", `${fail}${icons.cross}`) : ""} ${theme.fg("dim", `of ${total} tasks`)}`, width),
             truncateToWidth(` ${theme.fg("dim", "/swarm:dashboard for details")}`, width),
             truncateToWidth(theme.fg("border", "─".repeat(width)), width),
           ],
@@ -129,11 +132,12 @@ export async function handleSwarmDispatch(
         ctx.ui.setWidget(widgetId, undefined);
       }, 3000);
     }).catch((e) => {
+      const icons = getIconRegistry();
       ctx.ui.setWidget(widgetId, (_tui: any, theme: any) => {
         return {
           render: (width: number) => [
             truncateToWidth(theme.fg("border", "─".repeat(width)), width),
-            truncateToWidth(` ${theme.fg("error", "❌ SWARM FAILED")} ${theme.fg("dim", swarmId)}`, width),
+            truncateToWidth(` ${theme.fg("error", `${icons.error} SWARM FAILED`)} ${theme.fg("dim", swarmId)}`, width),
             truncateToWidth(` ${theme.fg("error", (e as Error).message)}`, width),
             truncateToWidth(theme.fg("border", "─".repeat(width)), width),
           ],

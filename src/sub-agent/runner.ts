@@ -13,6 +13,7 @@ import {
   SessionManager,
 } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth } from "@mariozechner/pi-tui";
+import { getIconRegistry } from "../ui/icons";
 import { storeSubAgentOutput } from "./store";
 import { resolveModel, type ActionType, type ModelConfig } from "../utils/model-resolver";
 
@@ -91,18 +92,19 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
       opts.ui.setWidget(opts.widgetId, (_tui: any, theme: any) => {
         return {
           render: (width: number) => {
+            const icons = getIconRegistry();
             const maxLines = status === "complete" ? completedWidgetLines : maxWidgetLines;
             const lines = output.split("\n");
             const displayLines = lines.slice(-maxLines);
             const truncated = lines.length > maxLines;
 
-            const statusIcon = status === "complete" ? theme.fg("success", "✓ ") : "";
+            const statusIcon = status === "complete" ? theme.fg("success", `${icons.check} `) : "";
             const statusText = status === "streaming" ? "streaming..." : "complete — last output:";
             const border = theme.fg("border", "─".repeat(width));
 
             const raw = [
               border,
-              ` ${statusIcon}${theme.fg("accent", opts.widgetTitle || "⚙️ Sub-Agent")} ${theme.fg("dim", statusText)}`,
+              ` ${statusIcon}${theme.fg("accent", opts.widgetTitle || `${icons.agentDefault} Sub-Agent`)} ${theme.fg("dim", statusText)}`,
               border,
               ...(truncated ? [theme.fg("dim", `  [...${lines.length - maxLines} earlier lines]`)] : []),
               ...displayLines.map((line: string) => theme.fg("muted", `  ${line}`)),
@@ -133,7 +135,8 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
         break;
 
       case "tool_execution_start":
-        output += `\n🔧 ${event.toolName}`;
+        const icons = getIconRegistry();
+        output += `\n${icons.tool} ${event.toolName}`;
         if (event.params) {
           const params = event.params;
           if (params.path) output += ` ${params.path}`;
@@ -151,10 +154,11 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
         break;
 
       case "tool_execution_end":
+        const iconsEnd = getIconRegistry();
         if (event.isError) {
-          output += `\n❌ Tool error\n`;
+          output += `\n${iconsEnd.error} Tool error\n`;
         } else {
-          output += `\n✓ Done\n`;
+          output += `\n${iconsEnd.check} Done\n`;
         }
         updateWidget("streaming");
         break;
@@ -181,16 +185,18 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
     // Store output for /synth:output overlay viewer (only on success with content)
     if (!failed && hasOutput) {
-      storeSubAgentOutput(opts.widgetTitle || "⚙️ Sub-Agent", output);
+      const iconsStore = getIconRegistry();
+      storeSubAgentOutput(opts.widgetTitle || `${iconsStore.agentDefault} Sub-Agent`, output);
     }
 
     // Inject final output into chat history so it scrolls with messages
     if (opts.pi) {
+      const icons = getIconRegistry();
       const lines = output.split("\n");
       const lastLines = lines.slice(-10);
       const truncated = lines.length > 10;
       const compact = (truncated ? `[...${lines.length - 10} earlier lines]\n` : "") + lastLines.join("\n");
-      const agentTitle = opts.widgetTitle || "⚙️ Sub-Agent";
+      const agentTitle = opts.widgetTitle || `${icons.agentDefault} Sub-Agent`;
 
       if (failed) {
         opts.pi.sendMessage({

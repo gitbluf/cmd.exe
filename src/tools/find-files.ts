@@ -1,0 +1,155 @@
+/**
+ * find_files tool - Delegates file discovery to DATAWEAVER sub-agent
+ *
+ * Keeps the main session context clean by doing all the exploration
+ * in an isolated DATAWEAVER session and returning only curated results.
+ */
+
+import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { Type } from "@sinclair/typebox";
+import { createReadTool } from "@mariozechner/pi-coding-agent";
+import { getIconRegistry } from "../ui/icons";
+import { runSubAgent } from "../sub-agent";
+import { DATAWEAVER } from "../agents/definitions";
+import type { ModelConfig } from "../utils/model-resolver";
+
+/**
+ * Tool parameters schema
+ */
+const FindFilesParams = Type.Object({
+	query: Type.String({
+		description:
+			"What to find: describe the files, patterns, or code you're looking for",
+	}),
+	scope: Type.Optional(
+		Type.String({
+			description:
+				"Optional directory scope to narrow the search (e.g., 'src/auth')",
+		}),
+	),
+});
+
+export type FindFilesInput = {
+	query: string;
+	scope?: string;
+};
+
+/**
+ * Factory: creates the tool definition with runtime dependencies
+ */
+export function createFindFilesTool(opts: {
+	cwd: string;
+	modelRegistry: any;
+	model: any;
+	ui?: any;
+	pi?: ExtensionAPI;
+	modelConfig?: ModelConfig;
+}) {
+	return {
+		name: "find_files",
+		label: "Find Files",
+		description:
+			"Locate files in the codebase matching a query. " +
+			"Spawns a read-only reconnaissance agent that searches, reads, " +
+			"and returns a curated summary of relevant files. " +
+			"Use this instead of manually reading directories.",
+		promptSnippet:
+			"Find and locate files in the codebase by description or pattern. " +
+			"Returns file paths and summaries without polluting context.",
+		promptGuidelines: [
+			"Use find_files when you need to locate files before reading/editing them.",
+			"Prefer find_files over manually reading directory listings.",
+			"The query should describe WHAT you're looking for, not HOW to find it.",
+		],
+		parameters: FindFilesParams,
+
+		async execute(
+			toolCallId: string,
+			params: FindFilesInput,
+			signal: AbortSignal | undefined,
+			onUpdate: any,
+			ctx: any,
+		) {
+			const icons = getIconRegistry();
+			const scopeHint = params.scope
+				? `\nFocus your search within: ${params.scope}`
+				: "";
+
+			const mission = [
+				`Find files matching this request: "${params.query}"`,
+				scopeHint,
+				"",
+				"Instructions:",
+				"1. Read directory structures to understand the project layout",
+				"2. Read promising files to verify relevance",
+				"3. Return a structured report with:",
+				"   - File path (relative to project root)",
+				"   - Brief description of what the file contains",
+				"   - Why it's relevant to the query",
+				"4. Be thorough but concise — list ALL relevant files",
+				"5. If nothing matches, say so clearly",
+				"",
+				"Format your response as a numbered list of files with descriptions.",
+			].join("\n");
+
+			// Stream progress
+			onUpdate?.({
+				content: [
+					{
+						type: "text" as const,
+						text: `${icons.agentDataweaver} Searching: ${params.query}...`,
+					},
+				],
+			});
+
+			try {
+				const output = await runSubAgent({
+					systemPrompt: DATAWEAVER.systemPrompt,
+					mission,
+					cwd: opts.cwd,
+					modelRegistry: opts.modelRegistry,
+					model: opts.model,
+					tools: [createReadTool(opts.cwd)], // read-only, always
+					widgetId: `find-files-${toolCallId}`,
+					widgetTitle: `${icons.agentDataweaver} DATAWEAVER`,
+					ui: opts.ui,
+					pi: opts.pi,
+					actionType: "research",
+					modelConfig: opts.modelConfig,
+				});
+
+				if (!output?.trim()) {
+					return {
+						content: [
+							{ type: "text" as const, text: "No files found matching the query." },
+						],
+						details: { query: params.query, scope: params.scope, found: 0 },
+					};
+				}
+
+				// Truncate output if too long (keep context clean)
+				const MAX_OUTPUT_LENGTH = 4000;
+				let result = output.trim();
+				let truncated = false;
+
+				if (result.length > MAX_OUTPUT_LENGTH) {
+					result = result.slice(0, MAX_OUTPUT_LENGTH);
+					result += "\n\n[Output truncated for context management. Use read tool to inspect specific files.]";
+					truncated = true;
+				}
+
+				return {
+					content: [{ type: "text" as const, text: result }],
+					details: {
+						query: params.query,
+						scope: params.scope,
+						truncated,
+						outputLength: output.length,
+					},
+				};
+			} catch (err) {
+				throw new Error(`File search failed: ${(err as Error).message}`);
+			}
+		},
+	};
+}

@@ -57,7 +57,7 @@ You do not implement code or execute commands. You deliver structured plans only
 	temperature: 0.3,
 	maxTokens: 4000,
 
-	tools: ["file_read"],
+	tools: ["file_read", "find_files"],
 
 	canWrite: false,
 	canExecuteShell: false,

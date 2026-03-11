@@ -9,6 +9,7 @@ import {
 	type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
 import type { BashOperations } from "@mariozechner/pi-coding-agent";
+import { getIconRegistry } from "../ui/icons";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 
 export interface SandboxState {
@@ -141,10 +142,11 @@ export async function initializeSandbox(
 		if (hasUI) {
 			const networkCount = sandboxConfig.network?.allowedDomains?.length ?? 0;
 			const writeCount = sandboxConfig.filesystem?.allowWrite?.length ?? 0;
+			const icons = getIconRegistry();
 			if (setStatusFn) {
 				setStatusFn(
 					"sandbox",
-					`🔒 Sandbox: ${networkCount} domains, ${writeCount} write paths`,
+					`${icons.sandbox} Sandbox: ${networkCount} domains, ${writeCount} write paths`,
 				);
 			}
 			if (notifyFn) {

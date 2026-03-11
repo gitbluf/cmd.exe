@@ -3,6 +3,16 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ModeConfig } from "../modes";
+import {
+	getCurrentMode,
+	getEffectiveModeConfig,
+	getModeStatusText,
+	getModeSystemPrompt,
+	setCurrentMode,
+} from "../modes";
+import type { TemplateConfig } from "../templates/types";
+import { trySetModel } from "../utils/model-utils";
 import {
 	createSandboxedBashOps,
 	initializeSandbox,
@@ -17,23 +27,55 @@ export { sandboxState } from "./sandbox";
  */
 export function setupLifecycleHooks(
 	pi: ExtensionAPI,
-	baseTools: readonly string[],
+	config: TemplateConfig,
 ): void {
-	// Set base tools on various lifecycle events
-	const setBaseTools = () => {
-		pi.setActiveTools([...baseTools]);
+	const modeConfig: ModeConfig = getEffectiveModeConfig(config.modes);
+
+	// Apply plan mode defaults on session lifecycle events
+	const applyPlanMode = () => {
+		setCurrentMode("plan");
+		const planTools = modeConfig.plan.tools;
+		pi.setActiveTools([...planTools]);
 	};
 
-	pi.on("session_start", () => {
-		setBaseTools();
+	pi.on("session_start", async (_event, ctx) => {
+		applyPlanMode();
+
+		// Set footer status
+		if (ctx.hasUI) {
+			ctx.ui.setStatus("mode", getModeStatusText("plan"));
+		}
+
+		// Try to set the plan model
+		trySetModel(pi, ctx, modeConfig.plan.model);
 	});
 
-	pi.on("session_switch", () => {
-		setBaseTools();
+	pi.on("session_switch", async (_event, ctx) => {
+		applyPlanMode();
+
+		if (ctx.hasUI) {
+			ctx.ui.setStatus("mode", getModeStatusText("plan"));
+		}
+
+		trySetModel(pi, ctx, modeConfig.plan.model);
 	});
 
 	pi.on("turn_start", () => {
-		setBaseTools();
+		// Re-apply current mode tools each turn to prevent drift
+		const mode = getCurrentMode();
+		const tools = modeConfig[mode].tools;
+		pi.setActiveTools([...tools]);
+	});
+
+	// Inject mode-specific system prompt instructions before each agent turn
+	pi.on("before_agent_start", async (event, _ctx) => {
+		const mode = getCurrentMode();
+		const tools = modeConfig[mode].tools;
+		const modePrompt = getModeSystemPrompt(mode, tools);
+
+		return {
+			systemPrompt: event.systemPrompt + modePrompt,
+		};
 	});
 
 	// Setup sandbox on session start
