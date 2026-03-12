@@ -249,31 +249,140 @@ cmd.exe/
 
 ## ⚙️ Configuration
 
-Configuration files can be placed at:
-- `<workspace>/.pi/extensions/cmd.exe/config.json` (project-specific)
-- `~/.pi/extensions/cmd.exe/config.json` (user-wide)
-- `/etc/pi/extensions/cmd.exe/config.json` (global)
+### Configuration File Locations
 
-### Quick Example
+Configuration files are loaded in priority order (highest to lowest):
+
+| Priority | Path | Use Case |
+|----------|------|----------|
+| **Highest** | `<workspace>/.pi/extensions/cmd.exe/config.json` | Project-specific overrides |
+| Medium | `~/.pi/extensions/cmd.exe/config.json` | User-wide settings *(recommended for laptop-specific configs)* |
+| Lowest | `/etc/pi/extensions/cmd.exe/config.json` | Global defaults |
+
+**Environment variable override:**
+```bash
+export CMD_EXE_CONFIG=~/.config/cmd.exe.json
+```
+
+### Model Override Strategies
+
+cmd.exe supports **three independent layers** of model configuration:
+
+#### 1. Per-Mode Models (Plan / Build)
+
+Control which model powers your main conversation in each mode:
 
 ```json
 {
   "modes": {
     "plan": {
-      "model": "github-copilot/claude-opus-4.6",
+      "model": "openai/o3",
       "tools": ["read", "find_files"]
     },
     "build": {
-      "model": "github-copilot/claude-sonnet-4.5",
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "tools": ["read", "write", "edit", "bash", "find_files"]
+    }
+  }
+}
+```
+
+**Defaults:** Plan → `claude-opus-4.6`, Build → `claude-sonnet-4.5`
+
+#### 2. Per-Agent Models (Swarm Agents)
+
+Override models for specific agents without redefining their entire template:
+
+```json
+{
+  "agents": {
+    "ghost": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.05
+    },
+    "blueprint": {
+      "model": "openai/o3",
+      "temperature": 0.7
+    },
+    "cortex": {
+      "model": "openai/gpt-4o"
+    },
+    "hardline": {
+      "disabled": true
+    }
+  }
+}
+```
+
+This affects models used by `/swarm` and `/synth` commands.
+
+#### 3. Per-Action Models (Sub-Agents & Tools)
+
+Control which model handles specific action types. This includes the **`find_files` reconnaissance model**:
+
+```json
+{
+  "modelConfig": {
+    "default": "anthropic/claude-sonnet-4-20250514",
+    "fallback": true,
+    "overrides": {
+      "research": "openai/gpt-4o-mini",        // Controls find_files tool
+      "planning": "openai/o3",                  // Used by /synth:plan
+      "analysis": "openai/o3",                  // Used by CORTEX reviews
+      "ask": "anthropic/claude-haiku-3-5",     // Used by /ask command
+      "testing": "openai/gpt-4o"
+    }
+  }
+}
+```
+
+**Action Types:**
+- `research` - DATAWEAVER sub-agent (powers `find_files` tool)
+- `planning` - Plan synthesis
+- `analysis` - Code reviews and analysis
+- `ask` - Ad-hoc queries via `/ask`
+- `testing` - Test generation
+- `main` - Default for unspecified actions
+
+**Model Resolution Chain:**
+```
+Action Override → Config Default → Current Session Model → First Available
+```
+
+With `"fallback": true`, missing models degrade gracefully rather than error.
+
+### Complete Configuration Example
+
+```json
+{
+  "modes": {
+    "plan": {
+      "model": "openai/o3",
+      "tools": ["read", "find_files"]
+    },
+    "build": {
+      "model": "anthropic/claude-sonnet-4-20250514",
       "tools": ["read", "write", "edit", "bash", "find_files"]
     }
   },
+  "agents": {
+    "ghost": {
+      "model": "anthropic/claude-sonnet-4-20250514",
+      "temperature": 0.05
+    },
+    "blueprint": {
+      "model": "openai/o3"
+    },
+    "cortex": {
+      "model": "openai/gpt-4o"
+    }
+  },
   "modelConfig": {
-    "default": "github-copilot/claude-sonnet-4.5",
+    "default": "anthropic/claude-sonnet-4-20250514",
+    "fallback": true,
     "overrides": {
-      "planning": "github-copilot/claude-opus-4.6",
-      "research": "github-copilot/gpt-4o-mini",
-      "ask": "github-copilot/haiku-4.5"
+      "research": "openai/gpt-4o-mini",
+      "ask": "anthropic/claude-haiku-3-5"
     }
   },
   "icons": {
@@ -284,7 +393,32 @@ Configuration files can be placed at:
 }
 ```
 
-### Configuration Sections
+### Using Config on Different Laptops
+
+**Problem:** Different machines have access to different model providers.
+
+**Solution:** Create a user-wide config at `~/.pi/extensions/cmd.exe/config.json` with your available models:
+
+```json
+{
+  "modes": {
+    "plan": { "model": "openai/gpt-4o" },
+    "build": { "model": "openai/gpt-4o-mini" }
+  },
+  "modelConfig": {
+    "default": "openai/gpt-4o-mini",
+    "fallback": true,
+    "overrides": {
+      "research": "openai/gpt-4o-mini",
+      "planning": "openai/gpt-4o"
+    }
+  }
+}
+```
+
+With `"fallback": true`, unavailable models automatically fall back to the next available option.
+
+### All Configuration Sections
 
 - **`modes`** - Plan/Build mode settings (models, tools)
 - **`agentTemplates`** - Define or customize agent templates
@@ -296,14 +430,15 @@ Configuration files can be placed at:
 ### Full Documentation
 
 See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
-- Complete schema reference
-- All configuration options with descriptions
+- Complete schema reference with all fields
 - Built-in agent template definitions
-- Model resolution strategies
-- Sandbox configuration details
+- Model resolution strategies and priority chains
+- Sandbox configuration (sandboxExec, bwrap, custom)
+- Icon customization reference
 - Environment variables
-- Configuration priority and merging
+- Configuration merging and validation
 - Performance optimization tips
+- Cost control strategies
 
 ## 🚀 Usage Examples
 
