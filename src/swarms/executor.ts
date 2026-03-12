@@ -72,7 +72,7 @@ function taskOutputPath(
  * Workspaces contain:
  *   .agent.json     — agent configuration and mission
  *   .agent-state.json — post-execution state (written by AgentExecutor)
- *   dispath-sandbox.sb — sandbox profile (macOS, written by AgentExecutor)
+ *   dispatch-sandbox.sb — sandbox profile (macOS, written by AgentExecutor)
  *
  * Persists state to the registry on every task status change so external
  * readers (like the dashboard) can poll for live updates.

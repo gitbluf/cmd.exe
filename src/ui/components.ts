@@ -101,9 +101,9 @@ function separator(width = 60) {
 }
 
 /**
- * DishatchControlPanel - Main status display for dispath operations
+ * DispatchControlPanel - Main status display for dispatch operations
  */
-class DishatchControlPanel implements Component {
+class DispatchControlPanel implements Component {
 	private lines: string[] = [];
 	private maxLines = 30;
 
@@ -204,7 +204,7 @@ class AgentOutputPanel implements Component {
 }
 
 export {
-	DishatchControlPanel,
+	DispatchControlPanel,
 	AgentOutputPanel,
 	ANSI,
 	ICONS,

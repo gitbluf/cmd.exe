@@ -2,7 +2,7 @@
  * Icon registry - centralized icon/emoji configuration
  *
  * All icons used across the extension are defined here with defaults.
- * User overrides can be provided via the `icons` field in dispath.json.
+ * User overrides can be provided via the `icons` field in dispatch.json.
  */
 
 export interface IconSet {

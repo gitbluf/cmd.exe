@@ -3,6 +3,7 @@
  */
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import {
 	applyAgentOverrides,
@@ -26,7 +27,7 @@ export function loadConfigFile(
 		const content = fs.readFileSync(configPath, "utf8");
 		return JSON.parse(content);
 	} catch (e) {
-		console.error(`[dispath] Failed to load config from ${configPath}:`, e);
+		console.error(`[dispatch] Failed to load config from ${configPath}:`, e);
 		return null;
 	}
 }
@@ -46,8 +47,10 @@ export function loadConfig(configPath?: string): TemplateConfig {
 
 	// Load and merge user config if provided
 	if (configPath) {
+		console.log(`[dispatch] Loading config from: ${configPath}`);
 		const userConfig = loadConfigFile(configPath);
 		if (userConfig) {
+			console.log(`[dispatch] Config loaded successfully`);
 			const userTemplates = (userConfig.agentTemplates || {}) as Record<
 				string,
 				AgentTemplate
@@ -62,6 +65,8 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				modes: userConfig.modes || config.modes,
 				icons: userConfig.icons || config.icons,
 			};
+		} else {
+			console.log(`[dispatch] Config file not found, using defaults`);
 		}
 	}
 
@@ -80,7 +85,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 			const errors = validateTemplate(name, template as AgentTemplate);
 			if (errors.length > 0) {
 				console.error(
-					`[dispath] Template validation failed:\n${errors.join("\n")}`,
+					`[dispatch] Template validation failed:\n${errors.join("\n")}`,
 				);
 				invalidTemplates.push(name);
 			}
@@ -113,8 +118,7 @@ export function saveConfig(configPath: string, config: TemplateConfig): void {
  * Get config file path
  */
 export function getConfigPath(): string {
-	const home = process.env.HOME || ".";
-	return path.join(home, ".pi/agent/extensions/dispath.json");
+	return path.join(os.homedir(), ".pi/agent/extensions/dispatch.json");
 }
 
 /**
@@ -125,6 +129,5 @@ export function getWorkspaceRoot(cwd?: string): string {
 		return path.join(cwd, ".agents", "dispatch");
 	}
 
-	const home = process.env.HOME || ".";
-	return path.join(home, ".agents/dispatch");
+	return path.join(os.homedir(), ".agents/dispatch");
 }

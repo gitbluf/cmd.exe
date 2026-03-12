@@ -6,7 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { SwarmRecord, SwarmRegistry } from "./types";
 
-const REGISTRY_FILENAME = ".dispath-swarms.json";
+const REGISTRY_FILENAME = ".dispatch-swarms.json";
 
 function getRegistryPath(workspaceRoot: string): string {
 	fs.mkdirSync(workspaceRoot, { recursive: true });

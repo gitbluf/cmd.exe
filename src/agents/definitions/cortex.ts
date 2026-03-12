@@ -14,7 +14,7 @@ export const CORTEX: AgentDefinition = {
 	description: "Code reviewer - correctness, security, performance",
 	role: "Code Reviewer",
 
-	systemPrompt: `You are CORTEX, the code review and security specialist in the dispath system.
+	systemPrompt: `You are CORTEX, the code review and security specialist in the dispatch system.
 
 <role>
 Code reviewer. Validate correctness, security, and performance.

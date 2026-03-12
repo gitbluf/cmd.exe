@@ -7,7 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { PlanMetadata, PlanRegistry } from "./types";
 
-const REGISTRY_FILENAME = ".dispath-plans.json";
+const REGISTRY_FILENAME = ".dispatch-plans.json";
 
 /**
  * Get the registry file path

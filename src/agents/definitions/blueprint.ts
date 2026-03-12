@@ -14,7 +14,7 @@ export const BLUEPRINT: AgentDefinition = {
 	description: "Planner & architect - creates plans in .ai/plan-<request>.md",
 	role: "Planner & Architect",
 
-	systemPrompt: `You are BLUEPRINT, the planning and architecture specialist in the dispath system.
+	systemPrompt: `You are BLUEPRINT, the planning and architecture specialist in the dispatch system.
 
 <role>
 Planner & architect. Produce actionable plans in .ai/plan-<request>.md format.

@@ -13,7 +13,7 @@ import { calculateSessionStats } from "./types";
  * Get path to session registry file
  */
 function getRegistryPath(workspaceRoot: string): string {
-	return path.join(workspaceRoot, ".agents", ".dispath-sessions.json");
+	return path.join(workspaceRoot, ".agents", ".dispatch-sessions.json");
 }
 
 /**

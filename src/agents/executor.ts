@@ -1,5 +1,5 @@
 /**
- * AgentExecutor - Spawns pi agent sessions for dispath agents
+ * AgentExecutor - Spawns pi agent sessions for dispatch agents
  * Each agent runs in its own workspace with its own session
  */
 
@@ -206,7 +206,7 @@ Document your progress and findings.`;
 		};
 
 		if (config.strategy === "sandboxExec") {
-			const profilePath = path.join(this.stateDir, "dispath-sandbox.sb");
+			const profilePath = path.join(this.stateDir, "dispatch-sandbox.sb");
 			const profileContents = buildSandboxExecProfile(policy, this.cwd);
 			fs.mkdirSync(this.stateDir, { recursive: true });
 			fs.writeFileSync(profilePath, profileContents);
@@ -305,7 +305,7 @@ Document your progress and findings.`;
 				JSON.stringify(sessionState, null, 2),
 			);
 		} catch (e) {
-			console.error("[dispath] Failed to save session state:", e);
+			console.error("[dispatch] Failed to save session state:", e);
 		}
 	}
 }

@@ -4,7 +4,7 @@ The icon system provides centralized configuration for all icons/emojis used thr
 
 ## Overview
 
-All icons are defined in `src/ui/icons.ts` with sensible defaults. Users can override any icon via the `icons` field in their `dispath.json` configuration file.
+All icons are defined in `src/ui/icons.ts` with sensible defaults. Users can override any icon via the `icons` field in their `dispatch.json` configuration file.
 
 ## Default Icons
 
@@ -60,7 +60,7 @@ All icons are defined in `src/ui/icons.ts` with sensible defaults. Users can ove
 
 ## Configuration
 
-Override icons in `~/.pi/agent/extensions/dispath.json`:
+Override icons in `~/.pi/agent/extensions/dispatch.json`:
 
 ```json
 {

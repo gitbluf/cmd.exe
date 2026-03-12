@@ -15,7 +15,7 @@ export const BLACKICE: AgentDefinition = {
 		"Primary orchestrator - routes requests, manages task chains, delegates",
 	role: "Primary Orchestrator",
 
-	systemPrompt: `You are BLACKICE, the primary orchestrator agent in the dispath system.
+	systemPrompt: `You are BLACKICE, the primary orchestrator agent in the dispatch system.
 <role>
 Primary orchestrator. Route requests, manage task chains, coordinate swarms.
 </role>

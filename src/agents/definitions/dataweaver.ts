@@ -14,7 +14,7 @@ export const DATAWEAVER: AgentDefinition = {
 	description: "Codebase reconnaissance - finds files, searches, extracts info",
 	role: "Codebase Reconnaissance",
 
-	systemPrompt: `You are DATAWEAVER, the codebase reconnaissance specialist in the dispath system.
+	systemPrompt: `You are DATAWEAVER, the codebase reconnaissance specialist in the dispatch system.
 
 <role>
 Codebase reconnaissance. Find files, search patterns, extract relevant info.

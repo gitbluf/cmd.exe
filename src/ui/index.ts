@@ -6,7 +6,7 @@ export {
 	AgentOutputPanel,
 	ANSI,
 	colorize,
-	DishatchControlPanel,
+	DispatchControlPanel,
 	formatStatus,
 	ICONS,
 	separator,

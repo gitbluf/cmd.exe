@@ -46,18 +46,18 @@ export function createWidget(
 	// Create a simple widget via pi.tui if available, otherwise fallback to notifications
 	if (pi.tui?.createWidget) {
 		const widget = pi.tui.createWidget({
-			id: `dispath-${agent.id}`,
+			id: `dispatch-${agent.id}`,
 			title: `${agent.name}`,
 			persist: true,
 		});
 		widget.setContent(`Status: ${agent.status}\n\n${agent.logs}`);
 
-		pi.on("dispath:agent:update", (ev) => {
+		pi.on("dispatch:agent:update", (ev) => {
 			if ("text" in ev && ev.id === agent.id) {
 				widget.append(ev.text);
 			}
 		});
-		pi.on("dispath:agent:status", (ev) => {
+		pi.on("dispatch:agent:status", (ev) => {
 			if ("status" in ev && ev.id === agent.id) {
 				widget.setTitle(`${agent.name} — ${ev.status}`);
 			}
@@ -67,19 +67,19 @@ export function createWidget(
 			pi.openShell?.({ cwd: agent.cwd });
 		});
 		widget.addButton("Terminate", () => {
-			pi.emit?.("dispath:agent:terminate", { id: agent.id });
+			pi.emit?.("dispatch:agent:terminate", { id: agent.id });
 		});
 		widget.addButton("Dismiss", () => {
 			widget.close();
-			pi.emit?.("dispath:agent:dismiss", { id: agent.id });
+			pi.emit?.("dispatch:agent:dismiss", { id: agent.id });
 		});
 	} else {
-		pi.on("dispath:agent:update", (ev) => {
+		pi.on("dispatch:agent:update", (ev) => {
 			if ("text" in ev && ev.id === agent.id) {
 				pi.notify?.(`${agent.name}: ${ev.text}`);
 			}
 		});
-		pi.on("dispath:agent:status", (ev) => {
+		pi.on("dispatch:agent:status", (ev) => {
 			if ("status" in ev && ev.id === agent.id) {
 				pi.notify?.(`${agent.name} status: ${ev.status}`);
 			}
