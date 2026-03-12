@@ -13,6 +13,7 @@ import path from "node:path";
 import type { AgentConfig, HostContext } from "../agents";
 import { spawnAgent } from "../agents";
 import { SessionRecorder } from "../recording";
+import { getEffectiveModel, getEffectiveTemperature } from "../templates";
 import type { TemplateConfig } from "../templates/types";
 import { upsertSwarm } from "./registry";
 import type { SwarmRecord, SwarmTask } from "./types";
@@ -176,7 +177,7 @@ export class SwarmExecutor {
 			`- **Task ID:** ${task.id}`,
 			`- **Swarm:** ${this.swarmRecord.id}`,
 			`- **Created:** ${agentConfig.createdAt}`,
-			`- **Model:** ${agentConfig.template.model || "default"}`,
+			`- **Model:** ${getEffectiveModel(agentConfig.template) || "default"}`,
 			``,
 			`## Mission`,
 			``,
@@ -313,8 +314,8 @@ export class SwarmExecutor {
 				{
 					swarmId: this.swarmRecord.id,
 					swarmTaskId: task.id,
-					model: template.model,
-					temperature: template.temperature,
+					model: getEffectiveModel(template),
+					temperature: getEffectiveTemperature(template),
 					tools: template.tools,
 				},
 			);

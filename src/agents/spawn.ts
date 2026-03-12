@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { SessionRecorder } from "../recording";
+import { getEffectiveModel, getEffectiveTemperature } from "../templates";
 import type { AgentTemplate, TemplateConfig } from "../templates/types";
 import { ANSI, colorize, stripAnsi } from "../ui";
 import type { AgentConfig, HostContext } from ".";
@@ -47,8 +48,8 @@ export async function spawnAgentWorkspace(
 
 	const recorder = new SessionRecorder(root);
 	const _session = recorder.startSession(agentType, "direct", mission, {
-		model: template.model,
-		temperature: template.temperature,
+		model: getEffectiveModel(template),
+		temperature: getEffectiveTemperature(template),
 		tools: template.tools,
 	});
 

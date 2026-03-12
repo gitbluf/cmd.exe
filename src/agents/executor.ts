@@ -21,6 +21,7 @@ import {
 	type SandboxConfig,
 	wrapBashCommand,
 } from "../sandbox";
+import { getEffectiveModel, getEffectiveTemperature } from "../templates";
 import { validateCommand } from "./bash-allowlist";
 import type {
 	AgentConfig,
@@ -80,7 +81,7 @@ export class AgentExecutor {
 
 			// Resolve model from template config against the host's registry
 			let selectedModel: any = null;
-			const modelStr = this.config.template.model || "gpt-4o";
+			const modelStr = getEffectiveModel(this.config.template) || "gpt-4o";
 
 			if (modelStr.includes("/")) {
 				const [providerStr, modelId] = modelStr.split("/");

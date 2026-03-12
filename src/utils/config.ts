@@ -64,6 +64,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				sandbox: userConfig.sandbox || config.sandbox,
 				modes: userConfig.modes || config.modes,
 				icons: userConfig.icons || config.icons,
+				modelConfig: userConfig.modelConfig || config.modelConfig,
 			};
 		} else {
 			console.log(`[dispatch] Config file not found, using defaults`);

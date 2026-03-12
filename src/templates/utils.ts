@@ -7,6 +7,7 @@ import type { AgentTemplate } from "./types";
 /**
  * Merge user config with defaults
  * User config overrides defaults but keeps unspecified defaults
+ * Deep merges per-template to preserve default fields
  */
 export function mergeTemplates(
 	defaults: Record<string, AgentTemplate>,
@@ -16,10 +17,24 @@ export function mergeTemplates(
 		return defaults;
 	}
 
-	return {
-		...defaults,
-		...userConfig,
-	};
+	const result: Record<string, AgentTemplate> = { ...defaults };
+
+	// Deep merge each user template with its default
+	for (const [key, userTemplate] of Object.entries(userConfig)) {
+		const defaultTemplate = defaults[key];
+		if (defaultTemplate) {
+			// Merge user overrides into default template
+			result[key] = {
+				...defaultTemplate,
+				...userTemplate,
+			};
+		} else {
+			// New template not in defaults
+			result[key] = userTemplate;
+		}
+	}
+
+	return result;
 }
 
 /**

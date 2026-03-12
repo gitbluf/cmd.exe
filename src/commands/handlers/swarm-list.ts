@@ -3,6 +3,7 @@
  */
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import { getEffectiveModel, getEffectiveTemperature } from "../../templates";
 import type { AgentTemplate, TemplateConfig } from "../../templates/types";
 import { ANSI, colorize } from "../../ui";
 import { getIconRegistry } from "../../ui/icons";
@@ -24,7 +25,9 @@ export async function handleSwarmList(
     for (const [name, template] of templates) {
       const tmpl = template as AgentTemplate;
       const status = tmpl.disabled ? colorize(" [DISABLED]", ANSI.dim) : "";
-      const line = `${name.padEnd(12)} | ${tmpl.role.padEnd(25)} | T:${tmpl.temperature.toFixed(1)} | Model: ${tmpl.model}${status}`;
+      const effectiveModel = getEffectiveModel(tmpl);
+      const effectiveTemp = getEffectiveTemperature(tmpl);
+      const line = `${name.padEnd(12)} | ${tmpl.role.padEnd(25)} | T:${effectiveTemp.toFixed(1)} | Model: ${effectiveModel}${status}`;
       console.log(line);
     }
     console.log("");
