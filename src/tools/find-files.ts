@@ -7,7 +7,12 @@
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { createReadTool } from "@mariozechner/pi-coding-agent";
+import {
+	createReadTool,
+	createLsTool,
+	createGrepTool,
+	createFindTool,
+} from "@mariozechner/pi-coding-agent";
 import { getIconRegistry } from "../ui/icons";
 import { runSubAgent } from "../sub-agent";
 import { DATAWEAVER } from "../agents/definitions";
@@ -80,14 +85,19 @@ export function createFindFilesTool(opts: {
 				scopeHint,
 				"",
 				"Instructions:",
-				"1. Read directory structures to understand the project layout",
-				"2. Read promising files to verify relevance",
-				"3. Return a structured report with:",
+				"1. Use available tools to efficiently search:",
+				"   - ls: list directory contents",
+				"   - find: search for files by name/pattern",
+				"   - grep: search file contents by pattern",
+				"   - read: inspect specific files",
+				"2. Navigate the project structure intelligently",
+				"3. Read promising files to verify relevance",
+				"4. Return a structured report with:",
 				"   - File path (relative to project root)",
 				"   - Brief description of what the file contains",
 				"   - Why it's relevant to the query",
-				"4. Be thorough but concise — list ALL relevant files",
-				"5. If nothing matches, say so clearly",
+				"5. Be thorough but concise — list ALL relevant files",
+				"6. If nothing matches, say so clearly",
 				"",
 				"Format your response as a numbered list of files with descriptions.",
 			].join("\n");
@@ -109,7 +119,12 @@ export function createFindFilesTool(opts: {
 					cwd: opts.cwd,
 					modelRegistry: opts.modelRegistry,
 					model: opts.model,
-					tools: [createReadTool(opts.cwd)], // read-only, always
+					tools: [
+						createReadTool(opts.cwd),
+						createLsTool(opts.cwd),
+						createGrepTool(opts.cwd),
+						createFindTool(opts.cwd),
+					],
 					widgetId: `find-files-${toolCallId}`,
 					widgetTitle: `${icons.agentDataweaver} DATAWEAVER`,
 					ui: opts.ui,

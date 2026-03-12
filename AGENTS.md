@@ -317,6 +317,7 @@ Agent: I've implemented the auth service... [DONE:4]
 - **Focus:** Documentation, exploration, findings
 - **Prompt:** Thorough, curious, detail-oriented
 - **Tools:** read, bash (read-only with command allowlist)
+  - When invoked via `find_files` tool: also gets `ls`, `grep`, and `find` for efficient file discovery
 - **Temperature:** 0.4 (balanced)
 
 ### hardline
