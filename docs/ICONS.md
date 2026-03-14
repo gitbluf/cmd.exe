@@ -28,7 +28,7 @@ All icons are defined in `src/ui/icons.ts` with sensible defaults. Users can ove
   // Agent indicators
   agentBlackice: "👁️",
   agentGhost: "👻",
-  agentBlueprint: "🧠",
+  agentPlanner: "🧠",
   agentDataweaver: "🕸️",
   agentDefault: "⚙️",
 
@@ -117,7 +117,7 @@ Used for Plan/Build mode indicators:
 Used for agent identification:
 - `agentBlackice` - BLACKICE orchestrator
 - `agentGhost` - GHOST implementation agent
-- `agentBlueprint` - BLUEPRINT architect
+- `agentPlanner` - Plan agent indicator
 - `agentDataweaver` - DATAWEAVER reconnaissance agent
 - `agentDefault` - Generic sub-agent fallback
 

@@ -4,7 +4,7 @@
 
 export interface SwarmTask {
 	id: string; // task-1, task-2, etc.
-	agent: string; // cortex, blueprint, dataweaver, etc.
+	agent: string; // e.g., cortex, dataweaver, ghost, etc.
 	request: string; // What to do
 	status:
 		| "pending"

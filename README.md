@@ -9,7 +9,7 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 /ops
 
 # Dispatch specialized agents to work in parallel
-/swarm task-1 ghost "implement auth module" | task-2 blueprint "design API schema"
+/swarm task-1 ghost "implement auth module" | task-2 dataweaver "map authentication flow"
 
 # Let BLACKICE orchestrator decompose complex tasks
 /blackice refactor the authentication system for better security
@@ -152,7 +152,7 @@ Dispatch multiple specialized agents to work concurrently on different tasks:
 **Options:**
 
 ```bash
-/swarm --concurrency 3 --timeout 600000 task-1 ghost "X" | task-2 blueprint "Y"
+/swarm --concurrency 3 --timeout 600000 task-1 ghost "X" | task-2 dataweaver "Y"
 ```
 
 - `--concurrency N` - Max parallel tasks (default: 5)
@@ -210,11 +210,8 @@ Available in both Plan and Build modes. See [docs/FIND_FILES.md](docs/FIND_FILES
 | Agent | Role | Temperature | Tools | Best For |
 |-------|------|-------------|-------|----------|
 | **ghost** | Implementation Specialist | 0.1 | read, write, edit, bash | Code changes, execution |
-| **blueprint** | System Architect | 0.5 | read, find_files | Design, planning, architecture |
-| **cortex** | Data Analyst | 0.3 | read, find_files | Pattern recognition, analysis |
 | **dataweaver** | Information Researcher | 0.7 | read | Documentation, exploration |
 | **hardline** | Command Executor | 0.2 | bash, read, find_files | Scripts, builds, diagnostics |
-| **blackice** | Orchestrator | 0.4 | coordination | Task decomposition, routing |
 
 Each agent has:
 
@@ -228,7 +225,7 @@ Each agent has:
 ```
 cmd.exe/
 ├── src/
-│   ├── agents/           # Agent definitions (ghost, blueprint, etc.)
+│   ├── agents/           # Agent definitions (ghost, dataweaver, hardline, etc.)
 │   ├── commands/         # Command handlers (/swarm, /synth, /ops)
 │   ├── swarms/           # Multi-agent orchestration engine
 │   ├── sub-agent/        # Single-agent execution runtime
@@ -300,13 +297,6 @@ Override models for specific agents without redefining their entire template:
       "model": "anthropic/claude-sonnet-4-20250514",
       "temperature": 0.05
     },
-    "blueprint": {
-      "model": "openai/o3",
-      "temperature": 0.7
-    },
-    "cortex": {
-      "model": "openai/gpt-4o"
-    },
     "hardline": {
       "disabled": true
     }
@@ -370,11 +360,8 @@ With `"fallback": true`, missing models degrade gracefully rather than error.
       "model": "anthropic/claude-sonnet-4-20250514",
       "temperature": 0.05
     },
-    "blueprint": {
-      "model": "openai/o3"
-    },
-    "cortex": {
-      "model": "openai/gpt-4o"
+    "hardline": {
+      "disabled": true
     }
   },
   "modelConfig": {
@@ -447,10 +434,9 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
 ```bash
 # Complex refactoring with specialized agents
 /swarm \
-  task-1 blueprint "Design new authentication flow" | \
+  task-1 dataweaver "Design new authentication flow" | \
   task-2 hardline "Audit current security vulnerabilities" | \
-  task-3 ghost "Implement OAuth2 integration" | \
-  task-4 cortex "Analyze authentication patterns in logs"
+  task-3 ghost "Implement OAuth2 integration"
 
 # Monitor progress
 /swarm:dashboard

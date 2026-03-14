@@ -8,7 +8,7 @@ import type { ModelConfig } from "../utils/model-resolver";
 
 export interface AgentTemplate {
 	// Identity
-	id?: string; // Agent ID (cortex, blueprint, etc.)
+	id?: string; // Agent ID (cortex, ghost, dataweaver, etc.)
 	name?: string; // Display name (CORTEX, BLUEPRINT, etc.)
 	agentType?:
 		| "cortex"

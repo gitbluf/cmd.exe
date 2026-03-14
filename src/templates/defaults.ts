@@ -3,9 +3,6 @@
  */
 
 import {
-	BLACKICE,
-	BLUEPRINT,
-	CORTEX,
 	DATAWEAVER,
 	GHOST,
 	HARDLINE,
@@ -36,9 +33,6 @@ function agentDefinitionToTemplate(agent: AgentDefinition): AgentTemplate {
 }
 
 export const DEFAULT_TEMPLATES: Record<string, AgentTemplate> = {
-	cortex: agentDefinitionToTemplate(CORTEX),
-	blueprint: agentDefinitionToTemplate(BLUEPRINT),
-	blackice: agentDefinitionToTemplate(BLACKICE),
 	dataweaver: agentDefinitionToTemplate(DATAWEAVER),
 	ghost: agentDefinitionToTemplate(GHOST),
 	hardline: agentDefinitionToTemplate(HARDLINE),

@@ -24,7 +24,7 @@ export interface IconSet {
   // Agent indicators
   agentBlackice: string; // 👁️
   agentGhost: string; // 👻
-  agentBlueprint: string; // 🧠
+  agentPlanner: string; // 🧠
   agentDataweaver: string; // 🕸️
   agentDefault: string; // ⚙️
 
@@ -75,7 +75,7 @@ export const DEFAULT_ICONS: IconSet = {
   // Agent indicators
   agentBlackice: "👁️",
   agentGhost: "👻",
-  agentBlueprint: "🧠",
+  agentPlanner: "🧠",
   agentDataweaver: "🕸️",
   agentDefault: "⚙️",
 

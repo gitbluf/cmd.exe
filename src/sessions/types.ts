@@ -10,7 +10,7 @@ export interface SessionRecord {
 	timestamp: string; // ISO8601 - when record created
 
 	// Execution context
-	agentId: string; // cortex, blueprint, ghost, etc.
+	agentId: string; // e.g., cortex, ghost, dataweaver, etc.
 	type: "plan" | "synth" | "apply" | "dispatch" | "direct";
 	request: string; // Original request/instruction
 

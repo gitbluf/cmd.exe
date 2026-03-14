@@ -3,20 +3,6 @@
   "$comment": "cmd.exe configuration with dynamic model selection",
 
   "agentTemplates": {
-    "blueprint": {
-      "name": "BLUEPRINT",
-      "agentType": "blueprint",
-      "role": "System Architect",
-      "description": "Designs systems, plans implementation, analyzes architecture",
-      "systemPrompt": "You are BLUEPRINT, a system architect...",
-      "tools": ["read"],
-      "model": "github-copilot/gpt-4o",
-      "maxTokens": 4096,
-      "temperature": 0.5,
-      "canWrite": false,
-      "canExecuteShell": false
-    },
-
     "ghost": {
       "name": "GHOST",
       "agentType": "ghost",
@@ -31,16 +17,31 @@
       "canExecuteShell": true
     },
 
-    "cortex": {
-      "name": "CORTEX",
-      "agentType": "cortex",
-      "role": "Code Analyst",
-      "description": "Analyzes code patterns, identifies issues, provides insights",
-      "systemPrompt": "You are CORTEX, a code analyst...",
-      "tools": ["read", "bash"],
+    "dataweaver": {
+      "name": "DATAWEAVER",
+      "agentType": "dataweaver",
+      "role": "Information Researcher",
+      "description": "Explores the codebase and documents findings",
+      "systemPrompt": "You are DATAWEAVER, the research specialist...",
+      "tools": ["read", "shell_exec"],
+      "model": "github-copilot/gpt-4o-mini",
+      "maxTokens": 4096,
+      "temperature": 0.7,
+      "canWrite": false,
+      "canExecuteShell": true,
+      "readOnlyBash": true
+    },
+
+    "hardline": {
+      "name": "HARDLINE",
+      "agentType": "hardline",
+      "role": "Security Auditor",
+      "description": "Audits scripts and infrastructure",
+      "systemPrompt": "You are HARDLINE, a security-focused agent...",
+      "tools": ["read", "shell_exec"],
       "model": "github-copilot/gpt-4o",
       "maxTokens": 4096,
-      "temperature": 0.3,
+      "temperature": 0.2,
       "canWrite": false,
       "canExecuteShell": true
     }
@@ -59,14 +60,16 @@
   },
 
   "agents": {
-    "blueprint": {
-      "disabled": false
-    },
     "ghost": {
-      "disabled": false
+      "model": "anthropic/claude-sonnet-4-20240620",
+      "temperature": 0.05
     },
-    "cortex": {
-      "disabled": false
+    "dataweaver": {
+      "model": "github-copilot/gpt-4o-mini",
+      "temperature": 0.4
+    },
+    "hardline": {
+      "disabled": true
     }
   },
 

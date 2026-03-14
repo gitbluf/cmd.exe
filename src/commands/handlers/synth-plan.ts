@@ -1,5 +1,5 @@
 /**
- * /synth:plan command handler - Synthesize plan using BLUEPRINT agent
+ * /synth:plan command handler - Synthesize a plan using the configured plan agent
  */
 
 import fs from "node:fs";
@@ -19,43 +19,50 @@ import { parsePlanFromMarkdown } from "../../plan/parser";
 import { createPlanId } from "../../plan/types";
 import { setPlan } from "../../plan/state";
 import { updatePlanStatus } from "../../plan/widget";
-import { getWorkspaceRoot } from "../../utils/config";
 
 export async function handleSynthPlan(
-  args: string,
-  ctx: ExtensionCommandContext,
-  root: string,
-  config: TemplateConfig,
-  pi: ExtensionAPI,
+	args: string,
+	ctx: ExtensionCommandContext,
+	root: string,
+	config: TemplateConfig,
+	pi: ExtensionAPI,
 ): Promise<void> {
-  try {
-    const focusArea = args?.trim() || "the overall task and requirements";
-    const icons = getIconRegistry();
+	try {
+		const focusArea = args?.trim() || "the overall task and requirements";
+		const icons = getIconRegistry();
 
-    const blueprintTemplate = config.agentTemplates.blueprint as AgentTemplate;
-    if (!blueprintTemplate) {
-      ctx.ui.notify(`${icons.error} BLUEPRINT agent template not found`, "error");
-      return;
-    }
+		const planTemplate = Object.values(config.agentTemplates).find(
+			(template) => template.agentType === "blueprint",
+		) as AgentTemplate | undefined;
+		if (!planTemplate) {
+			ctx.ui.notify(
+				"No plan agent (agentType \"blueprint\") is configured. Add one to agentTemplates to enable /synth:plan.",
+				"error",
+			);
+			return;
+		}
 
-    if (blueprintTemplate.disabled) {
-      ctx.ui.notify(`${icons.error} BLUEPRINT agent is disabled`, "error");
-      return;
-    }
+		if (planTemplate.disabled) {
+			const label = planTemplate.name || planTemplate.id || "Plan agent";
+			ctx.ui.notify(`${icons.error} ${label} is disabled`, "error");
+			return;
+		}
 
-    const selectedModel = resolveModel({
-      modelRegistry: ctx.modelRegistry,
-      currentModel: ctx.model,
-      actionType: "planning",
-      config: config.modelConfig,
-    });
+		const planAgentLabel = planTemplate.name || planTemplate.id || "Plan agent";
 
-    ctx.ui.notify(
-      `${icons.agentBlueprint} Spawning BLUEPRINT agent [${selectedModel.id}] to synthesize plan...`,
-      "info",
-    );
+		const selectedModel = resolveModel({
+			modelRegistry: ctx.modelRegistry,
+			currentModel: ctx.model,
+			actionType: "planning",
+			config: config.modelConfig,
+		});
 
-    const mission = `Synthesize a comprehensive implementation plan focused on: ${focusArea}
+		ctx.ui.notify(
+			`${icons.agentPlanner} Spawning ${planAgentLabel} [${selectedModel.id}] to synthesize plan...`,
+			"info",
+		);
+
+		const mission = `Synthesize a comprehensive implementation plan focused on: ${focusArea}
 
 Based on our conversation context, create a detailed plan that includes:
 1. Clear Summary
@@ -69,75 +76,71 @@ Analyze the project structure to inform your plan. Use the read tool to inspect 
 
 Generate the plan in Markdown format.`;
 
-    let planContent = "";
+		let planContent = "";
 
-    try {
-      const icons = getIconRegistry();
-      planContent = await runSubAgent({
-        systemPrompt: blueprintTemplate.systemPrompt,
-        mission,
-        cwd: ctx.cwd,
-        modelRegistry: ctx.modelRegistry,
-        model: ctx.model,
-        tools: buildToolsFromTemplate(blueprintTemplate.tools || [], ctx.cwd).length > 0
-          ? buildToolsFromTemplate(blueprintTemplate.tools, ctx.cwd)
-          : [createReadTool(ctx.cwd)],
-        widgetId: "blueprint-plan",
-        widgetTitle: `${icons.agentBlueprint} BLUEPRINT Agent`,
-        ui: ctx.ui,
-        pi,
-        // Use "planning" action type (typically uses expensive model for quality)
-        actionType: "planning",
-        modelConfig: config.modelConfig,
-      });
+		try {
+			const tools = buildToolsFromTemplate(planTemplate.tools || [], ctx.cwd);
+			const runtimeTools = tools.length > 0 ? tools : [createReadTool(ctx.cwd)];
 
-      if (!planContent || planContent.trim().length === 0) {
-        const iconsError = getIconRegistry();
-        ctx.ui.notify(`${iconsError.error} BLUEPRINT agent returned empty output`, "error");
-        return;
-      }
-    } catch (modelError) {
-      const err = modelError as Error;
-      const iconsErr = getIconRegistry();
-      ctx.ui.notify(
-        `${iconsErr.error} BLUEPRINT agent error: ${err.message}`,
-        "error",
-      );
-      console.error("Plan synthesis error:", err);
-      throw err;
-    }
+			planContent = await runSubAgent({
+				systemPrompt: planTemplate.systemPrompt,
+				mission,
+				cwd: ctx.cwd,
+				modelRegistry: ctx.modelRegistry,
+				model: ctx.model,
+				tools: runtimeTools,
+				widgetId: "plan-agent",
+				widgetTitle: `${icons.agentPlanner} ${planAgentLabel}`,
+				ui: ctx.ui,
+				pi,
+				// Use "planning" action type (typically uses an expensive model for quality)
+				actionType: "planning",
+				modelConfig: config.modelConfig,
+			});
 
-    // Write the synthesized plan
-    const planFilename = await writePlanToFile(ctx, root, planContent, pi);
+			if (!planContent || planContent.trim().length === 0) {
+				ctx.ui.notify(`${icons.error} ${planAgentLabel} returned empty output`, "error");
+				return;
+			}
+		} catch (modelError) {
+			const err = modelError as Error;
+			const iconsErr = getIconRegistry();
+			ctx.ui.notify(`${iconsErr.error} Plan agent error: ${err.message}`, "error");
+			console.error("Plan synthesis error:", err);
+			throw err;
+		}
 
-    // Parse plan and set as active
-    const steps = parsePlanFromMarkdown(planContent);
-    if (steps) {
-      const planState = {
-        id: createPlanId(),
-        steps,
-        source: "synth" as const,
-        createdAt: new Date().toISOString(),
-        sourceFile: `.agents/${planFilename}`,
-      };
+		// Write the synthesized plan
+		const planFilename = await writePlanToFile(ctx, root, planContent, pi);
 
-      setPlan(root, planState);
-      updatePlanStatus(ctx, planState);
+		// Parse plan and set as active
+		const steps = parsePlanFromMarkdown(planContent);
+		if (steps) {
+			const planState = {
+				id: createPlanId(),
+				steps,
+				source: "synth" as const,
+				createdAt: new Date().toISOString(),
+				sourceFile: `.agents/${planFilename}`,
+			};
 
-      const icons = getIconRegistry();
-      ctx.ui.notify(
-        `${icons.success} Plan activated with ${steps.length} steps. Use /todos to view, /mode to switch to Build mode.`,
-        "info",
-      );
-    }
-  } catch (e) {
-    const error = e as Error;
-    const icons = getIconRegistry();
-    console.error(
-      colorize(`\n${icons.error} Plan synthesis failed: ${error.message}`, ANSI.red, true),
-    );
-    throw e;
-  }
+			setPlan(root, planState);
+			updatePlanStatus(ctx, planState);
+
+			const iconsSuccess = getIconRegistry();
+			ctx.ui.notify(
+				`${iconsSuccess.success} Plan activated with ${steps.length} steps. Use /todos to view, /mode to switch to Build mode.`,
+				"info",
+			);
+		}
+	} catch (e) {
+		const error = e as Error;
+		const icons = getIconRegistry();
+		console.error(
+			colorize(`\n${icons.error} Plan synthesis failed: ${error.message}`, ANSI.red, true),
+		);
+		throw e;
+	}
 }
 
 /**

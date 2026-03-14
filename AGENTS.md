@@ -9,7 +9,7 @@ Dispatch agents to work on tasks concurrently.
 **Usage:**
 
 ```bash
-/swarm task-1 ghost "implement auth" | task-2 blueprint "review design"
+/swarm task-1 ghost "implement auth" | task-2 dataweaver "review design"
 /swarm --concurrency 3 task-1 ghost "do X" | task-2 cortex "do Y"
 ```
 
@@ -294,14 +294,6 @@ Agent: I've implemented the auth service... [DONE:4]
 - **Tools:** read, write, edit, bash
 - **Temperature:** 0.1 (deterministic)
 
-### blueprint
-
-- **Role:** System Architect
-- **Focus:** Design, planning, refactoring strategy
-- **Prompt:** Big-picture thinking, design patterns
-- **Tools:** read, write
-- **Temperature:** 0.5 (balanced)
-
 ### cortex
 
 - **Role:** Code Reviewer
@@ -385,13 +377,13 @@ Each swarm creates a persistent record:
 ### Multi-task dispatch
 
 ```bash
-/swarm task-1 ghost "implement auth" | task-2 blueprint "design DB schema" | task-3 cortex "analyze security"
+/swarm task-1 ghost "implement auth" | task-2 dataweaver "design DB schema" | task-3 hardline "analyze security"
 ```
 
 ### With options
 
 ```bash
-/swarm --concurrency 2 --timeout 600000 task-1 ghost "X" | task-2 blueprint "Y"
+/swarm --concurrency 2 --timeout 600000 task-1 ghost "X" | task-2 dataweaver "Y"
 ```
 
 ### Monitor swarms

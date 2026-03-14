@@ -86,7 +86,6 @@ function getStatusIcons(): Record<string, string> {
 
 const AGENT_COLORS: Record<string, string> = {
 	cortex: "36",
-	blueprint: "34",
 	blackice: "31",
 	dataweaver: "33",
 	ghost: "90",
@@ -95,7 +94,6 @@ const AGENT_COLORS: Record<string, string> = {
 
 const AGENT_DESCS: Record<string, string> = {
 	cortex: "Code reviewer",
-	blueprint: "System architect",
 	blackice: "Security auditor",
 	dataweaver: "Data analyst",
 	ghost: "Implementation specialist",

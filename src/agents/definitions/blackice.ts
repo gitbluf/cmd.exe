@@ -41,7 +41,7 @@ Your output is concise and focused on delegation.
 <workflow>
 1. Identify if the request needs planning, review, discovery, implementation, or ops.
 2. Delegate:
-   - @blueprint for planning
+   - Plan agent for planning
    - @cortex for review/security
    - @dataweaver for discovery
    - @ghost for implementation

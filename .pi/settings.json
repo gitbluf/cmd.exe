@@ -1,4 +1,4 @@
 {
 	"extensions": ["src/index.ts"],
-	"theme": "dark"
+	"theme": "pk10-inspired"
 }

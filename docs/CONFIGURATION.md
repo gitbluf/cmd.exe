@@ -180,28 +180,6 @@ Define or customize agent templates for swarm execution.
 }
 ```
 
-#### BLUEPRINT - System Architect
-
-```json
-{
-  "blueprint": {
-    "id": "blueprint",
-    "name": "BLUEPRINT",
-    "description": "Architect - designs systems and plans refactors",
-    "role": "System Architect",
-    "model": "github-copilot/claude-opus-4.6",
-    "temperature": 0.5,
-    "maxTokens": 4000,
-    "tools": ["file_read", "find_files", "file_write"],
-    "canWrite": true,
-    "canExecuteShell": false,
-    "sandbox": {
-      "strategy": "sandboxExec"
-    }
-  }
-}
-```
-
 #### CORTEX - Code Reviewer
 
 ```json
@@ -345,10 +323,6 @@ Override specific agent settings without redefining the entire template.
       "model": "anthropic/claude-3-5-sonnet-20240620",
       "temperature": 0.05
     },
-    "blueprint": {
-      "model": "openai/gpt-4o",
-      "temperature": 0.7
-    },
     "hardline": {
       "disabled": true
     }
@@ -460,7 +434,7 @@ Override any icon/emoji used in the UI.
     // Agent indicators
     "agentBlackice": string,     // 👁️
     "agentGhost": string,        // 👻
-    "agentBlueprint": string,    // 🧠
+    "agentPlanner": string,      // 🧠
     "agentDataweaver": string,   // 🕸️
     "agentDefault": string,      // ⚙️
     
@@ -503,7 +477,7 @@ See [ICONS.md](./ICONS.md) for the complete default icon set.
     "modePlan": "🔍",
     "modeBuild": "🔨",
     "agentGhost": "🥷",
-    "agentBlueprint": "📐",
+    "agentPlanner": "📐",
     "agentCortex": "🧠",
     "agentDataweaver": "🔎",
     "swarm": "🐝",
@@ -648,7 +622,7 @@ Full configuration showing all available options:
     "modePlan": "🔍",
     "modeBuild": "🔨",
     "agentGhost": "🥷",
-    "agentBlueprint": "📐",
+    "agentPlanner": "📐",
     "swarm": "🐝"
   },
   

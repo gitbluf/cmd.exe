@@ -2,3 +2,16 @@ dist/
 node_modules
 .pi/dispatch*
 .agents/dispatch*
+.bash_profile
+.bashrc
+.claude/
+.env
+.gitconfig
+.gitmodules
+.idea
+.mcp.json
+.profile
+.ripgreprc
+.vscode
+.zprofile
+.zshrc
