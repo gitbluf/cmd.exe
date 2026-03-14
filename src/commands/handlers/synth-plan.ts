@@ -129,7 +129,7 @@ Generate the plan in Markdown format.`;
 
 			const iconsSuccess = getIconRegistry();
 			ctx.ui.notify(
-				`${iconsSuccess.success} Plan activated with ${steps.length} steps. Use /todos to view, /mode to switch to Build mode.`,
+				`${iconsSuccess.success} Plan activated with ${steps.length} steps. Use /todos to view, /ops to switch to Build mode.`,
 				"info",
 			);
 		}

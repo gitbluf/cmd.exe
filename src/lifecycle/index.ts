@@ -11,13 +11,21 @@ import {
 	getModeSystemPrompt,
 	setCurrentMode,
 } from "../modes";
-import { loadPlanState, markStepDone, savePlanState, setPlan } from "../plan/state";
+import {
+	loadPlanState,
+	markStepDone,
+	savePlanState,
+	setPlan,
+	clearPlan,
+	isPlanComplete,
+} from "../plan/state";
 import {
 	clearPlanWidgets,
 	flashStepComplete,
 	updatePlanStatus,
 } from "../plan/widget";
 import { getPlanStats, parsePlanFromText, createPlanId } from "../plan";
+import { getIconRegistry } from "../ui/icons";
 import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import { trySetModel } from "../utils/model-utils";
@@ -49,16 +57,13 @@ export function setupLifecycleHooks(
 	pi.on("session_start", async (_event, ctx) => {
 		applyPlanMode();
 
-		// Set footer status
+		const root = getWorkspaceRoot(ctx.cwd);
+		clearPlan(root);
+
 		if (ctx.hasUI) {
 			ctx.ui.setStatus("mode", getModeStatusText("plan"));
-
-			// Load persisted plan state
-			const root = getWorkspaceRoot(ctx.cwd);
-			const plan = loadPlanState(root);
-			if (plan) {
-				updatePlanStatus(ctx, plan);
-			}
+			updatePlanStatus(ctx, null);
+			clearPlanWidgets(ctx);
 		}
 
 		// Try to set the plan model
@@ -127,27 +132,41 @@ export function setupLifecycleHooks(
 							flashStepComplete(ctx, step, stats);
 							updatePlanStatus(ctx, updatedPlan);
 						}
+
+						if (isPlanComplete(updatedPlan)) {
+							clearPlan(root);
+							const icons = getIconRegistry();
+							ctx.ui.notify(
+								`${icons.success} Plan completed and cleared.`,
+								"success",
+							);
+							updatePlanStatus(ctx, null);
+							clearPlanWidgets(ctx);
+						}
 					}
 				}
 			}
 		}
 
 		// Auto-detect new plans in plan mode (only if no active plan)
-		if (mode === "plan" && !plan) {
-			const detectedSteps = parsePlanFromText(content);
-			if (detectedSteps) {
-				const newPlan = {
-					id: createPlanId(),
-					steps: detectedSteps,
-					source: "conversation" as const,
-					createdAt: new Date().toISOString(),
-				};
-				setPlan(root, newPlan);
-				updatePlanStatus(ctx, newPlan);
-				ctx.ui.notify(
-					`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /mode to execute.`,
-					"info",
-				);
+		if (mode === "plan") {
+			const currentPlan = loadPlanState(root);
+			if (!currentPlan) {
+				const detectedSteps = parsePlanFromText(content);
+				if (detectedSteps) {
+					const newPlan = {
+						id: createPlanId(),
+						steps: detectedSteps,
+						source: "conversation" as const,
+						createdAt: new Date().toISOString(),
+					};
+					setPlan(root, newPlan);
+					updatePlanStatus(ctx, newPlan);
+					ctx.ui.notify(
+						`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /ops to execute.`,
+						"info",
+					);
+				}
 			}
 		}
 	});

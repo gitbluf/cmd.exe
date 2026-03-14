@@ -111,8 +111,9 @@ Synthesize a comprehensive implementation plan using the BLUEPRINT agent.
 **Features:**
 - Generates structured markdown plan
 - Saves to `.agents/plan-{timestamp}.md`
-- Automatically parses and activates the plan
-- Shows progress in footer status bar
+- Automatically parses and activates the plan for the current session only
+- Auto-clears as soon as every step is complete (refresh `/todos` to confirm)
+- Resets plan state on every new session to keep the todo slate clean
 - Use `/todos` to view, `/ops` to execute
 
 **Plan includes:**
@@ -155,7 +156,7 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 - Plan is parsed and stored
 
 **2. Activate**
-- Plan becomes "active" and persists across sessions
+- Plan becomes "active" for this session and is cleared when a new session starts, keeping your slate fresh
 - Footer shows progress: `📋 [3/7] ━━━━━░░░ 43% — "Current step"`
 - Use `/todos` to view full plan
 
@@ -173,7 +174,7 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 **5. Complete**
 - All steps marked done
 - Footer shows 100%
-- Plan remains in history
+- Plan state clears automatically so `/todos` shows "No active plan", while the markdown file stays on disk for reference
 
 ### Example Workflow
 
@@ -209,10 +210,10 @@ User: pi --resume
 
 ### Plan State Persistence
 
-Plans survive session restarts. State is saved to:
+Plan state is saved continuously but reset on every session start so you always begin with a clean todo board. The synthesized markdown file still exists for reference after completion.
 - **Location:** `.agents/.plan-state.json`
 - **Auto-saved:** After every step completion
-- **Auto-loaded:** On session start
+- **Cleared:** Automatically on session start (file deleted)
 
 ### Conversation Plan Detection
 

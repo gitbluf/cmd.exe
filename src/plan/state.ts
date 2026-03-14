@@ -128,3 +128,7 @@ export function getPlanStats(plan: PlanState): {
 export function getCurrentStep(plan: PlanState): PlanStep | null {
 	return plan.steps.find((s) => !s.completed) || null;
 }
+
+export function isPlanComplete(plan: PlanState): boolean {
+	return plan.steps.length > 0 && plan.steps.every((step) => step.completed);
+}
