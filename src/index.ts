@@ -1,28 +1,26 @@
 /**
- * Swarm Extension - Multi-agent orchestration for pi
+ * cmd.exe Extension - Team orchestration for pi
  *
  * Core commands:
- *   /swarm <task-spec>        - Dispatch agents to work on a task
- *   /swarm:list               - List available agent templates
- *   /swarm:status [id]        - View execution status and history
- *   /swarm:dashboard          - Interactive monitoring dashboard
- *   /swarm:task [task-id]     - View task details
- *   /blackice <request>       - Invoke orchestrator agent
+ *   /team:dashboard           - Interactive team dashboard
+ *   /team <subcommand>        - Manage team state, tasks, and policy
  *   /synth:plan [focus]       - Synthesize plan via BLUEPRINT agent
  *   /synth:exec [mission]     - Execute plan via GHOST agent
  *   /synth:output [n]         - View sub-agent output overlay
- *   /mode                      - Toggle Plan/Build mode
+ *   /ops                      - Toggle Plan/Build mode
+ *   /todos                    - Show current plan progress
+ *   /ask                      - Ask a one-off question
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { createBashTool } from "@mariozechner/pi-coding-agent";
-import { Box, Text, truncateToWidth } from "@mariozechner/pi-tui";
+import { Box, Text } from "@mariozechner/pi-tui";
 import { registerAllCommands } from "./commands/register";
 import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
+import { createFindFilesTool, createTeamsTool } from "./tools";
 import { getIconRegistry, initIcons } from "./ui/icons";
 import { getConfigPath, loadConfig } from "./utils/config";
-import { createFindFilesTool, createTeamsTool } from "./tools";
 
 // ─── Sub-agent output message renderer ──────────────────────
 
@@ -31,30 +29,52 @@ import { createFindFilesTool, createTeamsTool } from "./tools";
  * Shows a compact view with a hint to expand via /synth:output.
  */
 function registerOutputRenderer(pi: ExtensionAPI): void {
-  pi.registerMessageRenderer("sub-agent-output", (message: any, _options: any, theme: any) => {
-    const { agentTitle, totalLines, truncated, failed } = message.details || {};
-    const icons = getIconRegistry();
-    const title = agentTitle || `${icons.agentDefault} Sub-Agent`;
+	pi.registerMessageRenderer(
+		"sub-agent-output",
+		(
+			message: {
+				details?: {
+					agentTitle?: string;
+					totalLines?: number;
+					truncated?: boolean;
+					failed?: boolean;
+				};
+				content?: string;
+			},
+			_options: unknown,
+			theme: {
+				fg: (kind: string, text: string) => string;
+				bg: (kind: string, text: string) => string;
+				bold: (text: string) => string;
+			},
+		) => {
+			const { agentTitle, totalLines, truncated, failed } =
+				message.details || {};
+			const icons = getIconRegistry();
+			const title = agentTitle || `${icons.agentDefault} Sub-Agent`;
 
-    let header: string;
-    if (failed) {
-      header = `${theme.fg("error", icons.cross)} ${theme.fg("accent", theme.bold(title))} ${theme.fg("error", "failed")}`;
-    } else {
-      header = `${theme.fg("success", icons.check)} ${theme.fg("accent", theme.bold(title))} ${theme.fg("dim", "complete")}`;
-    }
-    if (truncated) {
-      header += ` ${theme.fg("dim", `(${totalLines} lines — /synth:output to expand)`)}`;
-    }
+			let header: string;
+			if (failed) {
+				header = `${theme.fg("error", icons.cross)} ${theme.fg("accent", theme.bold(title))} ${theme.fg("error", "failed")}`;
+			} else {
+				header = `${theme.fg("success", icons.check)} ${theme.fg("accent", theme.bold(title))} ${theme.fg("dim", "complete")}`;
+			}
+			if (truncated) {
+				header += ` ${theme.fg("dim", `(${totalLines} lines — /synth:output to expand)`)}`;
+			}
 
-    const displayContent = message.content || "";
-    const lines = displayContent.split("\n").map((line: string) => theme.fg("muted", line));
+			const displayContent = message.content || "";
+			const lines = displayContent
+				.split("\n")
+				.map((line: string) => theme.fg("muted", line));
 
-    const rendered = [header, "", ...lines].join("\n");
+			const rendered = [header, "", ...lines].join("\n");
 
-    const box = new Box(1, 0, (t: string) => theme.bg("customMessageBg", t));
-    box.addChild(new Text(rendered, 0, 0));
-    return box;
-  });
+			const box = new Box(1, 0, (t: string) => theme.bg("customMessageBg", t));
+			box.addChild(new Text(rendered, 0, 0));
+			return box;
+		},
+	);
 }
 
 // ─── Sandboxed bash tool ────────────────────────────────────
@@ -64,21 +84,21 @@ function registerOutputRenderer(pi: ExtensionAPI): void {
  * when enabled, or falls back to the standard bash tool.
  */
 function registerSandboxedBash(pi: ExtensionAPI): void {
-  const localBash = createBashTool(process.cwd());
+	const localBash = createBashTool(process.cwd());
 
-  pi.registerTool({
-    ...localBash,
-    label: "bash (sandboxed)",
-    async execute(id, params, signal, onUpdate, ctx) {
-      if (!sandboxState.enabled || !sandboxState.initialized) {
-        return localBash.execute(id, params, signal, onUpdate);
-      }
-      const sandboxedBash = createBashTool(ctx.cwd, {
-        operations: createSandboxedBashOps(),
-      });
-      return sandboxedBash.execute(id, params, signal, onUpdate);
-    },
-  });
+	pi.registerTool({
+		...localBash,
+		label: "bash (sandboxed)",
+		async execute(id, params, signal, onUpdate, ctx) {
+			if (!sandboxState.enabled || !sandboxState.initialized) {
+				return localBash.execute(id, params, signal, onUpdate);
+			}
+			const sandboxedBash = createBashTool(ctx.cwd, {
+				operations: createSandboxedBashOps(),
+			});
+			return sandboxedBash.execute(id, params, signal, onUpdate);
+		},
+	});
 }
 
 // ─── Extension entry point ──────────────────────────────────
@@ -88,74 +108,72 @@ function registerSandboxedBash(pi: ExtensionAPI): void {
  * Loads config, sets up lifecycle hooks, registers tools and commands.
  */
 export default function (pi: ExtensionAPI) {
-  const configPath = getConfigPath();
-  const config = loadConfig(configPath);
+	const configPath = getConfigPath();
+	const config = loadConfig(configPath);
 
-  // Initialize icon registry with user overrides
-  initIcons(config.icons);
+	// Initialize icon registry with user overrides
+	initIcons(config.icons);
 
-  // Lifecycle hooks (sandbox init, cleanup, mode management)
-  setupLifecycleHooks(pi, config);
+	// Lifecycle hooks (sandbox init, cleanup, mode management)
+	setupLifecycleHooks(pi, config);
 
-  // Register UI components
-  registerOutputRenderer(pi);
+	// Register UI components
+	registerOutputRenderer(pi);
 
-  // Register flags
-  pi.registerFlag("no-sandbox", {
-    description: "Disable OS-level sandboxing for bash commands",
-    type: "boolean",
-    default: false,
-  });
+	// Register flags
+	pi.registerFlag("no-sandbox", {
+		description: "Disable OS-level sandboxing for bash commands",
+		type: "boolean",
+		default: false,
+	});
 
-  // Register sandboxed bash tool
-  registerSandboxedBash(pi);
+	// Register sandboxed bash tool
+	registerSandboxedBash(pi);
 
-  // Register find_files tool
-  // Create a closure that captures pi and config, then override execute to use runtime ctx
-  const findFilesTemplate = createFindFilesTool({
-    cwd: process.cwd(),
-    modelRegistry: null as any,
-    model: null as any,
-    ui: undefined,
-    pi,
-    modelConfig: config.modelConfig,
-  });
+	// Register find_files tool
+	const findFilesTemplate = createFindFilesTool({
+		cwd: process.cwd(),
+		modelRegistry: null as unknown as never,
+		model: null as unknown as never,
+		ui: undefined,
+		pi,
+		modelConfig: config.modelConfig,
+	});
 
-  pi.registerTool({
-    ...findFilesTemplate,
-    async execute(toolCallId, params, signal, onUpdate, ctx) {
-      // Create fresh tool with runtime context
-      const tool = createFindFilesTool({
-        cwd: ctx.cwd,
-        modelRegistry: ctx.modelRegistry,
-        model: ctx.model,
-        ui: ctx.ui,
-        pi,
-        modelConfig: config.modelConfig,
-      });
-      return tool.execute(toolCallId, params, signal, onUpdate, ctx);
-    },
-  });
+	pi.registerTool({
+		...findFilesTemplate,
+		async execute(toolCallId, params, signal, onUpdate, ctx) {
+			const tool = createFindFilesTool({
+				cwd: ctx.cwd,
+				modelRegistry: ctx.modelRegistry,
+				model: ctx.model,
+				ui: ctx.ui,
+				pi,
+				modelConfig: config.modelConfig,
+			});
+			return tool.execute(toolCallId, params, signal, onUpdate, ctx);
+		},
+	});
 
-  // Register teams orchestration tool
-  const teamsTemplate = createTeamsTool({
-    cwd: process.cwd(),
-    config,
-    pi,
-  });
+	// Register teams orchestration tool
+	const teamsTemplate = createTeamsTool({
+		cwd: process.cwd(),
+		config,
+		pi,
+	});
 
-  pi.registerTool({
-    ...teamsTemplate,
-    async execute(toolCallId, params, signal, onUpdate, ctx) {
-      const tool = createTeamsTool({
-        cwd: ctx.cwd,
-        config,
-        pi,
-      });
-      return tool.execute(toolCallId, params, signal, onUpdate, ctx);
-    },
-  });
+	pi.registerTool({
+		...teamsTemplate,
+		async execute(toolCallId, params, signal, onUpdate, ctx) {
+			const tool = createTeamsTool({
+				cwd: ctx.cwd,
+				config,
+				pi,
+			});
+			return tool.execute(toolCallId, params, signal, onUpdate, ctx);
+		},
+	});
 
-  // Register all slash commands
-  registerAllCommands(pi, config);
+	// Register all slash commands
+	registerAllCommands(pi, config);
 }

@@ -26,8 +26,8 @@ export class SessionRecorder {
 		request: string,
 		context?: {
 			planId?: string;
-			swarmId?: string;
-			swarmTaskId?: string;
+			teamId?: string;
+			teamTaskId?: string;
 			model?: string;
 			temperature?: number;
 			tools?: string[];
@@ -119,22 +119,6 @@ export class SessionRecorder {
 	cancelSession(reason?: string): void {
 		if (this.currentSession) {
 			this.completeSession("cancelled", reason);
-		}
-	}
-
-	/**
-	 * Check if there's an active session
-	 */
-	hasActiveSession(): boolean {
-		return this.currentSession !== null;
-	}
-
-	/**
-	 * Abort session cleanup helper
-	 */
-	cleanup(): void {
-		if (this.currentSession) {
-			this.cancelSession("Cleanup");
 		}
 	}
 }

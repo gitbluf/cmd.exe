@@ -2,16 +2,11 @@
  * Command handlers - barrel export
  */
 
-export { handleSwarmList } from "./swarm-list";
-export { handleSwarmStatus } from "./swarm-status";
-export { handleSwarmDashboard } from "./swarm-dashboard";
-export { handleSwarmTask } from "./swarm-task";
-export { handleSwarmDispatch } from "./swarm-dispatch";
-export { handleBlackice } from "./blackice";
-export { handleSynthPlan } from "./synth-plan";
+export { handleAsk } from "./ask";
+export { applyMode, handleOps } from "./build";
 export { handleSynthExec } from "./synth-exec";
 export { handleSynthOutput } from "./synth-output";
-export { handleOps, applyMode } from "./build";
-export { handleTodos } from "./todos";
-export { handleAsk } from "./ask";
+export { handleSynthPlan } from "./synth-plan";
 export { handleTeam } from "./team";
+export { handleTeamDashboard } from "./team/dashboard";
+export { handleTodos } from "./todos";

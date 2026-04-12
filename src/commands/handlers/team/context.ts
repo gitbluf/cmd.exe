@@ -1,6 +1,11 @@
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import {
+	createTeamState,
+	getActiveTeamId,
+	loadTeamState,
+	setActiveTeamId,
+} from "../../../teams";
 import type { TemplateConfig } from "../../../templates/types";
-import { createTeamState, getActiveTeamId, loadTeamState, setActiveTeamId } from "../../../teams";
 
 export interface TeamCommandRuntime {
 	ctx: ExtensionCommandContext;
@@ -37,7 +42,7 @@ export function sanitizeTeamId(raw: string): string {
 }
 
 export function extractOption(args: string[], key: string): string | undefined {
-	const index = args.findIndex((a) => a === key);
+	const index = args.indexOf(key);
 	if (index < 0) return undefined;
 	return args[index + 1];
 }
@@ -54,6 +59,7 @@ export function printUsage(ctx: ExtensionCommandContext): void {
 		"  /team init [name]",
 		"  /team id",
 		"  /team list",
+		"  /team dashboard",
 		"  /team spawn <name> [fresh|branch] [shared|worktree] [--model <id>] [--thinking <level>]",
 		"  /team status [name]",
 		"  /team shutdown [name|all] [reason]",

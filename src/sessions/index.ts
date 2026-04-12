@@ -7,7 +7,7 @@ export {
 	getSession,
 	getSessionsByAgent,
 	getSessionsByPlan,
-	getSessionsBySwarm,
+	getSessionsByTeam,
 	listSessions,
 	loadSessionRegistry,
 	pruneSessionRegistry,

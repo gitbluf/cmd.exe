@@ -7,6 +7,7 @@ import type { TemplateConfig } from "../../templates/types";
 import { getIconRegistry } from "../../ui/icons";
 import { printUsage, type TeamCommandRuntime } from "./team/context";
 import { handleTeamId, handleTeamInit, handleTeamList } from "./team/core";
+import { handleTeamDashboard } from "./team/dashboard";
 import {
 	handleTeamCleanup,
 	handleTeamDone,
@@ -57,6 +58,9 @@ export async function handleTeam(
 		case "kill":
 			await handleTeamKill(rest, runtime);
 			return;
+		case "dashboard":
+			await handleTeamDashboard(rest, runtime.ctx, runtime.root);
+			return;
 		case "done":
 			await handleTeamDone(rest, runtime);
 			return;
@@ -72,7 +76,6 @@ export async function handleTeam(
 		case "task":
 			await handleTeamTask(rest, runtime);
 			return;
-		case "help":
 		default:
 			if (section !== "help") {
 				const icons = getIconRegistry();

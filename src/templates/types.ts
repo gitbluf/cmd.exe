@@ -3,22 +3,16 @@
  */
 
 import type { ModeConfig } from "../modes";
+import type { SandboxPolicy } from "../sandbox/tools";
 import type { TeamsConfig } from "../teams";
 import type { IconSet } from "../ui/icons";
 import type { ModelConfig } from "../utils/model-resolver";
-import type { SandboxPolicy } from "../sandbox/tools";
 
 export interface AgentTemplate {
 	// Identity
 	id?: string; // Agent ID (cortex, ghost, dataweaver, etc.)
 	name?: string; // Display name (CORTEX, BLUEPRINT, etc.)
-	agentType?:
-		| "cortex"
-		| "blueprint"
-		| "blackice"
-		| "dataweaver"
-		| "ghost"
-		| "hardline";
+	agentType?: "cortex" | "blueprint" | "dataweaver" | "ghost" | "hardline";
 
 	// Definition
 	role: string;
@@ -79,21 +73,21 @@ export interface TemplateConfig {
 	// Dynamic model selection for different action types
 	modelConfig?: ModelConfig;
 
-	// Session mode configuration (plan/build)
-	modes?: Partial<ModeConfig>;
+	// Team feature config
+	teams?: TeamsConfig;
 
-	// Icon overrides
+	// Icons customization
 	icons?: Partial<IconSet>;
 
-	// Global sandbox
-	sandbox?: {
-		strategy?: "none" | "sandboxExec" | "bwrap" | "custom";
-		profile?: string;
-		args?: string[];
-		template?: string;
-		policy?: Partial<SandboxPolicy>;
-	};
+	// Sandbox config
+	sandbox?: Partial<{
+		strategy: "none" | "sandboxExec" | "bwrap" | "custom";
+		profile: string;
+		args: string[];
+		template: string;
+		policy: SandboxPolicy;
+	}>;
 
-	// Teams orchestration configuration
-	teams?: TeamsConfig;
+	// Mode config (used by /ops)
+	modes?: ModeConfig;
 }

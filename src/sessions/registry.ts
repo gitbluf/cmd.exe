@@ -96,7 +96,7 @@ export function listSessions(
 		type?: string;
 		status?: string;
 		planId?: string;
-		swarmId?: string;
+		teamId?: string;
 	},
 ): SessionRecord[] {
 	const registry = loadSessionRegistry(workspaceRoot);
@@ -115,8 +115,8 @@ export function listSessions(
 	if (options?.planId) {
 		sessions = sessions.filter((s) => s.planId === options.planId);
 	}
-	if (options?.swarmId) {
-		sessions = sessions.filter((s) => s.swarmId === options.swarmId);
+	if (options?.teamId) {
+		sessions = sessions.filter((s) => s.teamId === options.teamId);
 	}
 
 	// Sort by timestamp descending (newest first)
@@ -205,13 +205,13 @@ export function getSessionsByPlan(
 }
 
 /**
- * Get sessions for a swarm
+ * Get sessions for a team
  */
-export function getSessionsBySwarm(
+export function getSessionsByTeam(
 	workspaceRoot: string,
-	swarmId: string,
+	teamId: string,
 ): SessionRecord[] {
-	return listSessions(workspaceRoot, { swarmId });
+	return listSessions(workspaceRoot, { teamId });
 }
 
 /**

@@ -2,7 +2,7 @@
  * Session Recording Types
  *
  * Structured recording of all agent activity with metadata,
- * linking to plans and swarms for unified history tracking.
+ * linking to plans and teams for unified history tracking.
  */
 
 export interface SessionRecord {
@@ -33,9 +33,9 @@ export interface SessionRecord {
 	};
 
 	// Relationships
-	planId?: string; // If from /dispatch:synth
-	swarmId?: string; // If from /dispatch:dispatch
-	swarmTaskId?: string; // If part of swarm
+	planId?: string; // If from /synth
+	teamId?: string; // If from team orchestration
+	teamTaskId?: string; // If part of a team task
 
 	// Metadata
 	model?: string; // Which model was used

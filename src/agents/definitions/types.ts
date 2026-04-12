@@ -5,7 +5,7 @@
  */
 
 export interface AgentDefinition {
-	id: string; // cortex, blackice, dataweaver, ghost, hardline
+	id: string; // cortex, dataweaver, ghost, hardline, blueprint
 	name: string; // CORTEX, BLUEPRINT, etc. (uppercase)
 	description: string; // One-liner description for UI
 	role: string; // Detailed role description
