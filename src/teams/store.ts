@@ -13,6 +13,7 @@ const TASKS_DIR = "tasks";
 const MAILBOXES_DIR = "mailboxes";
 const RUNTIME_DIR = "runtime";
 const HIGHWATERMARK_FILE = ".highwatermark";
+const ACTIVE_TEAM_FILE = ".active-team";
 
 export interface TeamStorePaths {
 	teamsRoot: string;
@@ -142,6 +143,22 @@ export function listTeams(workspaceRoot: string): string[] {
 		.filter((d) => d.isDirectory())
 		.map((d) => d.name)
 		.sort();
+}
+
+export function getActiveTeamId(workspaceRoot: string): string | null {
+	const teamsRoot = getTeamsRoot(workspaceRoot);
+	const activePath = path.join(teamsRoot, ACTIVE_TEAM_FILE);
+	if (!fs.existsSync(activePath)) {
+		return null;
+	}
+	const value = fs.readFileSync(activePath, "utf8").trim();
+	return value.length > 0 ? value : null;
+}
+
+export function setActiveTeamId(workspaceRoot: string, teamId: string): void {
+	const teamsRoot = getTeamsRoot(workspaceRoot);
+	fs.mkdirSync(teamsRoot, { recursive: true });
+	fs.writeFileSync(path.join(teamsRoot, ACTIVE_TEAM_FILE), teamId.trim(), "utf8");
 }
 
 export function deleteTeam(workspaceRoot: string, teamId: string): void {

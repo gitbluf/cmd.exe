@@ -22,6 +22,7 @@ import {
   handleOps,
   handleTodos,
   handleAsk,
+  handleTeam,
 } from "./handlers";
 import { getEffectiveModeConfig } from "../modes";
 
@@ -124,6 +125,13 @@ export function registerAllCommands(
     description: "Ask a one-off question without polluting main context (ephemeral session)",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       await handleAsk(args, ctx, config);
+    },
+  });
+
+  pi.registerCommand("team", {
+    description: "Manage teams, tasks, and model policy",
+    handler: async (args: string, ctx: ExtensionCommandContext) => {
+      await handleTeam(args, ctx, getRoot(ctx), config);
     },
   });
 }
