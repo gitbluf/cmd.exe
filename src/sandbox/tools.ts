@@ -152,6 +152,71 @@ export const DEFAULT_SANDBOX_POLICY: SandboxPolicy = {
 	},
 };
 
+function mergeUnique(base: string[], additions?: string[]): string[] {
+	if (!additions || additions.length === 0) {
+		return [...base];
+	}
+	const set = new Set(base);
+	for (const value of additions) {
+		set.add(value);
+	}
+	return Array.from(set);
+}
+
+export function resolveSandboxPolicy(
+	base: SandboxPolicy,
+	override?: Partial<SandboxPolicy>,
+): SandboxPolicy {
+	if (!override) {
+		return base;
+	}
+
+	return {
+		enabled: override.enabled ?? base.enabled,
+		network: {
+			allowedDomains: mergeUnique(
+				base.network.allowedDomains,
+				override.network?.allowedDomains,
+			),
+			deniedDomains: mergeUnique(
+				base.network.deniedDomains,
+				override.network?.deniedDomains,
+			),
+		},
+		filesystem: {
+			allowWrite: mergeUnique(
+				base.filesystem.allowWrite,
+				override.filesystem?.allowWrite,
+			),
+			denyRead: mergeUnique(
+				base.filesystem.denyRead,
+				override.filesystem?.denyRead,
+			),
+			denyWrite: mergeUnique(
+				base.filesystem.denyWrite,
+				override.filesystem?.denyWrite,
+			),
+		},
+	};
+}
+
+export function mergeSandboxConfig(
+	base: SandboxConfig,
+	override?: Partial<SandboxConfig>,
+): SandboxConfig {
+	if (!override) {
+		return base;
+	}
+
+	return {
+		strategy: override.strategy ?? base.strategy,
+		profile: override.profile ?? base.profile,
+		args: override.args ?? base.args,
+		template: override.template ?? base.template,
+		policy: resolveSandboxPolicy(base.policy || DEFAULT_SANDBOX_POLICY, override.policy),
+	};
+}
+
 /**
  * Get the platform-specific sandbox strategy
  * Returns the same strategy as the main pi session based on OS

@@ -21,6 +21,7 @@ import {
 	type SandboxConfig,
 	wrapBashCommand,
 } from "../sandbox";
+import type { SandboxPolicy } from "../sandbox/tools";
 import { getEffectiveModel, getEffectiveTemperature } from "../templates";
 import { validateCommand } from "./bash-allowlist";
 import type {
@@ -52,6 +53,7 @@ export class AgentExecutor {
 	private stateDir: string;
 	private eventCallbacks: AgentEventCallbacks;
 	private hostContext: HostContext;
+	private sandboxPolicy?: SandboxPolicy;
 
 	constructor(
 		config: AgentConfig,
@@ -59,12 +61,14 @@ export class AgentExecutor {
 		stateDir: string,
 		eventCallbacks: AgentEventCallbacks,
 		hostContext: HostContext,
+		sandboxPolicy?: SandboxPolicy,
 	) {
 		this.config = config;
 		this.cwd = cwd;
 		this.stateDir = stateDir;
 		this.eventCallbacks = eventCallbacks;
 		this.hostContext = hostContext;
+		this.sandboxPolicy = sandboxPolicy;
 	}
 
 	/**
@@ -200,7 +204,7 @@ Document your progress and findings.`;
 					? "bwrap"
 					: "none";
 
-		const policy = DEFAULT_SANDBOX_POLICY;
+		const policy = this.sandboxPolicy || DEFAULT_SANDBOX_POLICY;
 		const config: SandboxConfig = {
 			strategy: defaultStrategy,
 			policy,
@@ -322,6 +326,7 @@ export async function spawnAgent(
 	onLog: (text: string) => void,
 	onStatus: (status: "running" | "done" | "error") => void,
 	hostContext: HostContext,
+	sandboxPolicy?: SandboxPolicy,
 ): Promise<void> {
 	const executor = new AgentExecutor(
 		config,
@@ -332,6 +337,7 @@ export async function spawnAgent(
 			onStatus,
 		},
 		hostContext,
+		sandboxPolicy,
 	);
 	await executor.execute(mission);
 }

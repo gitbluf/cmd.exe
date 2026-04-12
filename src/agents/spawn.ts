@@ -10,6 +10,7 @@ import type { AgentTemplate, TemplateConfig } from "../templates/types";
 import { ANSI, colorize, stripAnsi } from "../ui";
 import type { AgentConfig, HostContext } from ".";
 import { spawnAgent } from ".";
+import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 
 /**
  * Spawn an agent in an isolated workspace
@@ -54,6 +55,7 @@ export async function spawnAgentWorkspace(
 	});
 
 	try {
+		const sandboxPolicy = config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
 		// Spawn agent
 		await spawnAgent(
 			agentConfig,
@@ -77,6 +79,7 @@ export async function spawnAgentWorkspace(
 				);
 			},
 			hostContext,
+			sandboxPolicy,
 		);
 
 		recorder.completeSession("completed");

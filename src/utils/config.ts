@@ -12,6 +12,7 @@ import {
 	validateTemplate,
 } from "../templates";
 import { DEFAULT_TEAMS_CONFIG } from "../teams";
+import { getDefaultSandboxConfig, mergeSandboxConfig } from "../sandbox";
 import type { AgentTemplate, TemplateConfig } from "../templates/types";
 
 /**
@@ -37,6 +38,8 @@ export function loadConfigFile(
  * Load and merge configuration
  */
 export function loadConfig(configPath?: string): TemplateConfig {
+	const defaultSandboxConfig = getDefaultSandboxConfig();
+
 	// Start with defaults
 	let config: TemplateConfig = {
 		model: "gpt-4o",
@@ -44,6 +47,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 		agents: {},
 		defaultAgents: 3,
 		defaultMission: "Infiltrate the monolith, extract creds, leave no trace.",
+		sandbox: defaultSandboxConfig,
 		teams: DEFAULT_TEAMS_CONFIG,
 	};
 
@@ -57,13 +61,17 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				string,
 				AgentTemplate
 			>;
+			const mergedSandbox = mergeSandboxConfig(
+				defaultSandboxConfig,
+				userConfig.sandbox,
+			);
 			config = {
 				model: userConfig.model || config.model,
 				agentTemplates: mergeTemplates(DEFAULT_TEMPLATES, userTemplates),
 				agents: userConfig.agents || {},
 				defaultAgents: userConfig.defaultAgents || config.defaultAgents,
 				defaultMission: userConfig.defaultMission || config.defaultMission,
-				sandbox: userConfig.sandbox || config.sandbox,
+				sandbox: mergedSandbox,
 				modes: userConfig.modes || config.modes,
 				icons: userConfig.icons || config.icons,
 				modelConfig: userConfig.modelConfig || config.modelConfig,

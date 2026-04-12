@@ -6,6 +6,7 @@ import type { ModeConfig } from "../modes";
 import type { TeamsConfig } from "../teams";
 import type { IconSet } from "../ui/icons";
 import type { ModelConfig } from "../utils/model-resolver";
+import type { SandboxPolicy } from "../sandbox/tools";
 
 export interface AgentTemplate {
 	// Identity
@@ -90,6 +91,7 @@ export interface TemplateConfig {
 		profile?: string;
 		args?: string[];
 		template?: string;
+		policy?: Partial<SandboxPolicy>;
 	};
 
 	// Teams orchestration configuration

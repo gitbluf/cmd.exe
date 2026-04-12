@@ -15,5 +15,7 @@ export {
 	getDefaultSandboxConfig,
 	getPlatformSandboxStrategy,
 	parseSandboxConfig,
+	resolveSandboxPolicy,
+	mergeSandboxConfig,
 	wrapBashCommand,
 } from "./tools";
