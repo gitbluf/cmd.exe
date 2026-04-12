@@ -6,14 +6,14 @@ import fs from "node:fs";
 import path from "node:path";
 import type { TeamMember, TeamState, TeamTask } from "./types";
 
-const TEAMS_DIR = ".teams";
+const TEAMS_DIR = "teams";
 const TEAM_FILE = "team.json";
 const MEMBERS_DIR = "members";
 const TASKS_DIR = "tasks";
 const MAILBOXES_DIR = "mailboxes";
 const RUNTIME_DIR = "runtime";
-const HIGHWATERMARK_FILE = ".highwatermark";
-const ACTIVE_TEAM_FILE = ".active-team";
+const HIGHWATERMARK_FILE = "highwatermark";
+const ACTIVE_TEAM_FILE = "active-team";
 
 export interface TeamStorePaths {
 	teamsRoot: string;
