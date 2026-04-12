@@ -14,3 +14,4 @@ export { handleSynthOutput } from "./synth-output";
 export { handleOps, applyMode } from "./build";
 export { handleTodos } from "./todos";
 export { handleAsk } from "./ask";
+export { handleTeam } from "./team";

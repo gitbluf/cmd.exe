@@ -12,6 +12,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { AgentConfig, HostContext } from "../agents";
 import { spawnAgent } from "../agents";
+import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import { SessionRecorder } from "../recording";
 import { getEffectiveModel, getEffectiveTemperature } from "../templates";
 import type { TemplateConfig } from "../templates/types";
@@ -324,6 +325,7 @@ export class SwarmExecutor {
 
 			// Execute with timeout
 			await Promise.race([
+				const sandboxPolicy = this.config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
 				spawnAgent(
 					agentConfig,
 					this.projectCwd,
@@ -338,6 +340,7 @@ export class SwarmExecutor {
 						// status callback — ignored for swarms
 					},
 					this.hostContext,
+					sandboxPolicy,
 				),
 				new Promise<void>((_, reject) =>
 					setTimeout(() => reject(new Error("Task timeout")), timeoutMs),

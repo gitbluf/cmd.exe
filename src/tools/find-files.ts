@@ -16,7 +16,11 @@ import {
 import { getIconRegistry } from "../ui/icons";
 import { runSubAgent } from "../sub-agent";
 import { DATAWEAVER } from "../agents/definitions";
-import type { ModelConfig } from "../utils/model-resolver";
+import {
+  resolveModel,
+  type ActionType,
+  type ModelConfig,
+} from "../utils/model-resolver";
 
 /**
  * Tool parameters schema
@@ -80,6 +84,33 @@ export function createFindFilesTool(opts: {
 				? `\nFocus your search within: ${params.scope}`
 				: "";
 
+			const actionType: ActionType = "research";
+			let resolvedModelId: string | undefined;
+			if (opts.modelRegistry) {
+				try {
+					const resolvedModel = resolveModel({
+						modelRegistry: opts.modelRegistry,
+						currentModel: opts.model,
+						actionType,
+						config: opts.modelConfig,
+					});
+					resolvedModelId = resolvedModel?.id;
+				} catch (_err) {
+					// We'll fall back to available metadata below
+				}
+			}
+
+			if (!resolvedModelId) {
+				resolvedModelId = opts.model?.id;
+			}
+
+			if (!resolvedModelId) {
+				const available = opts.modelRegistry?.getAvailable?.();
+				resolvedModelId = available?.[0]?.id;
+			}
+
+			const agentLabel = `${icons.agentDataweaver} DATAWEAVER${resolvedModelId ? ` → ${resolvedModelId}` : ""}`;
+
 			const mission = [
 				`Find files matching this request: "${params.query}"`,
 				scopeHint,
@@ -107,7 +138,7 @@ export function createFindFilesTool(opts: {
 				content: [
 					{
 						type: "text" as const,
-						text: `${icons.agentDataweaver} Searching: ${params.query}...`,
+						text: `${agentLabel} Searching: ${params.query}...`,
 					},
 				],
 			});
@@ -126,10 +157,10 @@ export function createFindFilesTool(opts: {
 						createFindTool(opts.cwd),
 					],
 					widgetId: `find-files-${toolCallId}`,
-					widgetTitle: `${icons.agentDataweaver} DATAWEAVER`,
+					widgetTitle: agentLabel,
 					ui: opts.ui,
 					pi: opts.pi,
-					actionType: "research",
+					actionType,
 					modelConfig: opts.modelConfig,
 				});
 
@@ -138,7 +169,12 @@ export function createFindFilesTool(opts: {
 						content: [
 							{ type: "text" as const, text: "No files found matching the query." },
 						],
-						details: { query: params.query, scope: params.scope, found: 0 },
+						details: {
+							query: params.query,
+							scope: params.scope,
+							found: 0,
+							modelId: resolvedModelId,
+						},
 					};
 				}
 
@@ -160,6 +196,7 @@ export function createFindFilesTool(opts: {
 						scope: params.scope,
 						truncated,
 						outputLength: output.length,
+						modelId: resolvedModelId,
 					},
 				};
 			} catch (err) {

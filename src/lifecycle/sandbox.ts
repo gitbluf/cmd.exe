@@ -9,6 +9,7 @@ import {
 	type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
 import type { BashOperations } from "@mariozechner/pi-coding-agent";
+import type { SandboxPolicy } from "../sandbox/tools";
 import { getIconRegistry } from "../ui/icons";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 
@@ -26,6 +27,11 @@ export const sandboxConfig: SandboxRuntimeConfig = {
 	network: DEFAULT_SANDBOX_POLICY.network,
 	filesystem: DEFAULT_SANDBOX_POLICY.filesystem,
 };
+
+export function setSandboxPolicy(policy: SandboxPolicy): void {
+	sandboxConfig.network = policy.network;
+	sandboxConfig.filesystem = policy.filesystem;
+}
 
 /**
  * Create sandboxed bash operations

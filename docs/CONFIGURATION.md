@@ -508,7 +508,19 @@ Configure OS-level sandboxing for agent execution.
     "strategy": "none" | "sandboxExec" | "bwrap" | "custom",
     "profile": string,              // Path to sandbox-exec profile (macOS)
     "args": string[],               // Arguments for bwrap (Linux)
-    "template": string              // Custom sandbox command template
+    "template": string,             // Custom sandbox command template
+    "policy": {
+      "enabled": boolean,
+      "network": {
+        "allowedDomains": string[],
+        "deniedDomains": string[]
+      },
+      "filesystem": {
+        "allowWrite": string[],
+        "denyRead": string[],
+        "denyWrite": string[]
+      }
+    }
   }
 }
 ```
@@ -544,6 +556,39 @@ Configure OS-level sandboxing for agent execution.
   }
 }
 ```
+
+### Sandbox Policy Overrides
+
+You can configure the sandbox `policy` object directly in your `dispatch.json` to allow extra domains or filesystem paths. The policy merges with the defaults defined in the extension, so you usually only need to specify the additional entries you care about.
+
+```json
+{
+  "sandbox": {
+    "policy": {
+      "network": {
+        "allowedDomains": [
+          "example.com",
+          "api.example.com"
+        ],
+        "deniedDomains": [
+          "malicious.com"
+        ]
+      },
+      "filesystem": {
+        "allowWrite": [
+          "./logs",
+          "/tmp/dispatch"
+        ],
+        "denyRead": [
+          "~/secrets"
+        ]
+      }
+    }
+  }
+}
+```
+
+These lists are appended to the SDK defaults, so you keep the built-in protections while enabling the additional inputs required for your workflow.
 
 ---
 

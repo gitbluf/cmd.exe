@@ -29,11 +29,13 @@ import { getIconRegistry } from "../ui/icons";
 import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import { trySetModel } from "../utils/model-utils";
+import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import {
 	createSandboxedBashOps,
 	initializeSandbox,
 	resetSandbox,
 	sandboxState,
+	setSandboxPolicy,
 } from "./sandbox";
 
 export { sandboxState } from "./sandbox";
@@ -46,6 +48,8 @@ export function setupLifecycleHooks(
 	config: TemplateConfig,
 ): void {
 	const modeConfig: ModeConfig = getEffectiveModeConfig(config.modes);
+	const sandboxPolicy = config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
+	setSandboxPolicy(sandboxPolicy);
 
 	// Apply plan mode defaults on session lifecycle events
 	const applyPlanMode = () => {
