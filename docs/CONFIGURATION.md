@@ -4,17 +4,10 @@ Complete reference for configuring the cmd.exe extension for pi.
 
 ## Configuration File Location
 
-Create your configuration file at one of these locations:
+Current runtime reads configuration from this user-level path:
 
 ```bash
-# Project-specific config (highest priority)
-<workspace>/.pi/extensions/cmd.exe/config.json
-
-# User-wide config
-~/.pi/extensions/cmd.exe/config.json
-
-# Global config (shared across all users)
-/etc/pi/extensions/cmd.exe/config.json
+~/.pi/agent/extensions/dispatch.json
 ```
 
 ## Configuration Structure
@@ -112,6 +105,15 @@ Configure Plan mode (read-only) and Build mode (full tools).
 
 Define or customize agent templates for swarm execution.
 
+> **Runtime defaults vs optional templates**
+>
+> - **Default-loaded templates at runtime:** `ghost`, `dataweaver`, `hardline`
+> - **Defined in source but not default-loaded:** `cortex`, `blackice`, `blueprint`
+>
+> Commands that require optional templates:
+> - `/blackice` requires a configured template for `blackice`
+> - `/synth:plan` requires at least one template with `agentType: "blueprint"`
+
 ### Schema
 
 ```typescript
@@ -155,7 +157,7 @@ Define or customize agent templates for swarm execution.
 }
 ```
 
-### Built-in Agents (Defaults)
+### Default-Loaded Agent Templates (Runtime Defaults)
 
 #### GHOST - Implementation Specialist
 
@@ -179,6 +181,10 @@ Define or customize agent templates for swarm execution.
   }
 }
 ```
+
+### Optional Built-in Definitions (Must Be Added In `agentTemplates`)
+
+The following agent definitions exist in source but are not loaded by default. Add them to your config if you want to use them.
 
 #### CORTEX - Code Reviewer
 
@@ -225,19 +231,19 @@ Define or customize agent templates for swarm execution.
 }
 ```
 
-#### HARDLINE - Security Auditor
+#### HARDLINE - Command Executor
 
 ```json
 {
   "hardline": {
     "id": "hardline",
     "name": "HARDLINE",
-    "description": "Security auditor - vulnerability detection",
-    "role": "Security Auditor",
-    "model": "github-copilot/claude-opus-4.6",
-    "temperature": 0.2,
-    "maxTokens": 3000,
-    "tools": ["file_read", "shell_exec"],
+    "description": "Command executor - scripts, builds, installs, diagnostics",
+    "role": "Command Executor",
+    "model": "github-copilot/gpt-5-mini",
+    "temperature": 0.1,
+    "maxTokens": 2000,
+    "tools": ["shell_exec", "file_read", "find_files"],
     "canWrite": false,
     "canExecuteShell": true,
     "sandbox": {
@@ -247,19 +253,19 @@ Define or customize agent templates for swarm execution.
 }
 ```
 
-#### BLACKICE - Orchestrator
+#### BLACKICE - Primary Orchestrator
 
 ```json
 {
   "blackice": {
     "id": "blackice",
     "name": "BLACKICE",
-    "description": "Orchestrator - task decomposition and routing",
-    "role": "Orchestrator",
-    "model": "github-copilot/gpt-4o",
-    "temperature": 0.4,
-    "maxTokens": 3000,
-    "tools": ["file_read", "find_files"],
+    "description": "Primary orchestrator - routes requests, manages task chains, delegates",
+    "role": "Primary Orchestrator",
+    "model": "github-copilot/claude-haiku-4.5",
+    "temperature": 0.1,
+    "maxTokens": 2000,
+    "tools": [],
     "canWrite": false,
     "canExecuteShell": false,
     "sandbox": {
@@ -634,27 +640,22 @@ Full configuration showing all available options:
 
 ---
 
-## Environment Variables
+## Runtime Flags
 
-Some settings can be overridden via environment variables:
+The extension currently supports runtime sandbox control via CLI flag:
 
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `CMD_EXE_CONFIG` | Path to config file | `~/.config/cmd.exe.json` |
-| `CMD_EXE_NO_SANDBOX` | Disable sandboxing | `1` or `true` |
-| `CMD_EXE_LOG_LEVEL` | Logging verbosity | `debug`, `info`, `warn`, `error` |
+| Flag | Description |
+|------|-------------|
+| `--no-sandbox` | Disable OS-level sandboxing for bash commands |
 
 ---
 
 ## Configuration Priority
 
-Configuration is merged from multiple sources in this priority order:
+Configuration is currently resolved from:
 
-1. **Environment variables** (highest)
-2. **Project config** (`<workspace>/.pi/extensions/cmd.exe/config.json`)
-3. **User config** (`~/.pi/extensions/cmd.exe/config.json`)
-4. **Global config** (`/etc/pi/extensions/cmd.exe/config.json`)
-5. **Built-in defaults** (lowest)
+1. **User config file** (`~/.pi/agent/extensions/dispatch.json`)
+2. **Built-in defaults** (lowest)
 
 ---
 
@@ -734,6 +735,6 @@ Create specialized agents for your specific workflow needs.
 ## See Also
 
 - [ICONS.md](./ICONS.md) - Icon customization details
-- [FIND_FILES.md](./FIND_FILES.md) - Smart file discovery tool
+- `find_files` tool behavior is documented in [README.md](../README.md)
 - [AGENTS.md](../AGENTS.md) - Agent system documentation
 - [README.md](../README.md) - Main documentation

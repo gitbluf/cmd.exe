@@ -23,7 +23,7 @@ All icons are defined in `src/ui/icons.ts` with sensible defaults. Users can ove
 
   // Mode indicators
   modePlan: "⚡",
-  modeBuild: "☠️",
+  modeBuild: "🚀",
 
   // Agent indicators
   agentBlackice: "👁️",
@@ -60,7 +60,7 @@ All icons are defined in `src/ui/icons.ts` with sensible defaults. Users can ove
 
 ## Configuration
 
-Override icons in `~/.pi/agent/extensions/dispatch.json`:
+Override icons in the main config file (`~/.pi/agent/extensions/dispatch.json`):
 
 ```json
 {

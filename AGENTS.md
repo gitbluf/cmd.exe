@@ -285,9 +285,13 @@ Agent: I've implemented the auth service... [DONE:4]
    - Immediate feedback
    - Then back to footer
 
-## Built-in Agent Templates
+## Agent Templates: Runtime Defaults vs Defined Agents
 
-### ghost
+By default, runtime loads these templates: `ghost`, `dataweaver`, `hardline`.
+
+The codebase also defines additional agents (`cortex`, `blackice`, `blueprint`), but those must be added to `agentTemplates` config to be available at runtime.
+
+### Default-loaded: ghost
 
 - **Role:** Implementation Specialist
 - **Focus:** Code changes, execution, delivery
@@ -295,7 +299,7 @@ Agent: I've implemented the auth service... [DONE:4]
 - **Tools:** read, write, edit, bash
 - **Temperature:** 0.1 (deterministic)
 
-### cortex
+### Optional (defined, not default-loaded): cortex
 
 - **Role:** Code Reviewer
 - **Focus:** Correctness, security, performance analysis
@@ -304,7 +308,7 @@ Agent: I've implemented the auth service... [DONE:4]
 - **Temperature:** 0.2 (strict)
 - **Persistence:** Saves all reviews to `.agents/reviews/` for team reference
 
-### dataweaver
+### Default-loaded: dataweaver
 
 - **Role:** Information Researcher
 - **Focus:** Documentation, exploration, findings
@@ -313,7 +317,7 @@ Agent: I've implemented the auth service... [DONE:4]
   - When invoked via `find_files` tool: also gets `ls`, `grep`, and `find` for efficient file discovery
 - **Temperature:** 0.4 (balanced)
 
-### hardline
+### Default-loaded: hardline
 
 - **Role:** Security Auditor
 - **Focus:** Code review, vulnerability detection
@@ -321,7 +325,7 @@ Agent: I've implemented the auth service... [DONE:4]
 - **Tools:** read, bash
 - **Temperature:** 0.2 (strict)
 
-### blackice
+### Optional (defined, not default-loaded): blackice
 
 - **Role:** Orchestrator
 - **Focus:** Request routing, task decomposition

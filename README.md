@@ -94,7 +94,7 @@ pi
 
 ### Configuration (Optional)
 
-Create custom configuration at `~/.pi/extensions/cmd.exe/config.json`:
+Create custom configuration at `~/.pi/agent/extensions/dispatch.json`:
 
 ```json
 {
@@ -170,7 +170,7 @@ Execute focused tasks with specialized agents:
 /synth:output                 # View agent output in scrollable overlay
 ```
 
-Plans are saved to `.agents/plan-YYYY-MM-DD-HHMMSS.md`
+Plans are saved under the extension workspace root (default: `.agents/dispatch/.agents/plan-YYYY-MM-DD-HHMMSS.md`).
 
 ### 👁️ BLACKICE Orchestrator
 
@@ -203,7 +203,7 @@ find_files({ query: "authentication middleware" })
 - 🎯 Thorough - deep exploration without token bloat
 - 📋 Structured - returns file paths with descriptions
 
-Available in both Plan and Build modes. See [docs/FIND_FILES.md](docs/FIND_FILES.md) for details.
+Available in both Plan and Build modes.
 
 ## 🤖 Built-in Agent Templates
 
@@ -236,8 +236,7 @@ cmd.exe/
 │   ├── utils/            # Config, model resolution
 │   └── lifecycle/        # Hooks, initialization, sandbox
 ├── docs/
-│   ├── ICONS.md          # Icon configuration guide
-│   └── FIND_FILES.md     # find_files tool documentation
+│   └── ICONS.md          # Icon configuration guide
 ├── AGENTS.md             # Agent system documentation
 ├── QUICKSTART.md         # Quick reference guide
 ├── ARCHITECTURE.md       # Technical architecture
@@ -246,20 +245,13 @@ cmd.exe/
 
 ## ⚙️ Configuration
 
-### Configuration File Locations
+### Configuration File Location
 
-Configuration files are loaded in priority order (highest to lowest):
+Current runtime loads configuration from a single user-level path:
 
-| Priority | Path | Use Case |
-|----------|------|----------|
-| **Highest** | `<workspace>/.pi/extensions/cmd.exe/config.json` | Project-specific overrides |
-| Medium | `~/.pi/extensions/cmd.exe/config.json` | User-wide settings *(recommended for laptop-specific configs)* |
-| Lowest | `/etc/pi/extensions/cmd.exe/config.json` | Global defaults |
-
-**Environment variable override:**
-```bash
-export CMD_EXE_CONFIG=~/.config/cmd.exe.json
-```
+| Path | Use Case |
+|------|----------|
+| `~/.pi/agent/extensions/dispatch.json` | User-wide cmd.exe settings |
 
 ### Model Override Strategies
 
@@ -384,7 +376,7 @@ With `"fallback": true`, missing models degrade gracefully rather than error.
 
 **Problem:** Different machines have access to different model providers.
 
-**Solution:** Create a user-wide config at `~/.pi/extensions/cmd.exe/config.json` with your available models:
+**Solution:** Create a user-wide config at `~/.pi/agent/extensions/dispatch.json` with your available models:
 
 ```json
 {
@@ -485,7 +477,7 @@ What are the architectural trade-offs for adding real-time features?
 
 ### Swarm State
 
-Swarms are persisted to `<workspace>/.swarms/`:
+Swarms are persisted under `<workspace>/.agents/dispatch/` (registry file: `.dispatch-swarms.json`):
 
 ```json
 {
@@ -523,7 +515,7 @@ Real-time monitoring with `/swarm:dashboard`:
 Agent output is recorded:
 
 - Truncated output in swarm state
-- Full output in `.swarms/<swarm-id>/<task-id>.log`
+- Full output in `.agents/dispatch/output/<swarm-id>/<task-id>.log`
 - View with `/swarm:task <task-id>` or `/synth:output`
 
 ## 🛠️ Requirements
@@ -541,7 +533,7 @@ Agent output is recorded:
 - **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Implementation details
 - **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** - Complete configuration reference
 - **[docs/ICONS.md](docs/ICONS.md)** - Icon configuration and customization
-- **[docs/FIND_FILES.md](docs/FIND_FILES.md)** - Smart file discovery tool
+- Smart file discovery is provided by the built-in `find_files` tool
 
 ## 🎨 Design Philosophy
 
