@@ -156,7 +156,10 @@ export class SwarmExecutor {
 	 *
 	 * Returns the workspace path.
 	 */
-	private createTaskWorkspace(task: SwarmTask, agentConfig: AgentConfig): string {
+	private createTaskWorkspace(
+		task: SwarmTask,
+		agentConfig: AgentConfig,
+	): string {
 		const wsDir = taskWorkspaceDir(
 			this.workspaceRoot,
 			this.swarmRecord.id,
@@ -202,7 +205,10 @@ export class SwarmExecutor {
 		this.swarmRecord.status = "running";
 
 		// Create swarm-level directories
-		const swarmWsDir = swarmWorkspaceDir(this.workspaceRoot, this.swarmRecord.id);
+		const swarmWsDir = swarmWorkspaceDir(
+			this.workspaceRoot,
+			this.swarmRecord.id,
+		);
 		const swarmOutDir = swarmOutputDir(this.workspaceRoot, this.swarmRecord.id);
 
 		try {
@@ -324,8 +330,9 @@ export class SwarmExecutor {
 			this.persist();
 
 			// Execute with timeout
+			const sandboxPolicy =
+				this.config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
 			await Promise.race([
-				const sandboxPolicy = this.config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
 				spawnAgent(
 					agentConfig,
 					this.projectCwd,
