@@ -5,21 +5,28 @@
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import type { TemplateConfig } from "../../templates/types";
 import {
+	addDependency,
+	assignTask,
 	checkTeamModelCandidate,
+	cleanupTeam,
 	createTaskLocked,
 	createTeamState,
 	getActiveTeamId,
 	getTaskView,
+	killMember,
 	listDependencies,
+	listMemberStatus,
 	listTaskViews,
 	listTeams,
 	loadTeamState,
+	removeDependency,
 	setActiveTeamId,
 	setTaskStatusLocked,
-	assignTask,
+	shutdownAllMembers,
+	shutdownMember,
+	spawnMember,
+	teamDone,
 	unassignTask,
-	addDependency,
-	removeDependency,
 	withTeamLock,
 } from "../../teams";
 import { getIconRegistry } from "../../ui/icons";
@@ -48,6 +55,24 @@ export async function handleTeam(
 			return;
 		case "list":
 			await handleList(ctx, root);
+			return;
+			case "spawn":
+			await handleSpawn(rest, ctx, root, config);
+			return;
+		case "status":
+			await handleStatus(rest, ctx, root, config);
+			return;
+		case "shutdown":
+			await handleShutdown(rest, ctx, root, config);
+			return;
+		case "kill":
+			await handleKill(rest, ctx, root, config);
+			return;
+		case "done":
+			await handleDone(rest, ctx, root, config);
+			return;
+		case "cleanup":
+			await handleCleanup(rest, ctx, root, config);
 			return;
 		case "model":
 			await handleModel(rest, ctx, root, config);
@@ -125,6 +150,147 @@ async function handleList(ctx: ExtensionCommandContext, root: string): Promise<v
 	}
 	console.log("");
 	await ctx.ui.input("Press enter to continue...", "");
+}
+
+async function handleSpawn(
+	rest: string,
+	ctx: ExtensionCommandContext,
+	root: string,
+	config: TemplateConfig,
+): Promise<void> {
+	const [nameToken, ...parts] = rest.trim().split(/\s+/).filter(Boolean);
+	const name = sanitizeTeamId(nameToken || "");
+	if (!name) {
+		ctx.ui.notify(
+			"Usage: /team spawn <name> [fresh|branch] [shared|worktree] [--model <id>] [--thinking <level>]",
+			"warning",
+		);
+		return;
+	}
+
+	const teamId = ensureActiveTeam(root, config);
+	const contextMode = (parts.find((p) => p === "fresh" || p === "branch") || "fresh") as
+		| "fresh"
+		| "branch";
+	const workspaceMode =
+		(parts.find((p) => p === "shared" || p === "worktree") || "shared") as
+			| "shared"
+			| "worktree";
+	const model = extractOption(parts, "--model");
+	const thinking = (extractOption(parts, "--thinking") ||
+		config.teams?.defaultThinking ||
+		"medium") as any;
+
+	const member = await spawnMember(root, teamId, name, {
+		model,
+		thinking,
+		contextMode,
+		workspaceMode,
+	});
+
+	ctx.ui.notify(`Spawned member ${member.name} (${member.status})`, "success");
+}
+
+async function handleStatus(
+	rest: string,
+	ctx: ExtensionCommandContext,
+	root: string,
+	config: TemplateConfig,
+): Promise<void> {
+	const teamId = ensureActiveTeam(root, config);
+	const requested = sanitizeTeamId(rest.trim());
+	const members = listMemberStatus(root, teamId);
+	if (members.length === 0) {
+		console.log("\nNo members in active team. Use /team spawn <name>.\n");
+		await ctx.ui.input("Press enter to continue...", "");
+		return;
+	}
+
+	const filtered = requested
+		? members.filter((m) => m.name === requested)
+		: members;
+
+	if (requested && filtered.length === 0) {
+		ctx.ui.notify(`Member not found: ${requested}`, "warning");
+		return;
+	}
+
+	console.log(`\nTeam members (${teamId}):\n`);
+	for (const m of filtered) {
+		console.log(
+			`${m.name.padEnd(16)} | ${m.status.padEnd(8)} | model: ${m.model || "(default)"} | mode: ${m.contextMode || "fresh"}/${m.workspaceMode || "shared"}`,
+		);
+	}
+	console.log("");
+	await ctx.ui.input("Press enter to continue...", "");
+}
+
+async function handleShutdown(
+	rest: string,
+	ctx: ExtensionCommandContext,
+	root: string,
+	config: TemplateConfig,
+): Promise<void> {
+	const teamId = ensureActiveTeam(root, config);
+	const parts = rest.trim().split(/\s+/).filter(Boolean);
+	const target = sanitizeTeamId(parts[0] || "all");
+	const reason = parts.slice(1).join(" ").trim() || undefined;
+
+	if (!target || target === "all") {
+		const result = await shutdownAllMembers(root, teamId, reason);
+		ctx.ui.notify(`Shutdown ${result.count} member(s)`, "success");
+		return;
+	}
+
+	const member = await shutdownMember(root, teamId, target, reason);
+	ctx.ui.notify(`Shutdown ${member.name}`, "success");
+}
+
+async function handleKill(
+	rest: string,
+	ctx: ExtensionCommandContext,
+	root: string,
+	config: TemplateConfig,
+): Promise<void> {
+	const name = sanitizeTeamId(rest.trim());
+	if (!name) {
+		ctx.ui.notify("Usage: /team kill <name>", "warning");
+		return;
+	}
+	const teamId = ensureActiveTeam(root, config);
+	const member = await killMember(root, teamId, name);
+	ctx.ui.notify(`Killed ${member.name}`, "warning");
+}
+
+async function handleDone(
+	rest: string,
+	ctx: ExtensionCommandContext,
+	root: string,
+	config: TemplateConfig,
+): Promise<void> {
+	const teamId = ensureActiveTeam(root, config);
+	const force = hasFlag(rest, "--force");
+	const result = await teamDone(root, teamId, force);
+	ctx.ui.notify(
+		`Team done. Members stopped: ${result.stoppedMembers}. Tasks: ${result.taskSummary.completed}/${result.taskSummary.total} completed.`,
+		"success",
+	);
+}
+
+async function handleCleanup(
+	rest: string,
+	ctx: ExtensionCommandContext,
+	root: string,
+	config: TemplateConfig,
+): Promise<void> {
+	const teamId = ensureActiveTeam(root, config);
+	const force = hasFlag(rest, "--force");
+	const result = await cleanupTeam(root, teamId, force);
+	if (result.deleted) {
+		ctx.ui.notify(`Cleaned up team ${teamId}`, "success");
+		return;
+	}
+	ctx.ui.notify(`No cleanup performed for ${teamId}`, "warning");
 }
 
 async function handleModel(
@@ -353,6 +519,10 @@ function extractOption(args: string[], key: string): string | undefined {
 	return args[index + 1];
 }
 
+function hasFlag(raw: string, flag: string): boolean {
+	return raw.split(/\s+/).includes(flag);
+}
+
 function printUsage(ctx: ExtensionCommandContext): void {
 	const lines = [
 		"Usage: /team <command>",
@@ -361,6 +531,12 @@ function printUsage(ctx: ExtensionCommandContext): void {
 		"  /team init [name]",
 		"  /team id",
 		"  /team list",
+		"  /team spawn <name> [fresh|branch] [shared|worktree] [--model <id>] [--thinking <level>]",
+		"  /team status [name]",
+		"  /team shutdown [name|all] [reason]",
+		"  /team kill <name>",
+		"  /team done [--force]",
+		"  /team cleanup [--force]",
 		"",
 		"Model policy:",
 		"  /team model policy",

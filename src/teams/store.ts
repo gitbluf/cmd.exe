@@ -161,6 +161,14 @@ export function setActiveTeamId(workspaceRoot: string, teamId: string): void {
 	fs.writeFileSync(path.join(teamsRoot, ACTIVE_TEAM_FILE), teamId.trim(), "utf8");
 }
 
+export function clearActiveTeamId(workspaceRoot: string): void {
+	const teamsRoot = getTeamsRoot(workspaceRoot);
+	const activePath = path.join(teamsRoot, ACTIVE_TEAM_FILE);
+	if (fs.existsSync(activePath)) {
+		fs.unlinkSync(activePath);
+	}
+}
+
 export function deleteTeam(workspaceRoot: string, teamId: string): void {
 	const p = getTeamPaths(workspaceRoot, teamId);
 	if (fs.existsSync(p.teamDir)) {
@@ -210,6 +218,18 @@ export function listMembers(workspaceRoot: string, teamId: string): TeamMember[]
 	}
 
 	return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function deleteMember(
+	workspaceRoot: string,
+	teamId: string,
+	memberName: string,
+): void {
+	const p = getTeamPaths(workspaceRoot, teamId);
+	const memberPath = path.join(p.membersDir, `${memberName}.json`);
+	if (fs.existsSync(memberPath)) {
+		fs.unlinkSync(memberPath);
+	}
 }
 
 export function saveTask(workspaceRoot: string, teamId: string, task: TeamTask): void {
