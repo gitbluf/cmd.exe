@@ -11,6 +11,7 @@ import {
 	mergeTemplates,
 	validateTemplate,
 } from "../templates";
+import { DEFAULT_TEAMS_CONFIG } from "../teams";
 import type { AgentTemplate, TemplateConfig } from "../templates/types";
 
 /**
@@ -43,6 +44,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 		agents: {},
 		defaultAgents: 3,
 		defaultMission: "Infiltrate the monolith, extract creds, leave no trace.",
+		teams: DEFAULT_TEAMS_CONFIG,
 	};
 
 	// Load and merge user config if provided
@@ -65,6 +67,14 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				modes: userConfig.modes || config.modes,
 				icons: userConfig.icons || config.icons,
 				modelConfig: userConfig.modelConfig || config.modelConfig,
+				teams: {
+					...DEFAULT_TEAMS_CONFIG,
+					...(userConfig.teams || {}),
+					modelPolicy: {
+						...DEFAULT_TEAMS_CONFIG.modelPolicy,
+						...(userConfig.teams?.modelPolicy || {}),
+					},
+				},
 			};
 		} else {
 			console.log(`[dispatch] Config file not found, using defaults`);

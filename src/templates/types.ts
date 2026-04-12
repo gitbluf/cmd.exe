@@ -3,6 +3,7 @@
  */
 
 import type { ModeConfig } from "../modes";
+import type { TeamsConfig } from "../teams";
 import type { IconSet } from "../ui/icons";
 import type { ModelConfig } from "../utils/model-resolver";
 
@@ -90,4 +91,7 @@ export interface TemplateConfig {
 		args?: string[];
 		template?: string;
 	};
+
+	// Teams orchestration configuration
+	teams?: TeamsConfig;
 }
