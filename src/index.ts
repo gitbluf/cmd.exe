@@ -22,7 +22,7 @@ import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
 import { getIconRegistry, initIcons } from "./ui/icons";
 import { getConfigPath, loadConfig } from "./utils/config";
-import { createFindFilesTool } from "./tools";
+import { createFindFilesTool, createTeamsTool } from "./tools";
 
 // ─── Sub-agent output message renderer ──────────────────────
 
@@ -132,6 +132,25 @@ export default function (pi: ExtensionAPI) {
         ui: ctx.ui,
         pi,
         modelConfig: config.modelConfig,
+      });
+      return tool.execute(toolCallId, params, signal, onUpdate, ctx);
+    },
+  });
+
+  // Register teams orchestration tool
+  const teamsTemplate = createTeamsTool({
+    cwd: process.cwd(),
+    config,
+    pi,
+  });
+
+  pi.registerTool({
+    ...teamsTemplate,
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const tool = createTeamsTool({
+        cwd: ctx.cwd,
+        config,
+        pi,
       });
       return tool.execute(toolCallId, params, signal, onUpdate, ctx);
     },
