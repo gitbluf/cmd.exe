@@ -71,7 +71,17 @@ export function setupLifecycleHooks(
 		}
 
 		// Try to set the plan model
-		trySetModel(pi, ctx, modeConfig.plan.model);
+		const success = await trySetModel(pi, ctx, modeConfig.plan.model);
+		if (!success && ctx.hasUI) {
+			const icons = getIconRegistry();
+			console.warn(
+				`[lifecycle] Plan mode model not available: ${modeConfig.plan.model}`
+			);
+			ctx.ui.notify(
+				`${icons.warning} Plan mode model "${modeConfig.plan.model}" not available, keeping current model`,
+				"warning"
+			);
+		}
 	});
 
 	pi.on("session_switch", async (_event, ctx) => {
@@ -81,7 +91,17 @@ export function setupLifecycleHooks(
 			ctx.ui.setStatus("mode", getModeStatusText("plan"));
 		}
 
-		trySetModel(pi, ctx, modeConfig.plan.model);
+		const success = await trySetModel(pi, ctx, modeConfig.plan.model);
+		if (!success && ctx.hasUI) {
+			const icons = getIconRegistry();
+			console.warn(
+				`[lifecycle] Plan mode model not available: ${modeConfig.plan.model}`
+			);
+			ctx.ui.notify(
+				`${icons.warning} Plan mode model "${modeConfig.plan.model}" not available, keeping current model`,
+				"warning"
+			);
+		}
 	});
 
 	pi.on("turn_start", (_event, ctx) => {

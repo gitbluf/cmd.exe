@@ -87,15 +87,12 @@ Generate the plan in Markdown format.`;
 				mission,
 				cwd: ctx.cwd,
 				modelRegistry: ctx.modelRegistry,
-				model: ctx.model,
+				model: selectedModel,
 				tools: runtimeTools,
 				widgetId: "plan-agent",
 				widgetTitle: `${icons.agentPlanner} ${planAgentLabel}`,
 				ui: ctx.ui,
 				pi,
-				// Use "planning" action type (typically uses an expensive model for quality)
-				actionType: "planning",
-				modelConfig: config.modelConfig,
 			});
 
 			if (!planContent || planContent.trim().length === 0) {

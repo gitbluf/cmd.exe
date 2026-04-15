@@ -64,7 +64,7 @@ export async function handleSynthExec(
         mission: `Mission: "${mission}"\n\nBased on our conversation, execute this mission now. Use your available tools to implement, edit files, and execute commands as needed. Report all changes and results.`,
         cwd: ctx.cwd,
         modelRegistry: ctx.modelRegistry,
-        model: ctx.model,
+        model: selectedModel,
         tools: buildToolsFromTemplate(ghostTemplate.tools || [], ctx.cwd).length > 0
           ? buildToolsFromTemplate(ghostTemplate.tools, ctx.cwd)
           : [
@@ -77,9 +77,6 @@ export async function handleSynthExec(
         widgetTitle: `${icons.agentGhost} GHOST Agent`,
         ui: ctx.ui,
         pi,
-        // Use "main" action type for primary execution (uses default/expensive model)
-        actionType: "main",
-        modelConfig: config.modelConfig,
       });
 
       if (!output || output.trim().length === 0) {
