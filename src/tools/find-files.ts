@@ -85,29 +85,33 @@ export function createFindFilesTool(opts: {
 				: "";
 
 			const actionType: ActionType = "research";
-			let resolvedModelId: string | undefined;
+			
+			// Resolve model once for both widget label and sub-agent execution
+			let selectedModel: any;
 			if (opts.modelRegistry) {
 				try {
-					const resolvedModel = resolveModel({
+					selectedModel = resolveModel({
 						modelRegistry: opts.modelRegistry,
 						currentModel: opts.model,
 						actionType,
 						config: opts.modelConfig,
 					});
-					resolvedModelId = resolvedModel?.id;
 				} catch (_err) {
-					// We'll fall back to available metadata below
+					// Fall back to current model
+					selectedModel = opts.model;
 				}
 			}
 
-			if (!resolvedModelId) {
-				resolvedModelId = opts.model?.id;
+			if (!selectedModel) {
+				selectedModel = opts.model;
 			}
 
-			if (!resolvedModelId) {
+			if (!selectedModel) {
 				const available = opts.modelRegistry?.getAvailable?.();
-				resolvedModelId = available?.[0]?.id;
+				selectedModel = available?.[0];
 			}
+
+			const resolvedModelId = selectedModel?.id;
 
 			const agentLabel = `${icons.agentDataweaver} DATAWEAVER${resolvedModelId ? ` → ${resolvedModelId}` : ""}`;
 
@@ -149,7 +153,7 @@ export function createFindFilesTool(opts: {
 					mission,
 					cwd: opts.cwd,
 					modelRegistry: opts.modelRegistry,
-					model: opts.model,
+					model: selectedModel,
 					tools: [
 						createReadTool(opts.cwd),
 						createLsTool(opts.cwd),
@@ -160,8 +164,6 @@ export function createFindFilesTool(opts: {
 					widgetTitle: agentLabel,
 					ui: opts.ui,
 					pi: opts.pi,
-					actionType,
-					modelConfig: opts.modelConfig,
 				});
 
 				if (!output?.trim()) {

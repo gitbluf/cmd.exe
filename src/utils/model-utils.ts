@@ -35,5 +35,7 @@ export async function trySetModel(
 		return await pi.setModel(match);
 	}
 
+	// Model not found - log warning
+	console.warn(`[model-utils] Model not found: ${modelId}`);
 	return false;
 }

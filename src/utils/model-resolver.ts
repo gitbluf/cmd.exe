@@ -79,6 +79,13 @@ export function resolveModel(opts: ModelResolverOptions): any {
     if (verbose) {
       console.log(`[model] Using current model → ${currentModel.id}`);
     }
+    // Warn if we're falling back because a config override failed
+    if (config?.overrides?.[actionType]) {
+      console.warn(
+        `[model] Warning: Override for action "${actionType}" (${config.overrides[actionType]}) not found, ` +
+        `falling back to session model: ${currentModel.id}`
+      );
+    }
     return currentModel;
   }
 
