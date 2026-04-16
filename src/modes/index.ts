@@ -1,35 +1,10 @@
 /**
  * Session mode management - Plan vs Build mode
- *
- * Plan mode (default): read-only, uses a heavier reasoning model
- * Build mode: full tool access, uses a fast implementation model
  */
 
 import { getIconRegistry } from "../ui/icons";
 
 export type SessionMode = "plan" | "build";
-
-export interface ModeConfig {
-	plan: {
-		model: string;
-		tools: string[];
-	};
-	build: {
-		model: string;
-		tools: string[];
-	};
-}
-
-export const DEFAULT_MODE_CONFIG: ModeConfig = {
-	plan: {
-		model: "github-copilot/claude-opus-4.6",
-		tools: ["read", "find_files"],
-	},
-	build: {
-		model: "github-copilot/claude-sonnet-4.5",
-		tools: ["read", "write", "edit", "bash", "find_files"],
-	},
-};
 
 /** Current session mode state */
 let currentMode: SessionMode = "plan";
@@ -122,22 +97,4 @@ export function getModeSystemPrompt(
 	);
 
 	return buildPrompt.join("\n");
-}
-
-/** Get the effective mode config, merging user overrides */
-export function getEffectiveModeConfig(
-	userOverrides?: Partial<ModeConfig>,
-): ModeConfig {
-	if (!userOverrides) return { ...DEFAULT_MODE_CONFIG };
-
-	return {
-		plan: {
-			model: userOverrides.plan?.model ?? DEFAULT_MODE_CONFIG.plan.model,
-			tools: userOverrides.plan?.tools ?? DEFAULT_MODE_CONFIG.plan.tools,
-		},
-		build: {
-			model: userOverrides.build?.model ?? DEFAULT_MODE_CONFIG.build.model,
-			tools: userOverrides.build?.tools ?? DEFAULT_MODE_CONFIG.build.tools,
-		},
-	};
 }

@@ -12,9 +12,8 @@ export interface PlanStep {
 export interface PlanState {
 	id: string; // plan-20260311-143000
 	steps: PlanStep[];
-	source: "synth" | "conversation"; // from /synth:plan or regular plan mode
+	source: "conversation"; // from regular plan mode
 	createdAt: string; // ISO8601
-	sourceFile?: string; // .agents/plan-*.md if from synth
 	lastUpdated?: string; // ISO8601
 }
 

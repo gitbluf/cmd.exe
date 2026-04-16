@@ -284,7 +284,7 @@ export function createTeamsTool(opts: {
 							...opts.config.teams?.modelPolicy,
 							...(state?.policy || {}),
 						},
-						globalModelConfig: opts.config.modelConfig,
+						globalSlots: opts.config.slots,
 						model: params.model,
 						actionType: params.actionType,
 						memberName: params.memberName,

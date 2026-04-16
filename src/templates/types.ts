@@ -2,11 +2,10 @@
  * Agent template type definitions
  */
 
-import type { ModeConfig } from "../modes";
 import type { SandboxPolicy } from "../sandbox/tools";
 import type { TeamsConfig } from "../teams";
 import type { IconSet } from "../ui/icons";
-import type { ModelConfig } from "../utils/model-resolver";
+import type { SlotsConfig } from "../config/slots";
 
 export interface AgentTemplate {
 	// Identity
@@ -70,8 +69,8 @@ export interface TemplateConfig {
 	defaultAgents?: number;
 	defaultMission?: string;
 
-	// Dynamic model selection for different action types
-	modelConfig?: ModelConfig;
+	// Slot-based model configuration (plan_mode, build_mode, assistant)
+	slots: SlotsConfig;
 
 	// Team feature config
 	teams?: TeamsConfig;
@@ -87,7 +86,4 @@ export interface TemplateConfig {
 		template: string;
 		policy: SandboxPolicy;
 	}>;
-
-	// Mode config (used by /ops)
-	modes?: ModeConfig;
 }

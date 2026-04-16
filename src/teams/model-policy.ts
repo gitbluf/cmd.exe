@@ -2,7 +2,7 @@
  * Teams model policy resolution
  */
 
-import type { ModelConfig } from "../utils/model-resolver";
+import type { SlotsConfig } from "../config/slots";
 import {
 	DEFAULT_TEAM_MODEL_POLICY,
 	type TeamModelActionType,
@@ -22,7 +22,7 @@ export interface ResolveTeamModelOptions {
 	modelRegistry: any;
 	currentModel: any;
 	policy?: TeamModelPolicy;
-	globalModelConfig?: ModelConfig;
+	globalSlots?: SlotsConfig;
 	actionType?: TeamModelActionType;
 	memberName?: string;
 	explicitModel?: string;
@@ -87,7 +87,10 @@ export function resolveTeamModel(opts: ResolveTeamModelOptions): TeamModelResolu
 			source: "actionOverride",
 		},
 		{ id: policy.default, source: "policyDefault" },
-		{ id: opts.globalModelConfig?.default, source: "globalDefault" },
+		{
+			id: opts.globalSlots?.build_mode.model,
+			source: "globalDefault",
+		},
 	];
 
 	for (const candidate of candidates) {
@@ -165,7 +168,7 @@ export function checkTeamModelCandidate(opts: {
 	modelRegistry: any;
 	currentModel: any;
 	policy?: TeamModelPolicy;
-	globalModelConfig?: ModelConfig;
+	globalSlots?: SlotsConfig;
 	model?: string;
 	actionType?: TeamModelActionType;
 	memberName?: string;
@@ -175,7 +178,7 @@ export function checkTeamModelCandidate(opts: {
 			modelRegistry: opts.modelRegistry,
 			currentModel: opts.currentModel,
 			policy: opts.policy,
-			globalModelConfig: opts.globalModelConfig,
+			globalSlots: opts.globalSlots,
 			explicitModel: opts.model,
 			actionType: opts.actionType,
 			memberName: opts.memberName,

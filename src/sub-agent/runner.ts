@@ -15,7 +15,6 @@ import {
 import { truncateToWidth } from "@mariozechner/pi-tui";
 import { getIconRegistry } from "../ui/icons";
 import { storeSubAgentOutput } from "./store";
-import { resolveModel, type ActionType, type ModelConfig } from "../utils/model-resolver";
 
 export interface RunSubAgentOptions {
   systemPrompt: string;
@@ -28,10 +27,6 @@ export interface RunSubAgentOptions {
   widgetTitle?: string;
   ui?: any;
   pi?: any;
-  /** Action type for model selection (e.g., "auto-compat", "planning") */
-  actionType?: ActionType;
-  /** Optional model configuration for dynamic model selection */
-  modelConfig?: ModelConfig;
   /** Thinking level for models that support reasoning */
   thinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
   /** Keep widget visible after completion instead of clearing it */
@@ -53,26 +48,15 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
   });
   await loader.reload();
 
-  // Resolve model: use resolver if config provided, otherwise use current/first available
-  let selectedModel: any;
-  
-  if (opts.modelConfig || opts.actionType) {
-    selectedModel = resolveModel({
-      modelRegistry: opts.modelRegistry,
-      currentModel: opts.model,
-      actionType: opts.actionType || "main",
-      config: opts.modelConfig,
-      verbose: false,
-    });
-  } else {
-    selectedModel = opts.model;
-    if (!selectedModel) {
-      const available = opts.modelRegistry.getAvailable();
-      if (available.length === 0) {
-        throw new Error("No LLM models available.");
-      }
-      selectedModel = available[0];
+  // Use the provided model (already resolved by caller)
+  let selectedModel = opts.model;
+  if (!selectedModel) {
+    const available = opts.modelRegistry?.getAvailable?.();
+    if (!available || available.length === 0) {
+      throw new Error("No LLM models available.");
     }
+    // Fallback to first available if no model provided
+    selectedModel = available[0];
   }
 
   const tools = opts.tools || [createReadTool(opts.cwd)];

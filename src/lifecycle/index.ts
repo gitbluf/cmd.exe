@@ -3,10 +3,8 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { ModeConfig } from "../modes";
 import {
 	getCurrentMode,
-	getEffectiveModeConfig,
 	getModeStatusText,
 	getModeSystemPrompt,
 	setCurrentMode,
@@ -47,14 +45,14 @@ export function setupLifecycleHooks(
 	pi: ExtensionAPI,
 	config: TemplateConfig,
 ): void {
-	const modeConfig: ModeConfig = getEffectiveModeConfig(config.modes);
+	const slots = config.slots!;
 	const sandboxPolicy = config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
 	setSandboxPolicy(sandboxPolicy);
 
 	// Apply plan mode defaults on session lifecycle events
 	const applyPlanMode = () => {
 		setCurrentMode("plan");
-		const planTools = modeConfig.plan.tools;
+		const planTools = slots.plan_mode.tools || ["read", "find_files"];
 		pi.setActiveTools([...planTools]);
 	};
 
@@ -71,15 +69,20 @@ export function setupLifecycleHooks(
 		}
 
 		// Try to set the plan model
-		const success = await trySetModel(pi, ctx, modeConfig.plan.model);
+		const success = await trySetModel(
+			pi,
+			ctx,
+			slots.plan_mode.model,
+			slots.plan_mode.thinking,
+		);
 		if (!success && ctx.hasUI) {
 			const icons = getIconRegistry();
 			console.warn(
-				`[lifecycle] Plan mode model not available: ${modeConfig.plan.model}`
+				`[lifecycle] Plan mode model not available: ${slots.plan_mode.model}`,
 			);
 			ctx.ui.notify(
-				`${icons.warning} Plan mode model "${modeConfig.plan.model}" not available, keeping current model`,
-				"warning"
+				`${icons.warning} Plan mode model "${slots.plan_mode.model}" not available, keeping current model`,
+				"warning",
 			);
 		}
 	});
@@ -91,15 +94,20 @@ export function setupLifecycleHooks(
 			ctx.ui.setStatus("mode", getModeStatusText("plan"));
 		}
 
-		const success = await trySetModel(pi, ctx, modeConfig.plan.model);
+		const success = await trySetModel(
+			pi,
+			ctx,
+			slots.plan_mode.model,
+			slots.plan_mode.thinking,
+		);
 		if (!success && ctx.hasUI) {
 			const icons = getIconRegistry();
 			console.warn(
-				`[lifecycle] Plan mode model not available: ${modeConfig.plan.model}`
+				`[lifecycle] Plan mode model not available: ${slots.plan_mode.model}`,
 			);
 			ctx.ui.notify(
-				`${icons.warning} Plan mode model "${modeConfig.plan.model}" not available, keeping current model`,
-				"warning"
+				`${icons.warning} Plan mode model "${slots.plan_mode.model}" not available, keeping current model`,
+				"warning",
 			);
 		}
 	});
@@ -107,7 +115,8 @@ export function setupLifecycleHooks(
 	pi.on("turn_start", (_event, ctx) => {
 		// Re-apply current mode tools each turn to prevent drift
 		const mode = getCurrentMode();
-		const tools = modeConfig[mode].tools;
+		const slot = mode === "plan" ? slots.plan_mode : slots.build_mode;
+		const tools = slot.tools || [];
 		pi.setActiveTools([...tools]);
 
 		// Dismiss ephemeral widgets from previous interaction
@@ -187,7 +196,7 @@ export function setupLifecycleHooks(
 					setPlan(root, newPlan);
 					updatePlanStatus(ctx, newPlan);
 					ctx.ui.notify(
-						`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /ops to execute.`,
+						`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /plan to execute.`,
 						"info",
 					);
 				}
@@ -198,7 +207,8 @@ export function setupLifecycleHooks(
 	// Inject mode-specific system prompt instructions before each agent turn
 	pi.on("before_agent_start", async (event, ctx) => {
 		const mode = getCurrentMode();
-		const tools = modeConfig[mode].tools;
+		const slot = mode === "plan" ? slots.plan_mode : slots.build_mode;
+		const tools = slot.tools || [];
 
 		// Format active plan for build mode
 		let activePlanText: string | undefined;

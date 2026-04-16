@@ -46,7 +46,6 @@ export function parsePlanFromText(text: string): PlanStep[] | null {
 
 /**
  * Extract plan steps from markdown with numbered lists
- * Used for /synth:plan output which generates markdown
  */
 export function parsePlanFromMarkdown(markdown: string): PlanStep[] | null {
 	const steps: PlanStep[] = [];

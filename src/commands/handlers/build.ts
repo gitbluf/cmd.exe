@@ -1,5 +1,5 @@
 /**
- * /ops command handler - toggle session mode
+ * /plan command handler - toggle session mode
  */
 
 import type {
@@ -7,12 +7,12 @@ import type {
 	ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
 import {
-	type ModeConfig,
 	type SessionMode,
 	getCurrentMode,
 	getModeStatusText,
 	setCurrentMode,
 } from "../../modes";
+import type { SlotsConfig, ModeSlotConfig } from "../../config/slots";
 import { trySetModel } from "../../utils/model-utils";
 import { getIconRegistry } from "../../ui/icons";
 
@@ -23,19 +23,20 @@ export async function applyMode(
 	mode: SessionMode,
 	pi: ExtensionAPI,
 	ctx: ExtensionCommandContext,
-	modeConfig: ModeConfig,
+	slots: SlotsConfig,
 ): Promise<void> {
 	setCurrentMode(mode);
-	const cfg = modeConfig[mode];
+	const slot: ModeSlotConfig = mode === "plan" ? slots.plan_mode : slots.build_mode;
 
 	// Set active tools
-	pi.setActiveTools([...cfg.tools]);
+	const tools = slot.tools || [];
+	pi.setActiveTools([...tools]);
 
-	// Try to set the model
-	const success = await trySetModel(pi, ctx, cfg.model);
+	// Try to set the model with thinking level
+	const success = await trySetModel(pi, ctx, slot.model, slot.thinking);
 	if (!success) {
 		ctx.ui.notify(
-			`Model ${cfg.model} not available, keeping current model`,
+			`Model ${slot.model} not available, keeping current model`,
 			"warning",
 		);
 	}
@@ -45,18 +46,18 @@ export async function applyMode(
 }
 
 /**
- * Handle /ops command - toggle between plan and build mode
+ * Handle /plan command - toggle between plan and build mode
  */
-export async function handleOps(
+export async function handlePlan(
 	_args: string,
 	ctx: ExtensionCommandContext,
 	pi: ExtensionAPI,
-	modeConfig: ModeConfig,
+	slots: SlotsConfig,
 ): Promise<void> {
 	const current = getCurrentMode();
 	const target: SessionMode = current === "build" ? "plan" : "build";
 
-	await applyMode(target, pi, ctx, modeConfig);
+	await applyMode(target, pi, ctx, slots);
 
 	const icons = getIconRegistry();
 	const label = target === "build" ? `${icons.modeBuild}  BUILD` : `${icons.modePlan}  PLAN`;

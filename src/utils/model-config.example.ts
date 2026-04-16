@@ -1,81 +1,134 @@
 /**
- * Model Configuration Example
+ * Slot-Based Model Configuration Examples
  *
- * This shows how to configure dynamic model selection for different action types.
- * Place this in your cmd.exe config to use cheaper models for auto-compat actions.
+ * Three slots control all model selection:
+ *   - plan_mode:  Main session in Plan mode
+ *   - build_mode: Main session in Build mode
+ *   - assistant:  Cheap sub-agent for tools (find_files, etc.)
+ *
+ * /ask uses the current mode's slot.
  */
 
 /**
- * Basic example: single default model
+ * Minimal example: Use defaults with custom models
  */
-export const basicModelConfig = {
-  default: "github-copilot/gpt-4o",
+export const minimalSlotConfig = {
+	slots: {
+		plan_mode: {
+			model: "github-copilot/claude-opus-4.6",
+		},
+		build_mode: {
+			model: "github-copilot/claude-sonnet-4.5",
+			thinking: "high",
+		},
+		assistant: {
+			model: "github-copilot/gpt-4o-mini",
+		},
+	},
 };
 
 /**
- * Advanced example: different models for different action types
- *
- * Use cases:
- *   - main: expensive model (gpt-4o) for critical decisions
- *   - auto-compat: cheap model (gpt-4o-mini) for formatting/compatibility fixes
- *   - analysis: medium model (gpt-4-turbo) for code review
- *   - planning: expensive model (gpt-4o) for strategy
- *   - research: cheap model (gpt-4o-mini) for info gathering
+ * Full example: Custom tools, thinking levels, and models
  */
-export const advancedModelConfig = {
-  default: "github-copilot/gpt-4o",
-  
-  overrides: {
-    "auto-compat": "github-copilot/gpt-4o-mini",    // cheap
-    "analysis": "github-copilot/gpt-4-turbo",        // medium
-    "testing": "github-copilot/gpt-4o-mini",         // cheap
-    "research": "github-copilot/gpt-4o-mini",        // cheap
-  },
-  
-  // If override model unavailable, fall back to default
-  fallback: true,
+export const fullSlotConfig = {
+	slots: {
+		plan_mode: {
+			model: "github-copilot/claude-opus-4.6",
+			thinking: "high",
+			tools: ["read", "find_files"],
+		},
+		build_mode: {
+			model: "github-copilot/claude-sonnet-4.5",
+			thinking: "high",
+			tools: ["read", "write", "edit", "bash", "find_files"],
+		},
+		assistant: {
+			model: "github-copilot/gpt-4o-mini",
+		},
+	},
 };
 
 /**
- * Minimal example: only override auto-compat
- *
- * Main tasks use expensive model, compatibility checks use cheap model.
- * This is the most cost-effective for typical workflows.
+ * Cost-optimized example: Use cheaper models where possible
  */
-export const minimalModelConfig = {
-  default: "gpt-4o",  // any gpt-4o variant
-  
-  overrides: {
-    "auto-compat": "gpt-4o-mini",  // cheap model for compat fixes
-  },
-  
-  fallback: true,
+export const costOptimizedSlotConfig = {
+	slots: {
+		plan_mode: {
+			model: "github-copilot/claude-sonnet-4.5", // Use medium model for planning
+		},
+		build_mode: {
+			model: "github-copilot/claude-sonnet-4.5",
+			thinking: "high",
+		},
+		assistant: {
+			model: "github-copilot/gpt-4o-mini", // Cheap model for background work
+		},
+	},
 };
 
-// ─── How to use in cmd.exe config ─────────────────────────
+/**
+ * Local model example: Use local models for privacy/cost
+ */
+export const localModelSlotConfig = {
+	slots: {
+		plan_mode: {
+			model: "ollama/gemma-2-27b",
+		},
+		build_mode: {
+			model: "ollama/codestral",
+			thinking: "medium",
+		},
+		assistant: {
+			model: "ollama/gemma-2-9b", // Small local model for tools
+		},
+	},
+};
+
+// ─── How to use in dispatch.json ──────────────────────────
 //
-// 1. Update your config.json:
+// 1. Create ~/.pi/agent/extensions/dispatch.json:
 //
 //    {
-//      "agentTemplates": { ... },
-//      "modelConfig": {
-//        "default": "github-copilot/gpt-4o",
-//        "overrides": {
-//          "auto-compat": "github-copilot/gpt-4o-mini"
+//      "slots": {
+//        "plan_mode": {
+//          "model": "github-copilot/claude-opus-4.6",
+//          "thinking": "high",
+//          "tools": ["read", "find_files"]
 //        },
-//        "fallback": true
+//        "build_mode": {
+//          "model": "github-copilot/claude-sonnet-4.5",
+//          "thinking": "high",
+//          "tools": ["read", "write", "edit", "bash", "find_files"]
+//        },
+//        "assistant": {
+//          "model": "github-copilot/gpt-4o-mini"
+//        }
 //      }
 //    }
 //
-// 2. In your handlers, pass modelConfig to runSubAgent:
+// 2. Model selection flow:
 //
-//    const output = await runSubAgent({
-//      ...
-//      actionType: "auto-compat",
-//      modelConfig: config.modelConfig,
-//    });
+//    - Main session in Plan mode → uses plan_mode.model
+//    - Main session in Build mode → uses build_mode.model
+//    - Main session in Plan mode → uses plan_mode.model
+//    - Main session in Build mode → uses build_mode.model
+//    - find_files tool → uses assistant.model
+//    - /ask command → uses current mode's model (plan or build)
 //
-// 3. The runner will automatically select gpt-4o-mini for auto-compat,
-//    saving ~80% on API costs for these routine fixes.
+// 3. Model matching:
+//
+//    Models are matched by:
+//    - Exact match: "github-copilot/gpt-4o-mini"
+//    - Provider/id match: "github-copilot/gpt-4o-mini"
+//    - Suffix match: "gpt-4o-mini" → matches any provider's gpt-4o-mini
+//
+// 4. Thinking levels (optional):
+//
+//    - "off": No reasoning
+//    - "minimal": Light reasoning
+//    - "low": Basic reasoning
+//    - "medium": Moderate reasoning
+//    - "high": Deep reasoning (recommended for complex tasks)
+//    - "xhigh": Maximum reasoning
 //
 // ──────────────────────────────────────────────────────────
