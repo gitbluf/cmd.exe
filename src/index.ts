@@ -4,11 +4,9 @@
  * Core commands:
  *   /team:dashboard           - Interactive team dashboard
  *   /team <subcommand>        - Manage team state, tasks, and policy
- *   /synth:plan [focus]       - Synthesize plan via BLUEPRINT agent
- *   /synth:exec [mission]     - Execute plan via GHOST agent
- *   /synth:output [n]         - View sub-agent output overlay
- *   /ops                      - Toggle Plan/Build mode
+ *   /plan                     - Toggle Plan/Build mode
  *   /todos                    - Show current plan progress
+ *   /plan:save                - Save active plan to disk
  *   /ask                      - Ask a one-off question
  */
 
@@ -26,7 +24,7 @@ import { getConfigPath, loadConfig } from "./utils/config";
 
 /**
  * Register the chat-history renderer for sub-agent output messages.
- * Shows a compact view with a hint to expand via /synth:output.
+ * Shows a compact view of sub-agent completion.
  */
 function registerOutputRenderer(pi: ExtensionAPI): void {
 	pi.registerMessageRenderer(
@@ -60,7 +58,7 @@ function registerOutputRenderer(pi: ExtensionAPI): void {
 				header = `${theme.fg("success", icons.check)} ${theme.fg("accent", theme.bold(title))} ${theme.fg("dim", "complete")}`;
 			}
 			if (truncated) {
-				header += ` ${theme.fg("dim", `(${totalLines} lines — /synth:output to expand)`)}`;
+				header += ` ${theme.fg("dim", `(${totalLines} lines, truncated)`)}`;
 			}
 
 			const displayContent = message.content || "";

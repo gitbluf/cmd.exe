@@ -8,11 +8,9 @@
 export type CommandType =
 	| "team"
 	| "team:dashboard"
-	| "synth:plan"
-	| "synth:exec"
-	| "synth:output"
-	| "ops"
+	| "plan"
 	| "todos"
+	| "plan:save"
 	| "ask"
 	| "help"
 	| "exit";

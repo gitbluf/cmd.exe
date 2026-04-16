@@ -11,10 +11,8 @@ import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import {
 	handleAsk,
-	handleOps,
-	handleSynthExec,
-	handleSynthOutput,
-	handleSynthPlan,
+	handlePlan,
+	handlePlanSave,
 	handleTeam,
 	handleTeamDashboard,
 	handleTodos,
@@ -43,32 +41,11 @@ export function registerAllCommands(
 		},
 	});
 
-	pi.registerCommand("synth:plan", {
-		description: "Synthesize plan using BLUEPRINT agent",
-		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleSynthPlan(args, ctx, getRoot(ctx), config, pi);
-		},
-	});
-
-	pi.registerCommand("synth:exec", {
-		description: "Execute plan using GHOST agent",
-		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleSynthExec(args, ctx, getRoot(ctx), config, pi);
-		},
-	});
-
-	pi.registerCommand("synth:output", {
-		description: "View sub-agent output in scrollable overlay",
-		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleSynthOutput(args, ctx);
-		},
-	});
-
-	pi.registerCommand("ops", {
+	pi.registerCommand("plan", {
 		description:
 			"Toggle between Plan mode (read-only) and Build mode (full tools)",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleOps(args, ctx, pi, config.slots!);
+			await handlePlan(args, ctx, pi, config.slots!);
 		},
 	});
 
@@ -76,6 +53,13 @@ export function registerAllCommands(
 		description: "Show current plan progress",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
 			await handleTodos(args, ctx);
+		},
+	});
+
+	pi.registerCommand("plan:save", {
+		description: "Save active plan to .agents/plan-{timestamp}.md",
+		handler: async (args: string, ctx: ExtensionCommandContext) => {
+			await handlePlanSave(args, ctx, getRoot(ctx));
 		},
 	});
 

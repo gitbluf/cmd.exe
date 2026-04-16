@@ -32,11 +32,9 @@ export function parseCommand(input: string): Command {
 	const validCommands: Record<string, CommandType> = {
 		team: "team",
 		"team:dashboard": "team:dashboard",
-		"synth:plan": "synth:plan",
-		"synth:exec": "synth:exec",
-		"synth:output": "synth:output",
-		ops: "ops",
+		plan: "plan",
 		todos: "todos",
+		"plan:save": "plan:save",
 		ask: "ask",
 		help: "help",
 		exit: "exit",

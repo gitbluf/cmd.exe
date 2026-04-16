@@ -2,8 +2,8 @@
  * Slot-based model configuration
  *
  * Three slots control all model selection:
- *   - plan_mode:  Main session in Plan mode + /synth:plan sub-agent
- *   - build_mode: Main session in Build mode + /synth:exec sub-agent
+ *   - plan_mode:  Main session in Plan mode
+ *   - build_mode: Main session in Build mode
  *   - assistant:  Cheap sub-agent for tools (find_files, etc.)
  *
  * /ask uses the current mode's slot (plan_mode or build_mode).

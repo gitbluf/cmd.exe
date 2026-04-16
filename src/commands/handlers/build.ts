@@ -1,5 +1,5 @@
 /**
- * /ops command handler - toggle session mode
+ * /plan command handler - toggle session mode
  */
 
 import type {
@@ -46,9 +46,9 @@ export async function applyMode(
 }
 
 /**
- * Handle /ops command - toggle between plan and build mode
+ * Handle /plan command - toggle between plan and build mode
  */
-export async function handleOps(
+export async function handlePlan(
 	_args: string,
 	ctx: ExtensionCommandContext,
 	pi: ExtensionAPI,

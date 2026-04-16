@@ -6,7 +6,7 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 
 ```bash
 # Switch to Build mode (default is Plan mode - read-only)
-/ops
+/plan
 
 # Dispatch specialized agents to work in parallel
 /swarm task-1 ghost "implement auth module" | task-2 dataweaver "map authentication flow"
@@ -14,9 +14,9 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 # Let BLACKICE orchestrator decompose complex tasks
 /blackice refactor the authentication system for better security
 
-# Use single agents for focused work
-/synth:plan Review the codebase architecture
-/synth:exec Implement the planned changes
+# Create and save plans
+# In Plan mode: ask the LLM to create a plan, then save it
+/plan:save
 ```
 
 ## 📦 Installation
@@ -66,7 +66,7 @@ pi install /path/to/cmd.exe
 ```bash
 pi
 # You should see cmd.exe commands available:
-# /swarm, /ops, /synth:plan, /synth:exec, /blackice, etc.
+# /swarm, /plan, /todos, /plan:save, /blackice, etc.
 ```
 
 ## ⚙️ Configuration
@@ -96,8 +96,8 @@ Create `~/.pi/agent/extensions/dispatch.json`:
 
 | Slot | Controls |
 |------|----------|
-| `plan_mode` | Main session in Plan mode + `/synth:plan` |
-| `build_mode` | Main session in Build mode + `/synth:exec` |
+| `plan_mode` | Main session in Plan mode |
+| `build_mode` | Main session in Build mode |
 | `assistant` | Background tools (`find_files`, DATAWEAVER) |
 
 **Note:** `/ask` uses the current mode's slot (no separate config needed).
@@ -132,7 +132,7 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
 - Surgical code changes and testing
 - Footer shows: `🚀 BUILD`
 
-Toggle with `/ops` command.
+Toggle with `/plan` command.
 
 ### 🐝 Multi-Agent Swarms
 
@@ -161,17 +161,25 @@ Dispatch multiple specialized agents to work concurrently:
 - `--recordOutput` - Output recording: none, truncated, full
 - `--retryFailed` - Retry failed tasks automatically
 
-### 🧠 Single-Agent Synthesis
+### 📋 Plan Tracking
 
-Execute focused tasks with specialized agents:
+The main session in Plan mode can create implementation plans:
 
 ```bash
-/synth:plan [focus]          # BLUEPRINT agent creates implementation plan
-/synth:exec [mission]         # GHOST agent executes with full tools
-/synth:output                 # View agent output in scrollable overlay
-```
+# In Plan mode, ask the LLM to create a plan
+/ops  # Switch to Plan mode
+"Create a plan for refactoring the authentication system"
 
-Plans are saved under `.agents/dispatch/.agents/plan-YYYY-MM-DD-HHMMSS.md`.
+# Plan is auto-detected and activated
+/todos  # View plan progress
+
+# Save plan to disk
+/plan:save  # Writes to .agents/plan-{timestamp}.md
+
+# Execute in Build mode
+/ops  # Switch to Build mode
+# LLM marks steps complete with [DONE:1], [DONE:2], etc.
+```
 
 ### 👁️ BLACKICE Orchestrator
 
@@ -258,19 +266,23 @@ cmd.exe/
 
 ```bash
 # Switch to Plan mode for analysis
-/ops
+/plan
 
 # Analyze and plan
 What are the architectural trade-offs for adding real-time features?
 
-# Generate detailed plan
-/synth:plan Real-time architecture design
+# LLM creates a plan (auto-detected)
+# View progress
+/todos
+
+# Save the plan to disk
+/plan:save
 
 # Switch to Build mode for execution
-/ops
+/plan
 
-# Execute the plan
-/synth:exec Implement WebSocket infrastructure per the plan
+# Execute the plan step by step
+# LLM marks steps with [DONE:1], [DONE:2], etc.
 ```
 
 ### Intelligent Orchestration
@@ -326,7 +338,7 @@ Real-time monitoring with `/swarm:dashboard`:
 
 - Truncated output in swarm state
 - Full output in `.agents/dispatch/output/<swarm-id>/<task-id>.log`
-- View with `/swarm:task <task-id>` or `/synth:output`
+- View with `/swarm:task <task-id>`
 
 ## 🛠️ Requirements
 
@@ -373,7 +385,7 @@ Real-time monitoring with `/swarm:dashboard`:
 - ✅ Real-time monitoring dashboard
 - ✅ Persistent swarm state
 - ✅ BLACKICE orchestration
-- ✅ Sub-agent synthesis
+- ✅ Plan tracking with `/todos` and `/plan:save`
 - ✅ Icon customization
 - ✅ Comprehensive documentation
 - 🔄 Git worktree isolation (optional)

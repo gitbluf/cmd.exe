@@ -106,10 +106,8 @@ Controls reasoning depth for models that support it (Claude Opus, o1, etc.)
 
 | Slot | Controls | When Used |
 |------|----------|-----------|
-| `plan_mode` | Main session in Plan mode | After `/ops` toggle to Plan |
-| | `/synth:plan` sub-agent | When you run `/synth:plan` |
-| `build_mode` | Main session in Build mode | After `/ops` toggle to Build |
-| | `/synth:exec` sub-agent | When you run `/synth:exec` |
+| `plan_mode` | Main session in Plan mode | After `/plan` toggle to Plan |
+| `build_mode` | Main session in Build mode | After `/plan` toggle to Build |
 | `assistant` | `find_files` tool | When LLM calls `find_files()` |
 | | DATAWEAVER sub-agent | Background file reconnaissance |
 

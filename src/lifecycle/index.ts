@@ -196,7 +196,7 @@ export function setupLifecycleHooks(
 					setPlan(root, newPlan);
 					updatePlanStatus(ctx, newPlan);
 					ctx.ui.notify(
-						`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /ops to execute.`,
+						`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /plan to execute.`,
 						"info",
 					);
 				}

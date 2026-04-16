@@ -21,7 +21,7 @@ Dispatch agents to work on tasks concurrently.
 - `--recordOutput` - Output recording: none, truncated, or full
 - `--retryFailed` - Retry failed tasks (true/false)
 
-### /ops
+### /plan
 
 Toggle between Plan mode (read-only analysis) and Build mode (full implementation).
 
@@ -97,52 +97,38 @@ Interactive monitoring dashboard with real-time swarm status, task details, and 
 
 View detailed information about a specific task in a swarm.
 
-### /synth:plan [focus-area]
+### /plan:save
 
-Synthesize a comprehensive implementation plan using the BLUEPRINT agent.
+Save the current active plan to disk.
 
 **Usage:**
 
 ```bash
-/synth:plan focus on the auth module
-/synth:plan
+/plan:save
 ```
 
 **Features:**
-- Generates structured markdown plan
-- Saves to `.agents/plan-{timestamp}.md`
-- Automatically parses and activates the plan for the current session only
-- Auto-clears as soon as every step is complete (refresh `/todos` to confirm)
-- Resets plan state on every new session to keep the todo slate clean
-- Use `/todos` to view, `/ops` to execute
+- Writes current plan to `.agents/plan-{timestamp}.md`
+- Includes progress summary (completed/total steps)
+- Shows completion timestamps for finished steps
+- Only works when a plan is active
 
-**Plan includes:**
-1. Clear Summary
-2. Defined Goals
-3. Files to Change/Create
-4. Sequenced Implementation Steps
-5. Risks & Mitigation
-6. Acceptance Criteria
-
-### /synth:exec [mission]
-
-Execute a plan or mission using the GHOST agent.
-
-**Usage:**
-
-```bash
-/synth:exec
-/synth:exec implement the authentication module
-```
+**Output format:**
+- Markdown file with plan metadata
+- Checklist with ✅ (completed) or ⬜ (pending)
+- Timestamp for each completed step
 
 ## Plan Mode & Plan Tracking
 
 ### How Plans Work
 
-Plans are structured, numbered sequences of implementation steps. The system supports two ways to create plans:
+Plans are structured, numbered sequences of implementation steps created by the main session in Plan mode.
 
-1. **Conversation Plans** - When in Plan mode, if the agent outputs a "Plan:" header followed by numbered steps, it's automatically detected and activated
-2. **Synthesized Plans** - Using `/synth:plan` to generate a comprehensive plan via the BLUEPRINT agent
+**Creating a plan:**
+- In Plan mode, ask the LLM to create a plan
+- The agent outputs numbered steps with a "Plan:" header
+- System auto-detects and activates the plan
+- Use `/plan:save` to write it to disk
 
 ### Plan Lifecycle
 
@@ -151,9 +137,9 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 ```
 
 **1. Create**
-- In Plan mode: Ask agent to create a plan
-- Or use `/synth:plan [focus-area]`
-- Plan is parsed and stored
+- In Plan mode: Ask the LLM to create a plan
+- Plan is auto-detected and stored
+- Optionally save with `/plan:save`
 
 **2. Activate**
 - Plan becomes "active" for this session and is cleared when a new session starts, keeping your slate fresh
@@ -161,7 +147,7 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 - Use `/todos` to view full plan
 
 **3. Execute**
-- Switch to Build mode with `/ops`
+- Switch to Build mode with `/plan`
 - Agent receives plan in system prompt
 - Work through steps in order
 
@@ -174,24 +160,32 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 **5. Complete**
 - All steps marked done
 - Footer shows 100%
-- Plan state clears automatically so `/todos` shows "No active plan", while the markdown file stays on disk for reference
+- Plan state clears automatically on next session start
+- Saved markdown files (via `/plan:save`) persist on disk
 
 ### Example Workflow
 
 ```bash
-# 1. Create a plan
-User: /synth:plan focus on refactoring the API layer
+# 1. Create a plan in Plan mode
+User: Create a plan for refactoring the API layer
 
-# System responds:
-→ Plan saved to .agents/plan-20260311-143000.md
+# LLM responds with:
+Plan:
+1. Audit current API structure
+2. Identify common patterns
+3. Design abstraction layer
+...
+
+# System auto-detects:
 → Plan activated with 7 steps
 → 📋 [0/7] ░░░░░░░░ 0% — "Audit current API structure"
 
-# 2. View plan details
-User: /todos
+# 2. Save plan to disk (optional)
+User: /plan:save
+→ Plan saved to .agents/plan-20260311-143000.md
 
-# 3. Start execution
-User: /ops
+# 3. View plan details
+User: /todos
 User: Let's start with step 1
 
 Agent: I'll audit the API structure... [DONE:1]

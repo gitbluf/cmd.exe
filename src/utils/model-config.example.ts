@@ -2,8 +2,8 @@
  * Slot-Based Model Configuration Examples
  *
  * Three slots control all model selection:
- *   - plan_mode:  Main session in Plan mode + /synth:plan sub-agent
- *   - build_mode: Main session in Build mode + /synth:exec sub-agent
+ *   - plan_mode:  Main session in Plan mode
+ *   - build_mode: Main session in Build mode
  *   - assistant:  Cheap sub-agent for tools (find_files, etc.)
  *
  * /ask uses the current mode's slot.
@@ -110,8 +110,8 @@ export const localModelSlotConfig = {
 //
 //    - Main session in Plan mode → uses plan_mode.model
 //    - Main session in Build mode → uses build_mode.model
-//    - /synth:plan sub-agent → uses plan_mode.model
-//    - /synth:exec sub-agent → uses build_mode.model
+//    - Main session in Plan mode → uses plan_mode.model
+//    - Main session in Build mode → uses build_mode.model
 //    - find_files tool → uses assistant.model
 //    - /ask command → uses current mode's model (plan or build)
 //
