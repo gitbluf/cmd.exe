@@ -14,6 +14,7 @@ import {
 import { DEFAULT_TEAMS_CONFIG } from "../teams";
 import { getDefaultSandboxConfig, mergeSandboxConfig } from "../sandbox";
 import type { AgentTemplate, TemplateConfig } from "../templates/types";
+import { mergeSlots, DEFAULT_SLOTS } from "../config/slots";
 
 /**
  * Load configuration from JSON file
@@ -49,6 +50,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 		defaultMission: "Infiltrate the monolith, extract creds, leave no trace.",
 		sandbox: defaultSandboxConfig,
 		teams: DEFAULT_TEAMS_CONFIG,
+		slots: DEFAULT_SLOTS,
 	};
 
 	// Load and merge user config if provided
@@ -65,6 +67,48 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				defaultSandboxConfig,
 				userConfig.sandbox,
 			);
+
+			// Migrate old config keys to new slots format
+			let slots = userConfig.slots;
+			if (!slots && ((userConfig as any).modelConfig || (userConfig as any).modes)) {
+				console.warn(
+					`[dispatch] Warning: "modelConfig" and "modes" are deprecated.`,
+				);
+				console.warn(
+					`[dispatch] Migrate to slot-based config. See docs/CONFIGURATION.md`,
+				);
+
+				// Auto-migrate old keys to new slots (best-effort)
+				const oldConfig = userConfig as any;
+				slots = {
+					plan_mode: {
+						model:
+							oldConfig.modes?.plan?.model ||
+							oldConfig.modelConfig?.overrides?.planning ||
+							"github-copilot/claude-opus-4.6",
+						tools: oldConfig.modes?.plan?.tools || ["read", "find_files"],
+					},
+					build_mode: {
+						model:
+							oldConfig.modes?.build?.model ||
+							oldConfig.modelConfig?.default ||
+							"github-copilot/claude-sonnet-4.5",
+						tools: oldConfig.modes?.build?.tools || [
+							"read",
+							"write",
+							"edit",
+							"bash",
+							"find_files",
+						],
+					},
+					assistant: {
+						model:
+							oldConfig.modelConfig?.overrides?.research ||
+							"github-copilot/gpt-4o-mini",
+					},
+				};
+			}
+
 			config = {
 				model: userConfig.model || config.model,
 				agentTemplates: mergeTemplates(DEFAULT_TEMPLATES, userTemplates),
@@ -72,9 +116,8 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				defaultAgents: userConfig.defaultAgents || config.defaultAgents,
 				defaultMission: userConfig.defaultMission || config.defaultMission,
 				sandbox: mergedSandbox,
-				modes: userConfig.modes || config.modes,
 				icons: userConfig.icons || config.icons,
-				modelConfig: userConfig.modelConfig || config.modelConfig,
+				slots: mergeSlots(slots), // Always returns full SlotsConfig
 				teams: {
 					...DEFAULT_TEAMS_CONFIG,
 					...(userConfig.teams || {}),

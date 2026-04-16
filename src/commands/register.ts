@@ -7,7 +7,6 @@ import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
-import { getEffectiveModeConfig } from "../modes";
 import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import {
@@ -65,13 +64,11 @@ export function registerAllCommands(
 		},
 	});
 
-	const modeConfig = getEffectiveModeConfig(config.modes);
-
 	pi.registerCommand("ops", {
 		description:
 			"Toggle between Plan mode (read-only) and Build mode (full tools)",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleOps(args, ctx, pi, modeConfig);
+			await handleOps(args, ctx, pi, config.slots!);
 		},
 	});
 

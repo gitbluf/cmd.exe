@@ -16,11 +16,7 @@ import {
 import { getIconRegistry } from "../ui/icons";
 import { runSubAgent } from "../sub-agent";
 import { DATAWEAVER } from "../agents/definitions";
-import {
-  resolveModel,
-  type ActionType,
-  type ModelConfig,
-} from "../utils/model-resolver";
+import { resolveSlot, type SlotConfig } from "../config/slots";
 
 /**
  * Tool parameters schema
@@ -52,7 +48,7 @@ export function createFindFilesTool(opts: {
 	model: any;
 	ui?: any;
 	pi?: ExtensionAPI;
-	modelConfig?: ModelConfig;
+	assistantSlot?: SlotConfig;
 }) {
 	return {
 		name: "find_files",
@@ -84,36 +80,30 @@ export function createFindFilesTool(opts: {
 				? `\nFocus your search within: ${params.scope}`
 				: "";
 
-			const actionType: ActionType = "research";
-			
-			// Resolve model once for both widget label and sub-agent execution
-			let selectedModel: any;
-			if (opts.modelRegistry) {
+			// Resolve assistant slot for cheap model
+			let resolution;
+			if (opts.assistantSlot && opts.modelRegistry) {
 				try {
-					selectedModel = resolveModel({
-						modelRegistry: opts.modelRegistry,
-						currentModel: opts.model,
-						actionType,
-						config: opts.modelConfig,
-					});
+					resolution = resolveSlot(
+						opts.modelRegistry,
+						opts.assistantSlot,
+						opts.model,
+					);
 				} catch (_err) {
 					// Fall back to current model
-					selectedModel = opts.model;
+					resolution = {
+						model: opts.model,
+						modelId: opts.model?.id || "unknown",
+					};
 				}
+			} else {
+				resolution = {
+					model: opts.model,
+					modelId: opts.model?.id || "unknown",
+				};
 			}
 
-			if (!selectedModel) {
-				selectedModel = opts.model;
-			}
-
-			if (!selectedModel) {
-				const available = opts.modelRegistry?.getAvailable?.();
-				selectedModel = available?.[0];
-			}
-
-			const resolvedModelId = selectedModel?.id;
-
-			const agentLabel = `${icons.agentDataweaver} DATAWEAVER${resolvedModelId ? ` → ${resolvedModelId}` : ""}`;
+			const agentLabel = `${icons.agentDataweaver} DATAWEAVER → ${resolution.modelId}`;
 
 			const mission = [
 				`Find files matching this request: "${params.query}"`,
@@ -153,7 +143,7 @@ export function createFindFilesTool(opts: {
 					mission,
 					cwd: opts.cwd,
 					modelRegistry: opts.modelRegistry,
-					model: selectedModel,
+					model: resolution.model,
 					tools: [
 						createReadTool(opts.cwd),
 						createLsTool(opts.cwd),
@@ -164,6 +154,7 @@ export function createFindFilesTool(opts: {
 					widgetTitle: agentLabel,
 					ui: opts.ui,
 					pi: opts.pi,
+					thinkingLevel: resolution.thinking,
 				});
 
 				if (!output?.trim()) {
@@ -175,7 +166,7 @@ export function createFindFilesTool(opts: {
 							query: params.query,
 							scope: params.scope,
 							found: 0,
-							modelId: resolvedModelId,
+							modelId: resolution.modelId,
 						},
 					};
 				}
@@ -198,7 +189,7 @@ export function createFindFilesTool(opts: {
 						scope: params.scope,
 						truncated,
 						outputLength: output.length,
-						modelId: resolvedModelId,
+						modelId: resolution.modelId,
 					},
 				};
 			} catch (err) {

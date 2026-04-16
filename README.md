@@ -33,8 +33,6 @@ bun add -g @mariozechner/pi-coding-agent
 
 ### Option 1: Install from npm (Recommended)
 
-If the package is published to npm or GitHub Packages:
-
 ```bash
 # Install globally via npm
 npm install -g cmd.exe
@@ -43,26 +41,12 @@ npm install -g cmd.exe
 bun add -g cmd.exe
 ```
 
-The extension will be automatically discovered by pi on startup.
-
 ### Option 2: Install from Git
 
-Clone and link the extension directly:
-
 ```bash
-# Clone the repository
 git clone https://github.com/yourusername/cmd.exe.git
 cd cmd.exe
-
-# Install dependencies
-npm install
-# or
-bun install
-
-# Build the extension
-npm run build
-# or
-bun run build
+npm install && npm run build
 
 # Link to pi extensions directory
 mkdir -p ~/.pi/extensions
@@ -71,47 +55,64 @@ ln -s "$(pwd)" ~/.pi/extensions/cmd.exe
 
 ### Option 3: Install as Local pi Package
 
-Using pi's package management:
-
 ```bash
-# From git URL
 pi install https://github.com/yourusername/cmd.exe.git
-
-# From local directory
+# or
 pi install /path/to/cmd.exe
 ```
 
 ### Verify Installation
 
-Start pi and check if the extension is loaded:
-
 ```bash
 pi
-
 # You should see cmd.exe commands available:
 # /swarm, /ops, /synth:plan, /synth:exec, /blackice, etc.
 ```
 
-### Configuration (Optional)
+## ⚙️ Configuration
 
-Create custom configuration at `~/.pi/agent/extensions/dispatch.json`:
+### Quick Setup
+
+Create `~/.pi/agent/extensions/dispatch.json`:
 
 ```json
 {
-  "modes": {
-    "plan": {
-      "model": "github-copilot/claude-opus-4.6",
-      "tools": ["read", "find_files"]
+  "slots": {
+    "plan_mode": {
+      "model": "claude-opus-4.6"
     },
-    "build": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "tools": ["read", "write", "edit", "bash", "find_files"]
+    "build_mode": {
+      "model": "claude-sonnet-4.5",
+      "thinking": "high"
+    },
+    "assistant": {
+      "model": "gpt-4o-mini"
     }
   }
 }
 ```
 
-See [Configuration](#️-configuration) section for full options.
+### What Each Slot Controls
+
+| Slot | Controls |
+|------|----------|
+| `plan_mode` | Main session in Plan mode + `/synth:plan` |
+| `build_mode` | Main session in Build mode + `/synth:exec` |
+| `assistant` | Background tools (`find_files`, DATAWEAVER) |
+
+**Note:** `/ask` uses the current mode's slot (no separate config needed).
+
+### Full Configuration Reference
+
+See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
+
+- Complete slots configuration with thinking levels and tools
+- Teams configuration (model policies, action types, member overrides)
+- Agent template definitions and customization
+- Icon customization
+- Sandbox configuration
+- Model resolution strategies
+- Performance and cost optimization tips
 
 ## 🌟 Core Features
 
@@ -135,13 +136,13 @@ Toggle with `/ops` command.
 
 ### 🐝 Multi-Agent Swarms
 
-Dispatch multiple specialized agents to work concurrently on different tasks:
+Dispatch multiple specialized agents to work concurrently:
 
 ```bash
 /swarm task-1 ghost "fix auth bug" | task-2 cortex "analyze logs" | task-3 hardline "security audit"
 ```
 
-**Swarm Commands:**
+**Commands:**
 
 - `/swarm` - Dispatch agents with custom tasks
 - `/swarm:list` - View available agent templates
@@ -170,7 +171,7 @@ Execute focused tasks with specialized agents:
 /synth:output                 # View agent output in scrollable overlay
 ```
 
-Plans are saved under the extension workspace root (default: `.agents/dispatch/.agents/plan-YYYY-MM-DD-HHMMSS.md`).
+Plans are saved under `.agents/dispatch/.agents/plan-YYYY-MM-DD-HHMMSS.md`.
 
 ### 👁️ BLACKICE Orchestrator
 
@@ -195,13 +196,7 @@ find_files({ query: "authentication middleware" })
 - Spawns DATAWEAVER in isolated session
 - Explores codebase with full read access
 - Returns only curated file list to main session
-- All intermediate reads stay in sub-agent context
-
-**Benefits:**
-- 🧹 Clean context - no directory listing pollution
-- ⚡ Efficient - uses cheap models for reconnaissance
-- 🎯 Thorough - deep exploration without token bloat
-- 📋 Structured - returns file paths with descriptions
+- Uses cheap model configured in `assistant` slot
 
 Available in both Plan and Build modes.
 
@@ -225,199 +220,24 @@ Each agent has:
 ```
 cmd.exe/
 ├── src/
-│   ├── agents/           # Agent definitions (ghost, dataweaver, hardline, etc.)
-│   ├── commands/         # Command handlers (/swarm, /synth, /ops)
-│   ├── swarms/           # Multi-agent orchestration engine
-│   ├── sub-agent/        # Single-agent execution runtime
+│   ├── agents/           # Agent definitions
+│   ├── commands/         # Command handlers
+│   ├── swarms/           # Multi-agent orchestration
+│   ├── sub-agent/        # Single-agent execution
 │   ├── modes/            # Plan/Build mode system
+│   ├── config/           # Slot-based configuration
 │   ├── tools/            # Custom tools (find_files)
-│   ├── ui/               # TUI components, dashboard, icons
+│   ├── ui/               # TUI components, dashboard
 │   ├── templates/        # Agent template management
-│   ├── utils/            # Config, model resolution
-│   └── lifecycle/        # Hooks, initialization, sandbox
+│   └── lifecycle/        # Hooks, initialization
 ├── docs/
-│   └── ICONS.md          # Icon configuration guide
+│   ├── CONFIGURATION.md  # Complete config reference
+│   └── ICONS.md          # Icon customization
 ├── AGENTS.md             # Agent system documentation
 ├── QUICKSTART.md         # Quick reference guide
 ├── ARCHITECTURE.md       # Technical architecture
 └── IMPLEMENTATION.md     # Implementation details
 ```
-
-## ⚙️ Configuration
-
-### Configuration File Location
-
-Current runtime loads configuration from a single user-level path:
-
-| Path | Use Case |
-|------|----------|
-| `~/.pi/agent/extensions/dispatch.json` | User-wide cmd.exe settings |
-
-### Model Override Strategies
-
-cmd.exe supports **three independent layers** of model configuration:
-
-#### 1. Per-Mode Models (Plan / Build)
-
-Control which model powers your main conversation in each mode:
-
-```json
-{
-  "modes": {
-    "plan": {
-      "model": "openai/o3",
-      "tools": ["read", "find_files"]
-    },
-    "build": {
-      "model": "anthropic/claude-sonnet-4-20250514",
-      "tools": ["read", "write", "edit", "bash", "find_files"]
-    }
-  }
-}
-```
-
-**Defaults:** Plan → `claude-opus-4.6`, Build → `claude-sonnet-4.5`
-
-#### 2. Per-Agent Models (Swarm Agents)
-
-Override models for specific agents without redefining their entire template:
-
-```json
-{
-  "agents": {
-    "ghost": {
-      "model": "anthropic/claude-sonnet-4-20250514",
-      "temperature": 0.05
-    },
-    "hardline": {
-      "disabled": true
-    }
-  }
-}
-```
-
-This affects models used by `/swarm` and `/synth` commands.
-
-#### 3. Per-Action Models (Sub-Agents & Tools)
-
-Control which model handles specific action types. This includes the **`find_files` reconnaissance model**:
-
-```json
-{
-  "modelConfig": {
-    "default": "anthropic/claude-sonnet-4-20250514",
-    "fallback": true,
-    "overrides": {
-      "research": "openai/gpt-4o-mini",        // Controls find_files tool
-      "planning": "openai/o3",                  // Used by /synth:plan
-      "analysis": "openai/o3",                  // Used by CORTEX reviews
-      "ask": "anthropic/claude-haiku-3-5",     // Used by /ask command
-      "testing": "openai/gpt-4o"
-    }
-  }
-}
-```
-
-**Action Types:**
-- `research` - DATAWEAVER sub-agent (powers `find_files` tool)
-- `planning` - Plan synthesis
-- `analysis` - Code reviews and analysis
-- `ask` - Ad-hoc queries via `/ask`
-- `testing` - Test generation
-- `main` - Default for unspecified actions
-
-**Model Resolution Chain:**
-```
-Action Override → Config Default → Current Session Model → First Available
-```
-
-With `"fallback": true`, missing models degrade gracefully rather than error.
-
-### Complete Configuration Example
-
-```json
-{
-  "modes": {
-    "plan": {
-      "model": "openai/o3",
-      "tools": ["read", "find_files"]
-    },
-    "build": {
-      "model": "anthropic/claude-sonnet-4-20250514",
-      "tools": ["read", "write", "edit", "bash", "find_files"]
-    }
-  },
-  "agents": {
-    "ghost": {
-      "model": "anthropic/claude-sonnet-4-20250514",
-      "temperature": 0.05
-    },
-    "hardline": {
-      "disabled": true
-    }
-  },
-  "modelConfig": {
-    "default": "anthropic/claude-sonnet-4-20250514",
-    "fallback": true,
-    "overrides": {
-      "research": "openai/gpt-4o-mini",
-      "ask": "anthropic/claude-haiku-3-5"
-    }
-  },
-  "icons": {
-    "modePlan": "🔍",
-    "modeBuild": "🔨",
-    "agentGhost": "🥷"
-  }
-}
-```
-
-### Using Config on Different Laptops
-
-**Problem:** Different machines have access to different model providers.
-
-**Solution:** Create a user-wide config at `~/.pi/agent/extensions/dispatch.json` with your available models:
-
-```json
-{
-  "modes": {
-    "plan": { "model": "openai/gpt-4o" },
-    "build": { "model": "openai/gpt-4o-mini" }
-  },
-  "modelConfig": {
-    "default": "openai/gpt-4o-mini",
-    "fallback": true,
-    "overrides": {
-      "research": "openai/gpt-4o-mini",
-      "planning": "openai/gpt-4o"
-    }
-  }
-}
-```
-
-With `"fallback": true`, unavailable models automatically fall back to the next available option.
-
-### All Configuration Sections
-
-- **`modes`** - Plan/Build mode settings (models, tools)
-- **`agentTemplates`** - Define or customize agent templates
-- **`agents`** - Per-agent overrides (model, temperature, disabled)
-- **`modelConfig`** - Dynamic model selection by action type
-- **`icons`** - Customize UI icons/emojis
-- **`sandbox`** - OS-level sandboxing configuration
-
-### Full Documentation
-
-See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
-- Complete schema reference with all fields
-- Built-in agent template definitions
-- Model resolution strategies and priority chains
-- Sandbox configuration (sandboxExec, bwrap, custom)
-- Icon customization reference
-- Environment variables
-- Configuration merging and validation
-- Performance optimization tips
-- Cost control strategies
 
 ## 🚀 Usage Examples
 
@@ -457,7 +277,7 @@ What are the architectural trade-offs for adding real-time features?
 
 ```bash
 # Let BLACKICE figure out the optimal approach
-/blackice Migrate our authentication system from session-based to JWT tokens with refresh token rotation, including database migrations and backward compatibility
+/blackice Migrate our authentication system from session-based to JWT tokens with refresh token rotation
 ```
 
 ### Security Audit
@@ -468,16 +288,13 @@ What are the architectural trade-offs for adding real-time features?
   task-1 hardline "Audit API endpoints for vulnerabilities" | \
   task-2 hardline "Review authentication & authorization" | \
   task-3 dataweaver "Document security best practices we're missing"
-
-# View results
-/swarm:status
 ```
 
 ## 📊 Monitoring & Debugging
 
 ### Swarm State
 
-Swarms are persisted under `<workspace>/.agents/dispatch/` (registry file: `.dispatch-swarms.json`):
+Swarms are persisted under `<workspace>/.agents/dispatch/` (registry: `.dispatch-swarms.json`):
 
 ```json
 {
@@ -491,12 +308,7 @@ Swarms are persisted under `<workspace>/.agents/dispatch/` (registry file: `.dis
       "duration": 12450,
       "tokens": { "input": 1200, "output": 3400 }
     }
-  ],
-  "stats": {
-    "totalTasks": 3,
-    "completedTasks": 3,
-    "totalDuration": 45000
-  }
+  ]
 }
 ```
 
@@ -508,11 +320,9 @@ Real-time monitoring with `/swarm:dashboard`:
 - Token usage statistics
 - Execution timelines
 - Output previews
-- Interactive navigation (tab/arrows/enter)
+- Interactive navigation
 
 ### Output Logs
-
-Agent output is recorded:
 
 - Truncated output in swarm state
 - Full output in `.agents/dispatch/output/<swarm-id>/<task-id>.log`
@@ -527,13 +337,12 @@ Agent output is recorded:
 
 ## 📚 Documentation
 
+- **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** - Complete configuration reference ⭐
+- **[docs/ICONS.md](docs/ICONS.md)** - Icon customization
+- **[AGENTS.md](AGENTS.md)** - Agent types and swarm commands
 - **[QUICKSTART.md](QUICKSTART.md)** - Quick reference guide
-- **[AGENTS.md](AGENTS.md)** - Agent types and templates
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture
 - **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Implementation details
-- **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** - Complete configuration reference
-- **[docs/ICONS.md](docs/ICONS.md)** - Icon configuration and customization
-- Smart file discovery is provided by the built-in `find_files` tool
 
 ## 🎨 Design Philosophy
 
@@ -559,6 +368,8 @@ Agent output is recorded:
 
 - ✅ Multi-agent swarm execution
 - ✅ Dual mode system (Plan/Build)
+- ✅ Slot-based model configuration
+- ✅ Teams configuration support
 - ✅ Real-time monitoring dashboard
 - ✅ Persistent swarm state
 - ✅ BLACKICE orchestration

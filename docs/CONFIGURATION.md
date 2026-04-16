@@ -4,8 +4,6 @@ Complete reference for configuring the cmd.exe extension for pi.
 
 ## Configuration File Location
 
-Current runtime reads configuration from this user-level path:
-
 ```bash
 ~/.pi/agent/extensions/dispatch.json
 ```
@@ -14,8 +12,8 @@ Current runtime reads configuration from this user-level path:
 
 ```typescript
 {
-  // Mode configuration (Plan/Build)
-  "modes": { ... },
+  // Slot-based model configuration (NEW)
+  "slots": { ... },
   
   // Agent template definitions
   "agentTemplates": { ... },
@@ -23,8 +21,8 @@ Current runtime reads configuration from this user-level path:
   // Per-agent overrides
   "agents": { ... },
   
-  // Model selection strategy
-  "modelConfig": { ... },
+  // Teams configuration
+  "teams": { ... },
   
   // Icon/emoji customization
   "icons": { ... },
@@ -36,39 +34,61 @@ Current runtime reads configuration from this user-level path:
 
 ---
 
-## Mode Configuration
+## Slots Configuration (Model Selection)
 
-Configure Plan mode (read-only) and Build mode (full tools).
+The new unified model configuration system. Three slots control all model selection:
+
+- **`plan_mode`** - Main session in Plan mode + `/synth:plan` sub-agent
+- **`build_mode`** - Main session in Build mode + `/synth:exec` sub-agent  
+- **`assistant`** - Background tools (find_files, DATAWEAVER)
 
 ### Schema
 
 ```typescript
 {
-  "modes": {
-    "plan": {
-      "model": string,     // Model for strategic planning
-      "tools": string[]    // Available tools in Plan mode
+  "slots": {
+    "plan_mode": {
+      "model": string,              // LLM model ID
+      "thinking"?: ThinkingLevel,   // Reasoning depth
+      "tools"?: string[]            // Available tools
     },
-    "build": {
-      "model": string,     // Model for implementation
-      "tools": string[]    // Available tools in Build mode
+    "build_mode": {
+      "model": string,
+      "thinking"?: ThinkingLevel,
+      "tools"?: string[]
+    },
+    "assistant": {
+      "model": string,
+      "thinking"?: ThinkingLevel
     }
   }
 }
 ```
 
+### Thinking Levels
+
+```typescript
+"off" | "minimal" | "low" | "medium" | "high" | "xhigh"
+```
+
+Controls reasoning depth for models that support it (Claude Opus, o1, etc.)
+
 ### Defaults
 
 ```json
 {
-  "modes": {
-    "plan": {
-      "model": "github-copilot/claude-opus-4.6",
+  "slots": {
+    "plan_mode": {
+      "model": "claude-sonnet-4.5",
       "tools": ["read", "find_files"]
     },
-    "build": {
-      "model": "github-copilot/claude-sonnet-4.5",
+    "build_mode": {
+      "model": "claude-sonnet-4.5",
+      "thinking": "high",
       "tools": ["read", "write", "edit", "bash", "find_files"]
+    },
+    "assistant": {
+      "model": "gpt-4o-mini"
     }
   }
 }
@@ -82,22 +102,288 @@ Configure Plan mode (read-only) and Build mode (full tools).
 - `bash` - Execute shell commands
 - `find_files` - Smart file discovery (spawns sub-agent)
 
-### Example: Custom Mode Configuration
+### Slot → Consumer Mapping
+
+| Slot | Controls | When Used |
+|------|----------|-----------|
+| `plan_mode` | Main session in Plan mode | After `/ops` toggle to Plan |
+| | `/synth:plan` sub-agent | When you run `/synth:plan` |
+| `build_mode` | Main session in Build mode | After `/ops` toggle to Build |
+| | `/synth:exec` sub-agent | When you run `/synth:exec` |
+| `assistant` | `find_files` tool | When LLM calls `find_files()` |
+| | DATAWEAVER sub-agent | Background file reconnaissance |
+
+**Note:** `/ask` uses the current mode's slot (plan or build) - no separate slot.
+
+### Example: Minimal Configuration
 
 ```json
 {
-  "modes": {
-    "plan": {
-      "model": "github-copilot/gpt-4o",
-      "tools": ["read", "find_files", "bash"]
+  "slots": {
+    "plan_mode": {
+      "model": "claude-opus-4.6"
     },
-    "build": {
-      "model": "anthropic/claude-3-5-sonnet-20240620",
-      "tools": ["read", "write", "edit"]
+    "build_mode": {
+      "model": "claude-sonnet-4.5",
+      "thinking": "high"
+    },
+    "assistant": {
+      "model": "gpt-4o-mini"
     }
   }
 }
 ```
+
+### Example: Cost-Optimized
+
+```json
+{
+  "slots": {
+    "plan_mode": {
+      "model": "claude-sonnet-4.5"
+    },
+    "build_mode": {
+      "model": "claude-sonnet-4.5",
+      "thinking": "high"
+    },
+    "assistant": {
+      "model": "gpt-4o-mini"
+    }
+  }
+}
+```
+
+### Example: Performance-Optimized
+
+```json
+{
+  "slots": {
+    "plan_mode": {
+      "model": "claude-opus-4.6",
+      "thinking": "high"
+    },
+    "build_mode": {
+      "model": "claude-sonnet-4.5",
+      "thinking": "high"
+    },
+    "assistant": {
+      "model": "gpt-4o-mini"
+    }
+  }
+}
+```
+
+### Example: Local Models
+
+```json
+{
+  "slots": {
+    "plan_mode": {
+      "model": "ollama/gemma-2-27b"
+    },
+    "build_mode": {
+      "model": "ollama/codestral",
+      "thinking": "medium"
+    },
+    "assistant": {
+      "model": "ollama/gemma-2-9b"
+    }
+  }
+}
+```
+
+### Model Matching
+
+Models are matched by:
+
+1. **Exact match** - `"github-copilot/gpt-4o-mini"`
+2. **Provider/ID match** - `"github-copilot/gpt-4o-mini"`
+3. **Suffix match** - `"gpt-4o-mini"` → matches any provider's gpt-4o-mini
+
+If a model is unavailable, the system falls back to the current session model.
+
+### Backward Compatibility
+
+Old `modelConfig` and `modes` keys are auto-migrated with deprecation warnings:
+
+```json
+// OLD (deprecated)
+{
+  "modelConfig": {
+    "default": "claude-sonnet-4.5",
+    "overrides": {
+      "planning": "claude-opus-4.6",
+      "research": "gpt-4o-mini"
+    }
+  },
+  "modes": {
+    "plan": { "model": "claude-opus-4.6" }
+  }
+}
+
+// NEW (use this)
+{
+  "slots": {
+    "plan_mode": { "model": "claude-opus-4.6" },
+    "build_mode": { "model": "claude-sonnet-4.5" },
+    "assistant": { "model": "gpt-4o-mini" }
+  }
+}
+```
+
+---
+
+## Teams Configuration
+
+Configure multi-agent team coordination, model policies, and thinking levels.
+
+### Schema
+
+```typescript
+{
+  "teams": {
+    "enabled": boolean,
+    "defaultThinking": ThinkingLevel,
+    "modelPolicy": {
+      "default": string,
+      "fallback": boolean,
+      "strict": boolean,
+      "disallowDeprecatedInheritance": boolean,
+      "overrides": Record<TeamActionType, string>,
+      "memberOverrides": Record<string, string>
+    }
+  }
+}
+```
+
+### Defaults
+
+```json
+{
+  "teams": {
+    "enabled": false,
+    "defaultThinking": "medium",
+    "modelPolicy": {
+      "fallback": true,
+      "strict": false,
+      "disallowDeprecatedInheritance": true
+    }
+  }
+}
+```
+
+### Team Action Types
+
+Model overrides by action type (what the team is doing):
+
+| Action | Purpose |
+|--------|---------|
+| `leader` | Team leader coordination |
+| `teammate_default` | Default for any team member |
+| `delegate` | Delegating work to a member |
+| `task_planning` | Breaking work into tasks |
+| `task_execution` | Executing assigned tasks |
+| `review` | Reviewing completed work |
+| `research` | Information gathering |
+| `message_summarization` | Summarizing team messages |
+| `hooks` | Lifecycle hook execution |
+
+### Model Resolution Priority
+
+Teams use their own model resolution chain:
+
+```
+1. explicit model       — passed directly to the call
+2. memberOverride       — teams.modelPolicy.memberOverrides["alice"]
+3. actionOverride       — teams.modelPolicy.overrides["task_execution"]
+4. policyDefault        — teams.modelPolicy.default
+5. globalDefault        — slots.build_mode.model
+6. currentSession       — whatever model the session is currently using
+7. firstAvailable       — first model in registry
+```
+
+**Note:** Teams config is independent from slots. Slots only serve as a fallback at step 5.
+
+### Policy Options
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `fallback` | `true` | Allow fallback chain when preferred model unavailable |
+| `strict` | `false` | Fail immediately when model cannot be resolved |
+| `disallowDeprecatedInheritance` | `true` | Block inheriting deprecated model IDs to teammates |
+
+### Example: Basic Teams Config
+
+```json
+{
+  "teams": {
+    "enabled": true,
+    "defaultThinking": "medium",
+    "modelPolicy": {
+      "default": "claude-sonnet-4.5"
+    }
+  }
+}
+```
+
+### Example: Action-Specific Models
+
+```json
+{
+  "teams": {
+    "enabled": true,
+    "defaultThinking": "high",
+    "modelPolicy": {
+      "default": "claude-sonnet-4.5",
+      "overrides": {
+        "leader": "claude-opus-4.6",
+        "task_planning": "claude-opus-4.6",
+        "task_execution": "claude-sonnet-4.5",
+        "review": "claude-opus-4.6",
+        "research": "gpt-4o-mini",
+        "message_summarization": "gpt-4o-mini",
+        "hooks": "gpt-4o-mini"
+      }
+    }
+  }
+}
+```
+
+### Example: Member-Specific Models
+
+```json
+{
+  "teams": {
+    "enabled": true,
+    "modelPolicy": {
+      "default": "claude-sonnet-4.5",
+      "memberOverrides": {
+        "alice": "claude-opus-4.6",
+        "bob": "gpt-4o-mini"
+      }
+    }
+  }
+}
+```
+
+Member overrides take priority over action overrides.
+
+### Example: Strict Policy
+
+```json
+{
+  "teams": {
+    "enabled": true,
+    "modelPolicy": {
+      "default": "claude-opus-4.6",
+      "fallback": false,
+      "strict": true
+    }
+  }
+}
+```
+
+With `strict: true`, teams will fail immediately if the configured model is unavailable (no fallback).
 
 ---
 
@@ -107,12 +393,10 @@ Define or customize agent templates for swarm execution.
 
 > **Runtime defaults vs optional templates**
 >
-> - **Default-loaded templates at runtime:** `ghost`, `dataweaver`, `hardline`
+> - **Default-loaded templates:** `ghost`, `dataweaver`, `hardline`
 > - **Defined in source but not default-loaded:** `cortex`, `blackice`, `blueprint`
 >
-> Commands that require optional templates:
-> - `/blackice` requires a configured template for `blackice`
-> - `/synth:plan` requires at least one template with `agentType: "blueprint"`
+> To use optional templates, add them to `agentTemplates` in your config.
 
 ### Schema
 
@@ -121,159 +405,45 @@ Define or customize agent templates for swarm execution.
   "agentTemplates": {
     "[agent-id]": {
       // Identity
-      "id": string,                    // Agent identifier
-      "name": string,                  // Display name (e.g., "GHOST")
-      "description": string,           // One-line description
-      "role": string,                  // Detailed role description
+      "id": string,
+      "name": string,
+      "description": string,
+      "role": string,
       
       // Behavior
-      "systemPrompt": string,          // Custom instructions
+      "systemPrompt": string,
       
       // Capabilities
-      "tools": string[],               // Available tools
-      "canWrite": boolean,             // Can write/edit files
-      "canExecuteShell": boolean,      // Can run shell commands
-      "readOnlyBash": boolean,         // Filter bash through allowlist
+      "tools": string[],
+      "canWrite": boolean,
+      "canExecuteShell": boolean,
+      "readOnlyBash": boolean,
       
       // Model configuration
-      "model": string,                 // LLM model to use
-      "temperature": number,           // 0.0-1.0 (deterministic to creative)
-      "maxTokens": number,             // Response length limit
+      "model": string,
+      "temperature": number,
+      "maxTokens": number,
       
       // Overrides (optional)
-      "modelOverride": string,         // Override model at runtime
-      "temperatureOverride": number,   // Override temperature at runtime
-      "disabled": boolean,             // Disable this agent
+      "modelOverride": string,
+      "temperatureOverride": number,
+      "disabled": boolean,
       
       // Sandbox (optional)
       "sandbox": {
         "strategy": "none" | "sandboxExec" | "bwrap" | "custom",
-        "profile": string,             // For sandboxExec
-        "args": string[],              // For bwrap
-        "template": string             // For custom
+        "profile": string,
+        "args": string[],
+        "template": string
       }
     }
   }
 }
 ```
 
-### Default-Loaded Agent Templates (Runtime Defaults)
+### Default Templates
 
-#### GHOST - Implementation Specialist
-
-```json
-{
-  "ghost": {
-    "id": "ghost",
-    "name": "GHOST",
-    "description": "Plan executor - implements plans and quick edits",
-    "role": "Plan Executor",
-    "systemPrompt": "You are GHOST, the implementation specialist...",
-    "model": "github-copilot/claude-sonnet-4.5",
-    "temperature": 0.1,
-    "maxTokens": 4000,
-    "tools": ["file_read", "file_write", "file_edit", "shell_exec"],
-    "canWrite": true,
-    "canExecuteShell": true,
-    "sandbox": {
-      "strategy": "sandboxExec"
-    }
-  }
-}
-```
-
-### Optional Built-in Definitions (Must Be Added In `agentTemplates`)
-
-The following agent definitions exist in source but are not loaded by default. Add them to your config if you want to use them.
-
-#### CORTEX - Code Reviewer
-
-```json
-{
-  "cortex": {
-    "id": "cortex",
-    "name": "CORTEX",
-    "description": "Code reviewer - correctness, security, performance",
-    "role": "Code Reviewer",
-    "model": "github-copilot/claude-opus-4.6",
-    "temperature": 0.2,
-    "maxTokens": 3000,
-    "tools": ["file_read", "find_files", "file_write"],
-    "canWrite": true,
-    "canExecuteShell": false,
-    "sandbox": {
-      "strategy": "sandboxExec"
-    }
-  }
-}
-```
-
-#### DATAWEAVER - Information Researcher
-
-```json
-{
-  "dataweaver": {
-    "id": "dataweaver",
-    "name": "DATAWEAVER",
-    "description": "Researcher - explores and documents findings",
-    "role": "Information Researcher",
-    "model": "github-copilot/gpt-4o-mini",
-    "temperature": 0.4,
-    "maxTokens": 3000,
-    "tools": ["file_read", "shell_exec"],
-    "canWrite": false,
-    "canExecuteShell": true,
-    "readOnlyBash": true,
-    "sandbox": {
-      "strategy": "sandboxExec"
-    }
-  }
-}
-```
-
-#### HARDLINE - Command Executor
-
-```json
-{
-  "hardline": {
-    "id": "hardline",
-    "name": "HARDLINE",
-    "description": "Command executor - scripts, builds, installs, diagnostics",
-    "role": "Command Executor",
-    "model": "github-copilot/gpt-5-mini",
-    "temperature": 0.1,
-    "maxTokens": 2000,
-    "tools": ["shell_exec", "file_read", "find_files"],
-    "canWrite": false,
-    "canExecuteShell": true,
-    "sandbox": {
-      "strategy": "sandboxExec"
-    }
-  }
-}
-```
-
-#### BLACKICE - Primary Orchestrator
-
-```json
-{
-  "blackice": {
-    "id": "blackice",
-    "name": "BLACKICE",
-    "description": "Primary orchestrator - routes requests, manages task chains, delegates",
-    "role": "Primary Orchestrator",
-    "model": "github-copilot/claude-haiku-4.5",
-    "temperature": 0.1,
-    "maxTokens": 2000,
-    "tools": [],
-    "canWrite": false,
-    "canExecuteShell": false,
-    "sandbox": {
-      "strategy": "none"
-    }
-  }
-}
-```
+See [README.md](../README.md#-built-in-agent-templates) for the built-in templates (ghost, dataweaver, hardline).
 
 ### Example: Custom Agent Template
 
@@ -285,8 +455,8 @@ The following agent definitions exist in source but are not loaded by default. A
       "name": "TESTER",
       "description": "Test engineer - writes and runs tests",
       "role": "Test Engineer",
-      "systemPrompt": "You are TESTER, the automated testing specialist.\n\nYour role is to:\n- Write comprehensive test suites\n- Execute tests and analyze results\n- Identify edge cases and failure modes\n- Generate test reports\n\nFocus on:\n- Unit tests for individual functions\n- Integration tests for component interactions\n- Edge case coverage\n- Clear assertion messages",
-      "model": "github-copilot/claude-sonnet-4.5",
+      "systemPrompt": "You are TESTER, the automated testing specialist.\n\nYour role is to:\n- Write comprehensive test suites\n- Execute tests and analyze results\n- Identify edge cases and failure modes\n- Generate test reports",
+      "model": "claude-sonnet-4.5",
       "temperature": 0.2,
       "maxTokens": 4000,
       "tools": ["file_read", "file_write", "shell_exec", "find_files"],
@@ -312,9 +482,9 @@ Override specific agent settings without redefining the entire template.
 {
   "agents": {
     "[agent-id]": {
-      "model": string,           // Override model
-      "temperature": number,     // Override temperature
-      "disabled": boolean        // Disable agent
+      "model": string,
+      "temperature": number,
+      "disabled": boolean
     }
   }
 }
@@ -338,144 +508,15 @@ Override specific agent settings without redefining the entire template.
 
 ---
 
-## Model Configuration
-
-Dynamic model selection based on action type.
-
-### Schema
-
-```typescript
-{
-  "modelConfig": {
-    "default": string,                      // Default model for all actions
-    "fallback": boolean,                    // Fall back to default if override unavailable
-    "overrides": {
-      "main": string,                       // Primary task execution
-      "auto-compat": string,                // Automatic compatibility fixes
-      "analysis": string,                   // Code analysis, review
-      "planning": string,                   // Plan synthesis
-      "research": string,                   // Information gathering
-      "testing": string,                    // Test generation/execution
-      "ask": string                         // Ad-hoc queries (/ask)
-    }
-  }
-}
-```
-
-### Action Types
-
-| Action Type | Use Case | Example Command |
-|------------|----------|-----------------|
-| `main` | Primary task execution | Default swarm tasks |
-| `auto-compat` | Automatic compatibility fixes | Error recovery |
-| `analysis` | Code analysis, review | CORTEX reviews |
-| `planning` | Plan synthesis | `/synth:plan` |
-| `research` | Information gathering | DATAWEAVER exploration |
-| `testing` | Test generation/execution | Test suite creation |
-| `ask` | Ad-hoc ephemeral queries | `/ask` command |
-
-### Defaults
-
-```json
-{
-  "modelConfig": {
-    "default": "github-copilot/claude-sonnet-4.5",
-    "fallback": true
-  }
-}
-```
-
-### Example: Specialized Model Routing
-
-```json
-{
-  "modelConfig": {
-    "default": "github-copilot/claude-sonnet-4.5",
-    "fallback": true,
-    "overrides": {
-      "main": "github-copilot/claude-sonnet-4.5",
-      "planning": "github-copilot/claude-opus-4.6",
-      "analysis": "github-copilot/claude-opus-4.6",
-      "research": "github-copilot/gpt-4o-mini",
-      "testing": "openai/gpt-4o",
-      "ask": "github-copilot/haiku-4.5"
-    }
-  }
-}
-```
-
-### Model Resolution Priority
-
-1. **Action-specific override** (e.g., `overrides.planning`)
-2. **Config default** (`default`)
-3. **Current session model** (from pi context)
-4. **First available model** (auto-discovery)
-
----
-
 ## Icon Customization
 
 Override any icon/emoji used in the UI.
 
 ### Schema
 
-```typescript
-{
-  "icons": {
-    // Status indicators
-    "success": string,           // ✅
-    "error": string,             // ❌
-    "warning": string,           // ⚠
-    "pending": string,           // ⏳
-    "running": string,           // 🔄
-    "timeout": string,           // ⏱
-    "cancelled": string,         // ⊘
-    "check": string,             // ✓
-    "cross": string,             // ✗
-    
-    // Mode indicators
-    "modePlan": string,          // ⚡
-    "modeBuild": string,         // 🚀
-    
-    // Agent indicators
-    "agentBlackice": string,     // 👁️
-    "agentGhost": string,        // 👻
-    "agentPlanner": string,      // 🧠
-    "agentDataweaver": string,   // 🕸️
-    "agentDefault": string,      // ⚙️
-    
-    // Feature indicators
-    "sandbox": string,           // 🔒
-    "tool": string,              // 🔧
-    "swarm": string,             // 🐝
-    "dispatch": string,          // ⚡
-    "jack": string,              // 🔌
-    "net": string,               // 📡
-    "code": string,              // 💻
-    "branch": string,            // 🌿
-    "lock": string,              // 🔒
-    
-    // Decorators
-    "dot": string,               // ●
-    "arrow": string,             // →
-    "spark": string,             // ⚡
-    
-    // Dashboard status
-    "statusPending": string,     // ○
-    "statusRunning": string,     // ◉
-    "statusComplete": string,    // ✓
-    "statusFailed": string,      // ✗
-    "statusTimeout": string,     // ⏱
-    "statusCancelled": string    // ⊘
-  }
-}
-```
+See [ICONS.md](./ICONS.md) for the complete list of customizable icons.
 
-### Defaults
-
-See [ICONS.md](./ICONS.md) for the complete default icon set.
-
-### Example: Custom Icon Theme
+### Example
 
 ```json
 {
@@ -484,12 +525,9 @@ See [ICONS.md](./ICONS.md) for the complete default icon set.
     "modeBuild": "🔨",
     "agentGhost": "🥷",
     "agentPlanner": "📐",
-    "agentCortex": "🧠",
-    "agentDataweaver": "🔎",
     "swarm": "🐝",
     "success": "✔️",
-    "error": "❗",
-    "pending": "⌛"
+    "error": "❗"
   }
 }
 ```
@@ -506,9 +544,9 @@ Configure OS-level sandboxing for agent execution.
 {
   "sandbox": {
     "strategy": "none" | "sandboxExec" | "bwrap" | "custom",
-    "profile": string,              // Path to sandbox-exec profile (macOS)
-    "args": string[],               // Arguments for bwrap (Linux)
-    "template": string,             // Custom sandbox command template
+    "profile": string,
+    "args": string[],
+    "template": string,
     "policy": {
       "enabled": boolean,
       "network": {
@@ -557,9 +595,7 @@ Configure OS-level sandboxing for agent execution.
 }
 ```
 
-### Sandbox Policy Overrides
-
-You can configure the sandbox `policy` object directly in your `dispatch.json` to allow extra domains or filesystem paths. The policy merges with the defaults defined in the extension, so you usually only need to specify the additional entries you care about.
+### Example: Sandbox Policy Overrides
 
 ```json
 {
@@ -588,8 +624,6 @@ You can configure the sandbox `policy` object directly in your `dispatch.json` t
 }
 ```
 
-These lists are appended to the SDK defaults, so you keep the built-in protections while enabling the additional inputs required for your workflow.
-
 ---
 
 ## Complete Configuration Example
@@ -598,14 +632,39 @@ Full configuration showing all available options:
 
 ```json
 {
-  "modes": {
-    "plan": {
-      "model": "github-copilot/claude-opus-4.6",
+  "slots": {
+    "plan_mode": {
+      "model": "claude-opus-4.6",
+      "thinking": "high",
       "tools": ["read", "find_files"]
     },
-    "build": {
-      "model": "github-copilot/claude-sonnet-4.5",
+    "build_mode": {
+      "model": "claude-sonnet-4.5",
+      "thinking": "high",
       "tools": ["read", "write", "edit", "bash", "find_files"]
+    },
+    "assistant": {
+      "model": "gpt-4o-mini"
+    }
+  },
+  
+  "teams": {
+    "enabled": true,
+    "defaultThinking": "medium",
+    "modelPolicy": {
+      "default": "claude-sonnet-4.5",
+      "fallback": true,
+      "strict": false,
+      "overrides": {
+        "leader": "claude-opus-4.6",
+        "task_planning": "claude-opus-4.6",
+        "task_execution": "claude-sonnet-4.5",
+        "review": "claude-opus-4.6",
+        "research": "gpt-4o-mini"
+      },
+      "memberOverrides": {
+        "alice": "claude-opus-4.6"
+      }
     }
   },
   
@@ -616,7 +675,7 @@ Full configuration showing all available options:
       "description": "Implementation specialist",
       "role": "Plan Executor",
       "systemPrompt": "You are GHOST...",
-      "model": "github-copilot/claude-sonnet-4.5",
+      "model": "claude-sonnet-4.5",
       "temperature": 0.1,
       "maxTokens": 4000,
       "tools": ["file_read", "file_write", "file_edit", "shell_exec"],
@@ -625,24 +684,6 @@ Full configuration showing all available options:
       "sandbox": {
         "strategy": "sandboxExec"
       }
-    },
-    "custom-agent": {
-      "id": "custom",
-      "name": "CUSTOM",
-      "description": "Custom specialized agent",
-      "role": "Custom Role",
-      "systemPrompt": "You are a custom agent...",
-      "model": "openai/gpt-4o",
-      "temperature": 0.3,
-      "maxTokens": 3000,
-      "tools": ["file_read", "shell_exec"],
-      "canWrite": false,
-      "canExecuteShell": true,
-      "readOnlyBash": true,
-      "sandbox": {
-        "strategy": "bwrap",
-        "args": ["--ro-bind", "/usr", "/usr"]
-      }
     }
   },
   
@@ -650,31 +691,13 @@ Full configuration showing all available options:
     "ghost": {
       "model": "anthropic/claude-3-5-sonnet-20240620",
       "temperature": 0.05
-    },
-    "hardline": {
-      "disabled": true
-    }
-  },
-  
-  "modelConfig": {
-    "default": "github-copilot/claude-sonnet-4.5",
-    "fallback": true,
-    "overrides": {
-      "main": "github-copilot/claude-sonnet-4.5",
-      "planning": "github-copilot/claude-opus-4.6",
-      "analysis": "github-copilot/claude-opus-4.6",
-      "research": "github-copilot/gpt-4o-mini",
-      "testing": "openai/gpt-4o",
-      "ask": "github-copilot/haiku-4.5"
     }
   },
   
   "icons": {
     "modePlan": "🔍",
     "modeBuild": "🔨",
-    "agentGhost": "🥷",
-    "agentPlanner": "📐",
-    "swarm": "🐝"
+    "agentGhost": "🥷"
   },
   
   "sandbox": {
@@ -685,19 +708,9 @@ Full configuration showing all available options:
 
 ---
 
-## Runtime Flags
-
-The extension currently supports runtime sandbox control via CLI flag:
-
-| Flag | Description |
-|------|-------------|
-| `--no-sandbox` | Disable OS-level sandboxing for bash commands |
-
----
-
 ## Configuration Priority
 
-Configuration is currently resolved from:
+Configuration is resolved from:
 
 1. **User config file** (`~/.pi/agent/extensions/dispatch.json`)
 2. **Built-in defaults** (lowest)
@@ -706,11 +719,11 @@ Configuration is currently resolved from:
 
 ## Validation
 
-Invalid configurations will be reported on startup:
+Invalid configurations are reported on startup:
 
 ```bash
 pi
-# ⚠  cmd.exe: Invalid config at modes.plan.model: must be a string
+# ⚠  cmd.exe: Invalid config at slots.plan_mode.model: must be a string
 # ⚠  cmd.exe: Unknown agent template: "invalid-agent"
 ```
 
@@ -720,66 +733,59 @@ pi
 
 ### Performance Optimization
 
+Use cheaper/faster models for background work:
+
 ```json
 {
-  "modelConfig": {
-    "default": "github-copilot/claude-sonnet-4.5",
-    "overrides": {
-      "research": "github-copilot/gpt-4o-mini",
-      "ask": "github-copilot/haiku-4.5"
+  "slots": {
+    "assistant": {
+      "model": "gpt-4o-mini"
     }
   }
 }
 ```
-
-Use cheaper/faster models for simple tasks (research, ad-hoc queries).
 
 ### Cost Control
 
+Reserve expensive models for complex reasoning:
+
 ```json
 {
-  "modes": {
-    "plan": {
-      "model": "github-copilot/gpt-4o-mini"
-    }
-  },
-  "agents": {
-    "ghost": {
-      "model": "github-copilot/claude-sonnet-4.5"
+  "slots": {
+    "plan_mode": {
+      "model": "claude-opus-4.6",
+      "thinking": "high"
+    },
+    "build_mode": {
+      "model": "claude-sonnet-4.5"
+    },
+    "assistant": {
+      "model": "gpt-4o-mini"
     }
   }
 }
 ```
 
-Use less expensive models for planning, reserve premium models for implementation.
+### Multi-Machine Setup
 
-### Custom Workflows
+Create a user-wide config that works on all your machines:
 
 ```json
 {
-  "agentTemplates": {
-    "deployer": {
-      "id": "deployer",
-      "name": "DEPLOYER",
-      "role": "Deployment Specialist",
-      "systemPrompt": "You handle deployments...",
-      "model": "github-copilot/gpt-4o",
-      "temperature": 0.1,
-      "tools": ["shell_exec", "file_read"],
-      "canWrite": false,
-      "canExecuteShell": true
-    }
+  "slots": {
+    "plan_mode": { "model": "gpt-4o" },
+    "build_mode": { "model": "gpt-4o-mini" },
+    "assistant": { "model": "gpt-4o-mini" }
   }
 }
 ```
 
-Create specialized agents for your specific workflow needs.
+Model matching is flexible - suffix matches work across providers.
 
 ---
 
 ## See Also
 
 - [ICONS.md](./ICONS.md) - Icon customization details
-- `find_files` tool behavior is documented in [README.md](../README.md)
-- [AGENTS.md](../AGENTS.md) - Agent system documentation
 - [README.md](../README.md) - Main documentation
+- [AGENTS.md](../AGENTS.md) - Agent system documentation

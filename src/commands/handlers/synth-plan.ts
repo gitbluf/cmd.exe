@@ -12,7 +12,7 @@ import { createReadTool } from "@mariozechner/pi-coding-agent";
 import { getIconRegistry } from "../../ui/icons";
 import { runSubAgent } from "../../sub-agent";
 import type { AgentTemplate, TemplateConfig } from "../../templates/types";
-import { resolveModel } from "../../utils/model-resolver";
+import { resolveSlot } from "../../config/slots";
 import { ANSI, colorize } from "../../ui";
 import { buildToolsFromTemplate } from "../tools";
 import { parsePlanFromMarkdown } from "../../plan/parser";
@@ -50,15 +50,14 @@ export async function handleSynthPlan(
 
 		const planAgentLabel = planTemplate.name || planTemplate.id || "Plan agent";
 
-		const selectedModel = resolveModel({
-			modelRegistry: ctx.modelRegistry,
-			currentModel: ctx.model,
-			actionType: "planning",
-			config: config.modelConfig,
-		});
+		const resolution = resolveSlot(
+			ctx.modelRegistry,
+			config.slots!.plan_mode,
+			ctx.model,
+		);
 
 		ctx.ui.notify(
-			`${icons.agentPlanner} Spawning ${planAgentLabel} [${selectedModel.id}] to synthesize plan...`,
+			`${icons.agentPlanner} Spawning ${planAgentLabel} [${resolution.modelId}] to synthesize plan...`,
 			"info",
 		);
 
@@ -87,12 +86,13 @@ Generate the plan in Markdown format.`;
 				mission,
 				cwd: ctx.cwd,
 				modelRegistry: ctx.modelRegistry,
-				model: selectedModel,
+				model: resolution.model,
 				tools: runtimeTools,
 				widgetId: "plan-agent",
 				widgetTitle: `${icons.agentPlanner} ${planAgentLabel}`,
 				ui: ctx.ui,
 				pi,
+				thinkingLevel: resolution.thinking,
 			});
 
 			if (!planContent || planContent.trim().length === 0) {

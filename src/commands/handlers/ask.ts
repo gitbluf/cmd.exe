@@ -11,10 +11,8 @@ import { createReadTool } from "@mariozechner/pi-coding-agent";
 import { getIconRegistry } from "../../ui/icons";
 import { runSubAgent } from "../../sub-agent";
 import type { TemplateConfig } from "../../templates/types";
-import { resolveModel } from "../../utils/model-resolver";
-
-/** Default model for /ask queries (fallback if not configured) */
-const DEFAULT_ASK_MODEL = "github-copilot/haiku-4.5";
+import { resolveSlot } from "../../config/slots";
+import { getCurrentMode } from "../../modes";
 
 export async function handleAsk(
 	args: string,
@@ -30,28 +28,20 @@ export async function handleAsk(
 
 	const icons = getIconRegistry();
 
-	// Resolve model with priority: user config override → user config default → DEFAULT_ASK_MODEL → current model → first available
-	const fallbackConfig = {
-		default: DEFAULT_ASK_MODEL,
-		fallback: true,
-	};
+	// Use the current mode's slot (plan or build)
+	const mode = getCurrentMode();
+	const slot = mode === "plan" ? config.slots!.plan_mode : config.slots!.build_mode;
 
-	let model: any;
+	let resolution;
 	try {
-		model = resolveModel({
-			modelRegistry: ctx.modelRegistry,
-			currentModel: ctx.model,
-			actionType: "ask",
-			config: config.modelConfig || fallbackConfig,
-			verbose: false,
-		});
+		resolution = resolveSlot(ctx.modelRegistry, slot, ctx.model);
 	} catch (e) {
 		const err = e as Error;
 		ctx.ui.notify(`${icons.error} ${err.message}`, "error");
 		return;
 	}
 
-	const modelLabel = model.id || "unknown";
+	const modelLabel = resolution.modelId || "unknown";
 	ctx.ui.notify(`${icons.pending} Asking ${modelLabel}...`, "info");
 
 	try {
@@ -65,13 +55,13 @@ export async function handleAsk(
 			mission: question,
 			cwd: ctx.cwd,
 			modelRegistry: ctx.modelRegistry,
-			model,
+			model: resolution.model,
 			tools: [createReadTool(ctx.cwd)],
 			widgetId: "ask",
 			widgetTitle: `${icons.agentDefault} /ask → ${modelLabel}`,
 			ui: ctx.ui,
 			pi: undefined, // Don't inject into main chat history
-			thinkingLevel: "high",
+			thinkingLevel: resolution.thinking,
 			keepWidget: true,
 		});
 

@@ -15,7 +15,7 @@ import {
 import { getIconRegistry } from "../../ui/icons";
 import { runSubAgent } from "../../sub-agent";
 import type { AgentTemplate, TemplateConfig } from "../../templates/types";
-import { resolveModel } from "../../utils/model-resolver";
+import { resolveSlot } from "../../config/slots";
 import { ANSI, colorize } from "../../ui";
 import { buildToolsFromTemplate } from "../tools";
 
@@ -45,15 +45,14 @@ export async function handleSynthExec(
 
     const startTime = Date.now();
 
-    const selectedModel = resolveModel({
-      modelRegistry: ctx.modelRegistry,
-      currentModel: ctx.model,
-      actionType: "main",
-      config: config.modelConfig,
-    });
+    const resolution = resolveSlot(
+      ctx.modelRegistry,
+      config.slots!.build_mode,
+      ctx.model,
+    );
 
     ctx.ui.notify(
-      `${icons.agentGhost} Spawning GHOST agent [${selectedModel.id}] to execute: ${mission}`,
+      `${icons.agentGhost} Spawning GHOST agent [${resolution.modelId}] to execute: ${mission}`,
       "info",
     );
 
@@ -64,7 +63,7 @@ export async function handleSynthExec(
         mission: `Mission: "${mission}"\n\nBased on our conversation, execute this mission now. Use your available tools to implement, edit files, and execute commands as needed. Report all changes and results.`,
         cwd: ctx.cwd,
         modelRegistry: ctx.modelRegistry,
-        model: selectedModel,
+        model: resolution.model,
         tools: buildToolsFromTemplate(ghostTemplate.tools || [], ctx.cwd).length > 0
           ? buildToolsFromTemplate(ghostTemplate.tools, ctx.cwd)
           : [
@@ -77,6 +76,7 @@ export async function handleSynthExec(
         widgetTitle: `${icons.agentGhost} GHOST Agent`,
         ui: ctx.ui,
         pi,
+        thinkingLevel: resolution.thinking,
       });
 
       if (!output || output.trim().length === 0) {

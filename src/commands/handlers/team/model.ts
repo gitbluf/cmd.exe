@@ -30,7 +30,7 @@ export async function handleTeamModel(rest: string, runtime: TeamCommandRuntime)
 			modelRegistry: ctx.modelRegistry,
 			currentModel: ctx.model,
 			policy: config.teams?.modelPolicy,
-			globalModelConfig: config.modelConfig,
+			globalSlots: config.slots,
 			model,
 			actionType: actionType as any,
 			memberName,

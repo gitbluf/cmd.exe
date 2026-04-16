@@ -137,7 +137,7 @@ export default function (pi: ExtensionAPI) {
 		model: null as unknown as never,
 		ui: undefined,
 		pi,
-		modelConfig: config.modelConfig,
+		assistantSlot: config.slots?.assistant,
 	});
 
 	pi.registerTool({
@@ -149,7 +149,7 @@ export default function (pi: ExtensionAPI) {
 				model: ctx.model,
 				ui: ctx.ui,
 				pi,
-				modelConfig: config.modelConfig,
+				assistantSlot: config.slots?.assistant,
 			});
 			return tool.execute(toolCallId, params, signal, onUpdate, ctx);
 		},
