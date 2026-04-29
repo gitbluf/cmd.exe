@@ -2,7 +2,8 @@
  * Model utilities - shared helpers for finding and setting models
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ModelRegistry } from "@mariozechner/pi-coding-agent";
+import type { Model, Api } from "@mariozechner/pi-ai";
 import type { ThinkingLevel } from "../config/slots";
 
 /**
@@ -12,7 +13,7 @@ import type { ThinkingLevel } from "../config/slots";
  */
 export async function trySetModel(
 	pi: ExtensionAPI,
-	ctx: { modelRegistry: any },
+	ctx: { modelRegistry: ModelRegistry },
 	modelId: string,
 	thinkingLevel?: ThinkingLevel,
 ): Promise<boolean> {
@@ -30,9 +31,9 @@ export async function trySetModel(
 	// Fallback: search getAvailable() by suffix match
 	const available = ctx.modelRegistry.getAvailable?.() ?? [];
 	const match =
-		available.find((m: any) => `${m.provider}/${m.id}` === modelId) ??
-		available.find((m: any) => m.id === modelId) ??
-		available.find((m: any) => m.id.endsWith(id));
+		available.find((m: Model<Api>) => `${m.provider}/${m.id}` === modelId) ??
+		available.find((m: Model<Api>) => m.id === modelId) ??
+		available.find((m: Model<Api>) => m.id.endsWith(id));
 
 	if (match) {
 		const success = await pi.setModel(match);

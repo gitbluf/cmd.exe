@@ -2,10 +2,8 @@
  * teams tool - LLM-callable orchestration actions
  */
 
-import { Type } from "@sinclair/typebox";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import type { TemplateConfig } from "../templates/types";
-import { getWorkspaceRoot } from "../utils/config";
+import { Type } from "@sinclair/typebox";
 import {
 	addDependency,
 	assignTask,
@@ -14,6 +12,7 @@ import {
 	createTaskLocked,
 	createTeamState,
 	getActiveTeamId,
+	killMember,
 	listDependencies,
 	listMemberStatus,
 	listTaskViews,
@@ -28,9 +27,10 @@ import {
 	spawnMember,
 	teamDone,
 	unassignTask,
-	killMember,
 } from "../teams";
 import { sendBroadcastMessage, sendDirectMessage } from "../teams/mailbox";
+import type { TemplateConfig } from "../templates/types";
+import { getWorkspaceRoot } from "../utils/config";
 
 const TeamToolParams = Type.Object({
 	action: Type.String({
@@ -113,7 +113,9 @@ export function createTeamsTool(opts: {
 
 					for (const name of teammates) {
 						if (!safeName(name)) continue;
-						const current = listMemberStatus(root, teamId).find((m) => m.name === name);
+						const current = listMemberStatus(root, teamId).find(
+							(m) => m.name === name,
+						);
 						if (!current) {
 							await spawnMember(root, teamId, name, {
 								model: params.model,
@@ -147,7 +149,12 @@ export function createTeamsTool(opts: {
 				case "task_assign": {
 					requireParam(params.taskId, "taskId");
 					requireParam(params.assignee, "assignee");
-					const updated = assignTask(root, teamId, params.taskId, params.assignee);
+					const updated = assignTask(
+						root,
+						teamId,
+						params.taskId,
+						params.assignee,
+					);
 					return respond({ action, teamId, task: updated });
 				}
 
@@ -162,23 +169,40 @@ export function createTeamsTool(opts: {
 					requireParam(params.status, "status");
 					const status = String(params.status);
 					if (!["pending", "in_progress", "completed"].includes(status)) {
-						throw new Error("status must be pending, in_progress, or completed");
+						throw new Error(
+							"status must be pending, in_progress, or completed",
+						);
 					}
-					const updated = await setTaskStatusLocked(root, teamId, params.taskId, status as any);
+					const updated = await setTaskStatusLocked(
+						root,
+						teamId,
+						params.taskId,
+						status as any,
+					);
 					return respond({ action, teamId, task: updated });
 				}
 
 				case "task_dep_add": {
 					requireParam(params.taskId, "taskId");
 					requireParam(params.depId, "depId");
-					const updated = addDependency(root, teamId, params.taskId, params.depId);
+					const updated = addDependency(
+						root,
+						teamId,
+						params.taskId,
+						params.depId,
+					);
 					return respond({ action, teamId, task: updated });
 				}
 
 				case "task_dep_rm": {
 					requireParam(params.taskId, "taskId");
 					requireParam(params.depId, "depId");
-					const updated = removeDependency(root, teamId, params.taskId, params.depId);
+					const updated = removeDependency(
+						root,
+						teamId,
+						params.taskId,
+						params.depId,
+					);
 					return respond({ action, teamId, task: updated });
 				}
 
@@ -237,7 +261,12 @@ export function createTeamsTool(opts: {
 						const result = await shutdownAllMembers(root, teamId, "teams_tool");
 						return respond({ action, teamId, ...result });
 					}
-					const member = await shutdownMember(root, teamId, params.name, "teams_tool");
+					const member = await shutdownMember(
+						root,
+						teamId,
+						params.name,
+						"teams_tool",
+					);
 					return respond({ action, teamId, member });
 				}
 
@@ -299,11 +328,18 @@ export function createTeamsTool(opts: {
 	};
 }
 
-function ensureTeam(root: string, requestedTeamId: string | undefined, config: TemplateConfig): string {
+function ensureTeam(
+	root: string,
+	requestedTeamId: string | undefined,
+	config: TemplateConfig,
+): string {
 	if (requestedTeamId && safeName(requestedTeamId)) {
 		const existing = loadTeamState(root, requestedTeamId);
 		if (!existing) {
-			createTeamState(root, { id: requestedTeamId, policy: config.teams?.modelPolicy });
+			createTeamState(root, {
+				id: requestedTeamId,
+				policy: config.teams?.modelPolicy,
+			});
 		}
 		setActiveTeamId(root, requestedTeamId);
 		return requestedTeamId;
@@ -324,7 +360,11 @@ function ensureTeam(root: string, requestedTeamId: string | undefined, config: T
 }
 
 function requireParam(value: unknown, key: string): void {
-	if (value === undefined || value === null || String(value).trim().length === 0) {
+	if (
+		value === undefined ||
+		value === null ||
+		String(value).trim().length === 0
+	) {
 		throw new Error(`Missing required parameter: ${key}`);
 	}
 }
@@ -350,7 +390,9 @@ function pathForWorkspace(cwd: string): string {
 
 function respond(payload: unknown) {
 	return {
-		content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
+		content: [
+			{ type: "text" as const, text: JSON.stringify(payload, null, 2) },
+		],
 		details: payload,
 	};
 }

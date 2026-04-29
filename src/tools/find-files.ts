@@ -5,18 +5,19 @@
  * in an isolated DATAWEAVER session and returning only curated results.
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Type } from "@sinclair/typebox";
+import type { ExtensionAPI, ModelRegistry, ToolDefinition } from "@mariozechner/pi-coding-agent";
+import type { Model, Api } from "@mariozechner/pi-ai";
 import {
-	createReadTool,
-	createLsTool,
-	createGrepTool,
 	createFindTool,
+	createGrepTool,
+	createLsTool,
+	createReadTool,
 } from "@mariozechner/pi-coding-agent";
-import { getIconRegistry } from "../ui/icons";
-import { runSubAgent } from "../sub-agent";
+import { Type } from "@sinclair/typebox";
 import { DATAWEAVER } from "../agents/definitions";
 import { resolveSlot, type SlotConfig } from "../config/slots";
+import { runSubAgent } from "../sub-agent";
+import { getIconRegistry } from "../ui/icons";
 
 /**
  * Tool parameters schema
@@ -44,12 +45,12 @@ export type FindFilesInput = {
  */
 export function createFindFilesTool(opts: {
 	cwd: string;
-	modelRegistry: any;
-	model: any;
-	ui?: any;
+	modelRegistry: ModelRegistry;
+	model: Model<Api>;
+	ui?: ExtensionAPI["ui"];
 	pi?: ExtensionAPI;
 	assistantSlot?: SlotConfig;
-}) {
+}): ToolDefinition {
 	return {
 		name: "find_files",
 		label: "Find Files",
@@ -71,17 +72,34 @@ export function createFindFilesTool(opts: {
 		async execute(
 			toolCallId: string,
 			params: FindFilesInput,
-			signal: AbortSignal | undefined,
-			onUpdate: any,
-			ctx: any,
+			_signal: AbortSignal | undefined,
+			onUpdate: (update: { content: Array<{ type: "text"; text: string }> }) => void,
+			_ctx: unknown,
 		) {
+			// Defensive validation: ensure cwd is valid
+			const cwd = opts.cwd || process.cwd();
+			if (!cwd || typeof cwd !== "string") {
+				throw new Error(
+					`Invalid working directory: expected string, got ${typeof cwd}`,
+				);
+			}
+
+			// Validate model registry
+			if (!opts.modelRegistry) {
+				throw new Error("Model registry is required for find_files tool");
+			}
+
 			const icons = getIconRegistry();
 			const scopeHint = params.scope
 				? `\nFocus your search within: ${params.scope}`
 				: "";
 
 			// Resolve assistant slot for cheap model
-			let resolution;
+			let resolution: {
+				model: Model<Api>;
+				modelId: string;
+				thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+			};
 			if (opts.assistantSlot && opts.modelRegistry) {
 				try {
 					resolution = resolveSlot(
@@ -138,17 +156,35 @@ export function createFindFilesTool(opts: {
 			});
 
 			try {
+				// Debug logging: key parameters
+				if (process.env.DEBUG) {
+					console.error(
+						"[find_files] Spawning DATAWEAVER:",
+						JSON.stringify(
+							{
+								cwd,
+								modelId: resolution.modelId,
+								thinkingLevel: resolution.thinking,
+								query: params.query,
+								scope: params.scope,
+							},
+							null,
+							2,
+						),
+					);
+				}
+
 				const output = await runSubAgent({
 					systemPrompt: DATAWEAVER.systemPrompt,
 					mission,
-					cwd: opts.cwd,
+					cwd,
 					modelRegistry: opts.modelRegistry,
 					model: resolution.model,
 					tools: [
-						createReadTool(opts.cwd),
-						createLsTool(opts.cwd),
-						createGrepTool(opts.cwd),
-						createFindTool(opts.cwd),
+						createReadTool(cwd),
+						createLsTool(cwd),
+						createGrepTool(cwd),
+						createFindTool(cwd),
 					],
 					widgetId: `find-files-${toolCallId}`,
 					widgetTitle: agentLabel,
@@ -160,7 +196,10 @@ export function createFindFilesTool(opts: {
 				if (!output?.trim()) {
 					return {
 						content: [
-							{ type: "text" as const, text: "No files found matching the query." },
+							{
+								type: "text" as const,
+								text: "No files found matching the query.",
+							},
 						],
 						details: {
 							query: params.query,
@@ -178,7 +217,8 @@ export function createFindFilesTool(opts: {
 
 				if (result.length > MAX_OUTPUT_LENGTH) {
 					result = result.slice(0, MAX_OUTPUT_LENGTH);
-					result += "\n\n[Output truncated for context management. Use read tool to inspect specific files.]";
+					result +=
+						"\n\n[Output truncated for context management. Use read tool to inspect specific files.]";
 					truncated = true;
 				}
 
@@ -193,7 +233,26 @@ export function createFindFilesTool(opts: {
 					},
 				};
 			} catch (err) {
-				throw new Error(`File search failed: ${(err as Error).message}`);
+				const original = err as Error;
+
+				// Preserve original stack trace for debugging
+				const wrapped = new Error(
+					`File search failed: ${original.message}\n\nOriginal error: ${original.stack || original.message}`,
+				);
+				wrapped.stack = original.stack;
+
+				// Attach context for debugging
+				interface ErrorWithContext extends Error {
+					context?: unknown;
+				}
+				(wrapped as ErrorWithContext).context = {
+					cwd,
+					query: params.query,
+					scope: params.scope,
+					modelId: resolution.modelId,
+				};
+
+				throw wrapped;
 			}
 		},
 	};

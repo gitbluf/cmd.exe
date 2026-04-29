@@ -1,80 +1,80 @@
 {
-  "$schema": "https://example.com/cmd-exe-config-schema.json",
-  "$comment": "cmd.exe configuration with dynamic model selection",
+	"$schema": "https://example.com/cmd-exe-config-schema.json",
+	"$comment": "cmd.exe configuration with dynamic model selection",
 
-  "agentTemplates": {
-    "ghost": {
-      "name": "GHOST",
-      "agentType": "ghost",
-      "role": "Implementation Specialist",
-      "description": "Executes code changes with precision and execution",
-      "systemPrompt": "You are GHOST, an implementation specialist...",
-      "tools": ["read", "write", "edit", "bash"],
-      "model": "github-copilot/gpt-4o",
-      "maxTokens": 8192,
-      "temperature": 0.1,
-      "canWrite": true,
-      "canExecuteShell": true
-    },
+	"agentTemplates": {
+		"ghost": {
+			"name": "GHOST",
+			"agentType": "ghost",
+			"role": "Implementation Specialist",
+			"description": "Executes code changes with precision and execution",
+			"systemPrompt": "You are GHOST, an implementation specialist...",
+			"tools": ["read", "write", "edit", "bash"],
+			"model": "github-copilot/gpt-4o",
+			"maxTokens": 8192,
+			"temperature": 0.1,
+			"canWrite": true,
+			"canExecuteShell": true
+		},
 
-    "dataweaver": {
-      "name": "DATAWEAVER",
-      "agentType": "dataweaver",
-      "role": "Information Researcher",
-      "description": "Explores the codebase and documents findings",
-      "systemPrompt": "You are DATAWEAVER, the research specialist...",
-      "tools": ["read", "shell_exec"],
-      "model": "github-copilot/gpt-4o-mini",
-      "maxTokens": 4096,
-      "temperature": 0.7,
-      "canWrite": false,
-      "canExecuteShell": true,
-      "readOnlyBash": true
-    },
+		"dataweaver": {
+			"name": "DATAWEAVER",
+			"agentType": "dataweaver",
+			"role": "Information Researcher",
+			"description": "Explores the codebase and documents findings",
+			"systemPrompt": "You are DATAWEAVER, the research specialist...",
+			"tools": ["read", "shell_exec"],
+			"model": "github-copilot/gpt-4o-mini",
+			"maxTokens": 4096,
+			"temperature": 0.7,
+			"canWrite": false,
+			"canExecuteShell": true,
+			"readOnlyBash": true
+		},
 
-    "hardline": {
-      "name": "HARDLINE",
-      "agentType": "hardline",
-      "role": "Security Auditor",
-      "description": "Audits scripts and infrastructure",
-      "systemPrompt": "You are HARDLINE, a security-focused agent...",
-      "tools": ["read", "shell_exec"],
-      "model": "github-copilot/gpt-4o",
-      "maxTokens": 4096,
-      "temperature": 0.2,
-      "canWrite": false,
-      "canExecuteShell": true
-    }
-  },
+		"hardline": {
+			"name": "HARDLINE",
+			"agentType": "hardline",
+			"role": "Security Auditor",
+			"description": "Audits scripts and infrastructure",
+			"systemPrompt": "You are HARDLINE, a security-focused agent...",
+			"tools": ["read", "shell_exec"],
+			"model": "github-copilot/gpt-4o",
+			"maxTokens": 4096,
+			"temperature": 0.2,
+			"canWrite": false,
+			"canExecuteShell": true
+		}
+	},
 
-  "modelConfig": {
-    "$comment": "Dynamic model selection by action type for cost optimization",
-    "default": "github-copilot/gpt-4o",
-    "overrides": {
-      "auto-compat": "github-copilot/gpt-4o-mini",
-      "analysis": "github-copilot/gpt-4-turbo",
-      "testing": "github-copilot/gpt-4o-mini",
-      "research": "github-copilot/gpt-4o-mini"
-    },
-    "fallback": true
-  },
+	"modelConfig": {
+		"$comment": "Dynamic model selection by action type for cost optimization",
+		"default": "github-copilot/gpt-4o",
+		"overrides": {
+			"auto-compat": "github-copilot/gpt-4o-mini",
+			"analysis": "github-copilot/gpt-4-turbo",
+			"testing": "github-copilot/gpt-4o-mini",
+			"research": "github-copilot/gpt-4o-mini"
+		},
+		"fallback": true
+	},
 
-  "agents": {
-    "ghost": {
-      "model": "anthropic/claude-sonnet-4-20240620",
-      "temperature": 0.05
-    },
-    "dataweaver": {
-      "model": "github-copilot/gpt-4o-mini",
-      "temperature": 0.4
-    },
-    "hardline": {
-      "disabled": true
-    }
-  },
+	"agents": {
+		"ghost": {
+			"model": "anthropic/claude-sonnet-4-20240620",
+			"temperature": 0.05
+		},
+		"dataweaver": {
+			"model": "github-copilot/gpt-4o-mini",
+			"temperature": 0.4
+		},
+		"hardline": {
+			"disabled": true
+		}
+	},
 
-  "sandbox": {
-    "strategy": "sandboxExec",
-    "profile": "restricted"
-  }
+	"sandbox": {
+		"strategy": "sandboxExec",
+		"profile": "restricted"
+	}
 }

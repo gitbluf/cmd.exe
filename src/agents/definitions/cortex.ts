@@ -5,8 +5,8 @@
  * Identifies issues and suggests improvements
  */
 
-import type { AgentDefinition } from "./types";
 import { getPlatformSandboxStrategy } from "../../sandbox";
+import type { AgentDefinition } from "./types";
 
 export const CORTEX: AgentDefinition = {
 	id: "cortex",

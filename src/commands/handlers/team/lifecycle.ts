@@ -1,7 +1,24 @@
-import { cleanupTeam, killMember, listMemberStatus, shutdownAllMembers, shutdownMember, spawnMember, teamDone } from "../../../teams";
-import { ensureActiveTeam, extractOption, hasFlag, sanitizeTeamId, type TeamCommandRuntime } from "./context";
+import {
+	cleanupTeam,
+	killMember,
+	listMemberStatus,
+	shutdownAllMembers,
+	shutdownMember,
+	spawnMember,
+	teamDone,
+} from "../../../teams";
+import {
+	ensureActiveTeam,
+	extractOption,
+	hasFlag,
+	sanitizeTeamId,
+	type TeamCommandRuntime,
+} from "./context";
 
-export async function handleTeamSpawn(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamSpawn(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const [nameToken, ...parts] = rest.trim().split(/\s+/).filter(Boolean);
 	const name = sanitizeTeamId(nameToken || "");
@@ -14,13 +31,11 @@ export async function handleTeamSpawn(rest: string, runtime: TeamCommandRuntime)
 	}
 
 	const teamId = ensureActiveTeam(root, config);
-	const contextMode = (parts.find((p) => p === "fresh" || p === "branch") || "fresh") as
-		| "fresh"
-		| "branch";
-	const workspaceMode =
-		(parts.find((p) => p === "shared" || p === "worktree") || "shared") as
-			| "shared"
-			| "worktree";
+	const contextMode = (parts.find((p) => p === "fresh" || p === "branch") ||
+		"fresh") as "fresh" | "branch";
+	const workspaceMode = (parts.find(
+		(p) => p === "shared" || p === "worktree",
+	) || "shared") as "shared" | "worktree";
 	const model = extractOption(parts, "--model");
 	const thinking = (extractOption(parts, "--thinking") ||
 		config.teams?.defaultThinking ||
@@ -36,7 +51,10 @@ export async function handleTeamSpawn(rest: string, runtime: TeamCommandRuntime)
 	ctx.ui.notify(`Spawned member ${member.name} (${member.status})`, "success");
 }
 
-export async function handleTeamStatus(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamStatus(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const teamId = ensureActiveTeam(root, config);
 	const requested = sanitizeTeamId(rest.trim());
@@ -47,7 +65,9 @@ export async function handleTeamStatus(rest: string, runtime: TeamCommandRuntime
 		return;
 	}
 
-	const filtered = requested ? members.filter((m) => m.name === requested) : members;
+	const filtered = requested
+		? members.filter((m) => m.name === requested)
+		: members;
 
 	if (requested && filtered.length === 0) {
 		ctx.ui.notify(`Member not found: ${requested}`, "warning");
@@ -64,7 +84,10 @@ export async function handleTeamStatus(rest: string, runtime: TeamCommandRuntime
 	await ctx.ui.input("Press enter to continue...", "");
 }
 
-export async function handleTeamShutdown(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamShutdown(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const teamId = ensureActiveTeam(root, config);
 	const parts = rest.trim().split(/\s+/).filter(Boolean);
@@ -81,7 +104,10 @@ export async function handleTeamShutdown(rest: string, runtime: TeamCommandRunti
 	ctx.ui.notify(`Shutdown ${member.name}`, "success");
 }
 
-export async function handleTeamKill(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamKill(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const name = sanitizeTeamId(rest.trim());
 	if (!name) {
@@ -93,7 +119,10 @@ export async function handleTeamKill(rest: string, runtime: TeamCommandRuntime):
 	ctx.ui.notify(`Killed ${member.name}`, "warning");
 }
 
-export async function handleTeamDone(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamDone(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const teamId = ensureActiveTeam(root, config);
 	const force = hasFlag(rest, "--force");
@@ -104,7 +133,10 @@ export async function handleTeamDone(rest: string, runtime: TeamCommandRuntime):
 	);
 }
 
-export async function handleTeamCleanup(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamCleanup(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const teamId = ensureActiveTeam(root, config);
 	const force = hasFlag(rest, "--force");

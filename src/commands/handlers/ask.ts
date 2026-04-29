@@ -8,11 +8,11 @@
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { createReadTool } from "@mariozechner/pi-coding-agent";
-import { getIconRegistry } from "../../ui/icons";
+import { resolveSlot, type SlotResolution } from "../../config/slots";
+import { getCurrentMode } from "../../modes";
 import { runSubAgent } from "../../sub-agent";
 import type { TemplateConfig } from "../../templates/types";
-import { resolveSlot } from "../../config/slots";
-import { getCurrentMode } from "../../modes";
+import { getIconRegistry } from "../../ui/icons";
 
 export async function handleAsk(
 	args: string,
@@ -30,9 +30,10 @@ export async function handleAsk(
 
 	// Use the current mode's slot (plan or build)
 	const mode = getCurrentMode();
-	const slot = mode === "plan" ? config.slots!.plan_mode : config.slots!.build_mode;
+	const slot =
+		mode === "plan" ? config.slots!.plan_mode : config.slots!.build_mode;
 
-	let resolution;
+	let resolution: SlotResolution;
 	try {
 		resolution = resolveSlot(ctx.modelRegistry, slot, ctx.model);
 	} catch (e) {

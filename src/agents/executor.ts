@@ -22,13 +22,15 @@ import {
 	wrapBashCommand,
 } from "../sandbox";
 import type { SandboxPolicy } from "../sandbox/tools";
-import { getEffectiveModel, getEffectiveTemperature } from "../templates";
+import { getEffectiveModel } from "../templates";
 import { validateCommand } from "./bash-allowlist";
 import type {
 	AgentConfig,
 	AgentEventCallbacks,
 	AgentSessionState,
 } from "./types";
+import type { Model, Api } from "@mariozechner/pi-ai";
+import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
 
 type AgentSession = Awaited<ReturnType<typeof createAgentSession>>["session"];
 type AgentSessionEvent = Parameters<
@@ -41,9 +43,9 @@ type AgentSessionEvent = Parameters<
  */
 export interface HostContext {
 	/** The host session's model registry — handles auth, model discovery, API keys */
-	modelRegistry: any;
+	modelRegistry: ModelRegistry;
 	/** The host session's currently active model — used as fallback */
-	model?: any;
+	model?: Model<Api>;
 }
 
 export class AgentExecutor {
@@ -84,7 +86,7 @@ export class AgentExecutor {
 			const modelRegistry = this.hostContext.modelRegistry;
 
 			// Resolve model from template config against the host's registry
-			let selectedModel: any = null;
+			let selectedModel: Model<Api> | undefined;
 			const modelStr = getEffectiveModel(this.config.template) || "gpt-4o";
 
 			if (modelStr.includes("/")) {

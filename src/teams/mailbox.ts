@@ -17,7 +17,11 @@ export interface TeamMessage {
 	readAt?: string;
 }
 
-function inboxPath(workspaceRoot: string, teamId: string, memberName: string): string {
+function inboxPath(
+	workspaceRoot: string,
+	teamId: string,
+	memberName: string,
+): string {
 	const p = getTeamPaths(workspaceRoot, teamId);
 	return path.join(p.mailboxesDir, `inbox-${memberName}.json`);
 }

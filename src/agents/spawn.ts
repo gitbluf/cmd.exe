@@ -5,12 +5,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { SessionRecorder } from "../recording";
+import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import { getEffectiveModel, getEffectiveTemperature } from "../templates";
 import type { AgentTemplate, TemplateConfig } from "../templates/types";
 import { ANSI, colorize, stripAnsi } from "../ui";
 import type { AgentConfig, HostContext } from ".";
 import { spawnAgent } from ".";
-import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 
 /**
  * Spawn an agent in an isolated workspace

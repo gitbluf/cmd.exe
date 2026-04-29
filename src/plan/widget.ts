@@ -8,8 +8,8 @@ import type {
 } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth } from "@mariozechner/pi-tui";
 import { getIconRegistry } from "../ui/icons";
-import type { PlanState, PlanStep } from "./types";
 import { getCurrentStep, getPlanStats } from "./state";
+import type { PlanState, PlanStep } from "./types";
 
 // Helper type for contexts that have UI
 type UIContext = ExtensionCommandContext | ExtensionContext;

@@ -6,15 +6,15 @@ import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
+import type { ModeSlotConfig, SlotsConfig } from "../../config/slots";
 import {
-	type SessionMode,
 	getCurrentMode,
 	getModeStatusText,
+	type SessionMode,
 	setCurrentMode,
 } from "../../modes";
-import type { SlotsConfig, ModeSlotConfig } from "../../config/slots";
-import { trySetModel } from "../../utils/model-utils";
 import { getIconRegistry } from "../../ui/icons";
+import { trySetModel } from "../../utils/model-utils";
 
 /**
  * Apply a mode: set tools, model, and footer status
@@ -26,7 +26,8 @@ export async function applyMode(
 	slots: SlotsConfig,
 ): Promise<void> {
 	setCurrentMode(mode);
-	const slot: ModeSlotConfig = mode === "plan" ? slots.plan_mode : slots.build_mode;
+	const slot: ModeSlotConfig =
+		mode === "plan" ? slots.plan_mode : slots.build_mode;
 
 	// Set active tools
 	const tools = slot.tools || [];
@@ -60,6 +61,9 @@ export async function handlePlan(
 	await applyMode(target, pi, ctx, slots);
 
 	const icons = getIconRegistry();
-	const label = target === "build" ? `${icons.modeBuild}  BUILD` : `${icons.modePlan}  PLAN`;
+	const label =
+		target === "build"
+			? `${icons.modeBuild}  BUILD`
+			: `${icons.modePlan}  PLAN`;
 	ctx.ui.notify(`Mode → ${label}`, "info");
 }

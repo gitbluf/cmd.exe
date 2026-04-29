@@ -9,25 +9,25 @@ import {
 	getModeSystemPrompt,
 	setCurrentMode,
 } from "../modes";
+import { createPlanId, getPlanStats, parsePlanFromText } from "../plan";
 import {
+	clearPlan,
+	isPlanComplete,
 	loadPlanState,
 	markStepDone,
 	savePlanState,
 	setPlan,
-	clearPlan,
-	isPlanComplete,
 } from "../plan/state";
 import {
 	clearPlanWidgets,
 	flashStepComplete,
 	updatePlanStatus,
 } from "../plan/widget";
-import { getPlanStats, parsePlanFromText, createPlanId } from "../plan";
-import { getIconRegistry } from "../ui/icons";
+import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import type { TemplateConfig } from "../templates/types";
+import { getIconRegistry } from "../ui/icons";
 import { getWorkspaceRoot } from "../utils/config";
 import { trySetModel } from "../utils/model-utils";
-import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import {
 	createSandboxedBashOps,
 	initializeSandbox,

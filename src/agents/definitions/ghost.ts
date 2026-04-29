@@ -5,8 +5,8 @@
  * Creates and modifies files according to specifications
  */
 
-import type { AgentDefinition } from "./types";
 import { getPlatformSandboxStrategy } from "../../sandbox";
+import type { AgentDefinition } from "./types";
 
 export const GHOST: AgentDefinition = {
 	id: "ghost",

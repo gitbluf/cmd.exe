@@ -9,7 +9,13 @@
  * /ask uses the current mode's slot (plan_mode or build_mode).
  */
 
-export type ThinkingLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+export type ThinkingLevel =
+	| "off"
+	| "minimal"
+	| "low"
+	| "medium"
+	| "high"
+	| "xhigh";
 
 /** Base slot: model + optional thinking level */
 export interface SlotConfig {

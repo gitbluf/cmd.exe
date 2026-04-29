@@ -80,9 +80,7 @@ function generatePlanMarkdown(planState: {
 
 	lines.push("# Implementation Plan");
 	lines.push("");
-	lines.push(
-		`**Created:** ${new Date(planState.createdAt).toLocaleString()}`,
-	);
+	lines.push(`**Created:** ${new Date(planState.createdAt).toLocaleString()}`);
 	lines.push("");
 
 	// Add progress summary
@@ -92,7 +90,9 @@ function generatePlanMarkdown(planState: {
 
 	lines.push("## Progress");
 	lines.push("");
-	lines.push(`**Status:** ${completedCount}/${totalCount} steps (${percentage}%)`);
+	lines.push(
+		`**Status:** ${completedCount}/${totalCount} steps (${percentage}%)`,
+	);
 	lines.push("");
 
 	// Add steps

@@ -12,7 +12,10 @@ import {
 } from "../../../teams";
 import { ensureActiveTeam, type TeamCommandRuntime } from "./context";
 
-export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamTask(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const [sub, ...parts] = rest.trim().split(/\s+/).filter(Boolean);
 	const subcommand = (sub || "").toLowerCase();
@@ -40,9 +43,13 @@ export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime):
 			}
 			console.log(`\nTasks (${teamId}):\n`);
 			for (const t of tasks) {
-				const blocked = t.blocked ? ` blocked by [${t.blockedBy.join(", ")}]` : "";
+				const blocked = t.blocked
+					? ` blocked by [${t.blockedBy.join(", ")}]`
+					: "";
 				const owner = t.assignee ? ` @${t.assignee}` : "";
-				console.log(`${t.id.padStart(3, " ")}  ${t.status.padEnd(11)} ${owner} ${t.subject}${blocked}`);
+				console.log(
+					`${t.id.padStart(3, " ")}  ${t.status.padEnd(11)} ${owner} ${t.subject}${blocked}`,
+				);
 			}
 			console.log("");
 			await ctx.ui.input("Press enter to continue...", "");
@@ -64,8 +71,12 @@ export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime):
 			console.log(`Subject: ${task.subject}`);
 			console.log(`Status: ${task.status}`);
 			console.log(`Assignee: ${task.assignee || "(none)"}`);
-			console.log(`Deps: ${task.deps.length > 0 ? task.deps.join(", ") : "(none)"}`);
-			console.log(`Blocked: ${task.blocked ? `yes (${task.blockedBy.join(", ")})` : "no"}`);
+			console.log(
+				`Deps: ${task.deps.length > 0 ? task.deps.join(", ") : "(none)"}`,
+			);
+			console.log(
+				`Blocked: ${task.blocked ? `yes (${task.blockedBy.join(", ")})` : "no"}`,
+			);
 			if (task.resultSummary) {
 				console.log(`Result: ${task.resultSummary}`);
 			}
@@ -80,7 +91,9 @@ export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime):
 				ctx.ui.notify("Usage: /team task assign <id> <member>", "warning");
 				return;
 			}
-			await withTeamLock(root, teamId, "tasks", () => assignTask(root, teamId, taskId, assignee));
+			await withTeamLock(root, teamId, "tasks", () =>
+				assignTask(root, teamId, taskId, assignee),
+			);
 			ctx.ui.notify(`Assigned task ${taskId} -> ${assignee}`, "success");
 			return;
 		}
@@ -91,15 +104,24 @@ export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime):
 				ctx.ui.notify("Usage: /team task unassign <id>", "warning");
 				return;
 			}
-			await withTeamLock(root, teamId, "tasks", () => unassignTask(root, teamId, taskId));
+			await withTeamLock(root, teamId, "tasks", () =>
+				unassignTask(root, teamId, taskId),
+			);
 			ctx.ui.notify(`Unassigned task ${taskId}`, "success");
 			return;
 		}
 
 		case "status": {
 			const [taskId, status] = parts;
-			if (!taskId || !status || !["pending", "in_progress", "completed"].includes(status)) {
-				ctx.ui.notify("Usage: /team task status <id> <pending|in_progress|completed>", "warning");
+			if (
+				!taskId ||
+				!status ||
+				!["pending", "in_progress", "completed"].includes(status)
+			) {
+				ctx.ui.notify(
+					"Usage: /team task status <id> <pending|in_progress|completed>",
+					"warning",
+				);
 				return;
 			}
 			await setTaskStatusLocked(root, teamId, taskId, status as any);
@@ -118,8 +140,12 @@ export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime):
 				}
 				const deps = listDependencies(root, teamId, taskId);
 				console.log(`\nDependencies for ${taskId}:`);
-				console.log(`deps: ${deps.deps.map((d) => d.id).join(", ") || "(none)"}`);
-				console.log(`blocked by: ${deps.blockedBy.map((d) => d.id).join(", ") || "(none)"}`);
+				console.log(
+					`deps: ${deps.deps.map((d) => d.id).join(", ") || "(none)"}`,
+				);
+				console.log(
+					`blocked by: ${deps.blockedBy.map((d) => d.id).join(", ") || "(none)"}`,
+				);
 				console.log("");
 				await ctx.ui.input("Press enter to continue...", "");
 				return;
@@ -129,12 +155,16 @@ export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime):
 				return;
 			}
 			if (depAction === "add") {
-				await withTeamLock(root, teamId, "tasks", () => addDependency(root, teamId, taskId, depId));
+				await withTeamLock(root, teamId, "tasks", () =>
+					addDependency(root, teamId, taskId, depId),
+				);
 				ctx.ui.notify(`Added dependency: ${taskId} -> ${depId}`, "success");
 				return;
 			}
 			if (depAction === "rm") {
-				await withTeamLock(root, teamId, "tasks", () => removeDependency(root, teamId, taskId, depId));
+				await withTeamLock(root, teamId, "tasks", () =>
+					removeDependency(root, teamId, taskId, depId),
+				);
 				ctx.ui.notify(`Removed dependency: ${taskId} -X-> ${depId}`, "success");
 				return;
 			}
@@ -143,7 +173,10 @@ export async function handleTeamTask(rest: string, runtime: TeamCommandRuntime):
 		}
 
 		default:
-			ctx.ui.notify("Usage: /team task <add|list|show|assign|unassign|status|dep>", "warning");
+			ctx.ui.notify(
+				"Usage: /team task <add|list|show|assign|unassign|status|dep>",
+				"warning",
+			);
 			return;
 	}
 }

@@ -73,10 +73,7 @@ export function getPlan(): PlanState | null {
 /**
  * Set current plan and persist
  */
-export function setPlan(
-	workspaceRoot: string,
-	plan: PlanState | null,
-): void {
+export function setPlan(workspaceRoot: string, plan: PlanState | null): void {
 	currentPlan = plan;
 	savePlanState(workspaceRoot, plan);
 }

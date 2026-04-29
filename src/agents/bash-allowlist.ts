@@ -194,7 +194,7 @@ export function validateCommand(fullCommand: string): ValidationResult {
 	if (/`/.test(fullCommand)) {
 		return { allowed: false, reason: "backtick execution not allowed" };
 	}
-	if (/\$[\({]/.test(fullCommand)) {
+	if (/\$[({]/.test(fullCommand)) {
 		return {
 			allowed: false,
 			reason: "command/variable substitution not allowed",

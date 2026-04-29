@@ -12,7 +12,10 @@ import {
 } from "../../../teams";
 import { hasFlag, type TeamCommandRuntime } from "./context";
 
-export async function handleTeamToolSmoke(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamToolSmoke(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const force = hasFlag(rest, "--force");
 	const teamId = `smoke-${Date.now()}`;
@@ -44,12 +47,17 @@ export async function handleTeamToolSmoke(rest: string, runtime: TeamCommandRunt
 		});
 
 		await step("create tasks", async () => {
-			await createTaskLocked(root, teamId, { subject: "smoke task 1", assignee: "smoke-a" });
+			await createTaskLocked(root, teamId, {
+				subject: "smoke task 1",
+				assignee: "smoke-a",
+			});
 			await createTaskLocked(root, teamId, { subject: "smoke task 2" });
 		});
 
 		await step("dependency add", async () => {
-			await withTeamLock(root, teamId, "tasks", () => addDependency(root, teamId, "2", "1"));
+			await withTeamLock(root, teamId, "tasks", () =>
+				addDependency(root, teamId, "2", "1"),
+			);
 		});
 
 		await step("blocked transition rejected", async () => {
@@ -66,7 +74,9 @@ export async function handleTeamToolSmoke(rest: string, runtime: TeamCommandRunt
 
 		await step("task complete + unblock", async () => {
 			await setTaskStatusLocked(root, teamId, "1", "completed");
-			await withTeamLock(root, teamId, "tasks", () => assignTask(root, teamId, "2", "smoke-a"));
+			await withTeamLock(root, teamId, "tasks", () =>
+				assignTask(root, teamId, "2", "smoke-a"),
+			);
 			await setTaskStatusLocked(root, teamId, "2", "in_progress");
 			await setTaskStatusLocked(root, teamId, "2", "completed");
 		});

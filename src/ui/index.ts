@@ -13,7 +13,11 @@ export {
 	stripAnsi,
 } from "./components";
 
-export type { DashboardConfig, DashboardTheme, TaskPanelConfig } from "./dashboard";
+export type {
+	DashboardConfig,
+	DashboardTheme,
+	TaskPanelConfig,
+} from "./dashboard";
 export { createDashboard } from "./dashboard";
 
 export type { IconSet } from "./icons";

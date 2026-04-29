@@ -1,8 +1,17 @@
+import {
+	createTeamState,
+	getActiveTeamId,
+	listTeams,
+	loadTeamState,
+	setActiveTeamId,
+} from "../../../teams";
 import { getIconRegistry } from "../../../ui/icons";
-import { createTeamState, getActiveTeamId, listTeams, loadTeamState, setActiveTeamId } from "../../../teams";
 import { sanitizeTeamId, type TeamCommandRuntime } from "./context";
 
-export async function handleTeamInit(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamInit(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const teamId = sanitizeTeamId(rest) || `team-${Date.now()}`;
 	let state = loadTeamState(root, teamId);
@@ -23,14 +32,20 @@ export async function handleTeamId(runtime: TeamCommandRuntime): Promise<void> {
 	const teamId = getActiveTeamId(root);
 	if (!teamId) {
 		const icons = getIconRegistry();
-		ctx.ui.notify(`${icons.warning} No active team. Run: /team init [name]`, "warning");
+		ctx.ui.notify(
+			`${icons.warning} No active team. Run: /team init [name]`,
+			"warning",
+		);
 		return;
 	}
 
 	const state = loadTeamState(root, teamId);
 	if (!state) {
 		const icons = getIconRegistry();
-		ctx.ui.notify(`${icons.error} Active team '${teamId}' is missing on disk`, "error");
+		ctx.ui.notify(
+			`${icons.error} Active team '${teamId}' is missing on disk`,
+			"error",
+		);
 		return;
 	}
 
@@ -42,7 +57,9 @@ export async function handleTeamId(runtime: TeamCommandRuntime): Promise<void> {
 	await ctx.ui.input("Press enter to continue...", "");
 }
 
-export async function handleTeamList(runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamList(
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root } = runtime;
 	const teams = listTeams(root);
 	const active = getActiveTeamId(root);

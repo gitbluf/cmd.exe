@@ -5,8 +5,8 @@
  * Performs system-level operations
  */
 
-import type { AgentDefinition } from "./types";
 import { getPlatformSandboxStrategy } from "../../sandbox";
+import type { AgentDefinition } from "./types";
 
 export const HARDLINE: AgentDefinition = {
 	id: "hardline",

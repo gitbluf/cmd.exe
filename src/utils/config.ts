@@ -5,16 +5,16 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { DEFAULT_SLOTS, mergeSlots } from "../config/slots";
+import { getDefaultSandboxConfig, mergeSandboxConfig } from "../sandbox";
+import { DEFAULT_TEAMS_CONFIG } from "../teams";
 import {
 	applyAgentOverrides,
 	DEFAULT_TEMPLATES,
 	mergeTemplates,
 	validateTemplate,
 } from "../templates";
-import { DEFAULT_TEAMS_CONFIG } from "../teams";
-import { getDefaultSandboxConfig, mergeSandboxConfig } from "../sandbox";
 import type { AgentTemplate, TemplateConfig } from "../templates/types";
-import { mergeSlots, DEFAULT_SLOTS } from "../config/slots";
 
 /**
  * Load configuration from JSON file
@@ -70,7 +70,10 @@ export function loadConfig(configPath?: string): TemplateConfig {
 
 			// Migrate old config keys to new slots format
 			let slots = userConfig.slots;
-			if (!slots && ((userConfig as any).modelConfig || (userConfig as any).modes)) {
+			if (
+				!slots &&
+				((userConfig as any).modelConfig || (userConfig as any).modes)
+			) {
 				console.warn(
 					`[dispatch] Warning: "modelConfig" and "modes" are deprecated.`,
 				);

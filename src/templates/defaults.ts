@@ -2,11 +2,7 @@
  * Default agent templates - Neurogrid-style specialized agents
  */
 
-import {
-	DATAWEAVER,
-	GHOST,
-	HARDLINE,
-} from "../agents/definitions";
+import { DATAWEAVER, GHOST, HARDLINE } from "../agents/definitions";
 import type { AgentDefinition } from "../agents/definitions/types";
 import type { AgentTemplate, ToolDefinition } from "./types";
 

@@ -2,7 +2,6 @@
  * Teams task engine
  */
 
-import type { TeamTask, TeamTaskStatus } from "./types";
 import {
 	deleteTask,
 	getTask,
@@ -11,6 +10,7 @@ import {
 	saveTask,
 	withTeamLock,
 } from "./store";
+import type { TeamTask, TeamTaskStatus } from "./types";
 
 export interface TeamTaskView extends TeamTask {
 	blocked: boolean;
@@ -47,7 +47,10 @@ export async function createTaskLocked(
 	);
 }
 
-export function listTaskViews(workspaceRoot: string, teamId: string): TeamTaskView[] {
+export function listTaskViews(
+	workspaceRoot: string,
+	teamId: string,
+): TeamTaskView[] {
 	const tasks = listTasks(workspaceRoot, teamId);
 	const byId = new Map(tasks.map((t) => [t.id, t]));
 
@@ -81,7 +84,10 @@ export function setTaskStatus(
 ): TeamTask {
 	const task = mustGetTask(workspaceRoot, teamId, taskId);
 
-	if (status === "in_progress" && isTaskBlocked(workspaceRoot, teamId, task.id)) {
+	if (
+		status === "in_progress" &&
+		isTaskBlocked(workspaceRoot, teamId, task.id)
+	) {
 		throw new Error(`Task ${task.id} is blocked by unfinished dependencies`);
 	}
 
@@ -205,7 +211,9 @@ export function listDependencies(
 	const all = listTasks(workspaceRoot, teamId);
 	const byId = new Map(all.map((t) => [t.id, t]));
 
-	const deps = task.deps.map((depId) => byId.get(depId)).filter(Boolean) as TeamTask[];
+	const deps = task.deps
+		.map((depId) => byId.get(depId))
+		.filter(Boolean) as TeamTask[];
 	const blockedBy = deps.filter((dep) => dep.status !== "completed");
 
 	return { deps, blockedBy };
@@ -244,7 +252,11 @@ export function isTaskBlocked(
 	return false;
 }
 
-function mustGetTask(workspaceRoot: string, teamId: string, taskId: string): TeamTask {
+function mustGetTask(
+	workspaceRoot: string,
+	teamId: string,
+	taskId: string,
+): TeamTask {
 	const task = getTask(workspaceRoot, teamId, taskId);
 	if (!task) {
 		throw new Error(`Task not found: ${taskId}`);

@@ -2,10 +2,10 @@
  * Agent template type definitions
  */
 
+import type { SlotsConfig } from "../config/slots";
 import type { SandboxPolicy } from "../sandbox/tools";
 import type { TeamsConfig } from "../teams";
 import type { IconSet } from "../ui/icons";
-import type { SlotsConfig } from "../config/slots";
 
 export interface AgentTemplate {
 	// Identity

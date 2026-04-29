@@ -67,31 +67,34 @@ export function normalizeTeamModelPolicy(
 	};
 }
 
-export function resolveTeamModel(opts: ResolveTeamModelOptions): TeamModelResolution {
+export function resolveTeamModel(
+	opts: ResolveTeamModelOptions,
+): TeamModelResolution {
 	const warnings: string[] = [];
 	const attempted: string[] = [];
 	const policy = normalizeTeamModelPolicy(opts.policy);
 	const strict = policy.strict === true;
 	const fallbackEnabled = policy.fallback !== false;
 
-	const candidates: Array<{ id?: string; source: TeamModelResolutionSource }> = [
-		{ id: opts.explicitModel, source: "explicit" },
-		{
-			id: opts.memberName
-				? policy.memberOverrides?.[opts.memberName]
-				: undefined,
-			source: "memberOverride",
-		},
-		{
-			id: opts.actionType ? policy.overrides?.[opts.actionType] : undefined,
-			source: "actionOverride",
-		},
-		{ id: policy.default, source: "policyDefault" },
-		{
-			id: opts.globalSlots?.build_mode.model,
-			source: "globalDefault",
-		},
-	];
+	const candidates: Array<{ id?: string; source: TeamModelResolutionSource }> =
+		[
+			{ id: opts.explicitModel, source: "explicit" },
+			{
+				id: opts.memberName
+					? policy.memberOverrides?.[opts.memberName]
+					: undefined,
+				source: "memberOverride",
+			},
+			{
+				id: opts.actionType ? policy.overrides?.[opts.actionType] : undefined,
+				source: "actionOverride",
+			},
+			{ id: policy.default, source: "policyDefault" },
+			{
+				id: opts.globalSlots?.build_mode.model,
+				source: "globalDefault",
+			},
+		];
 
 	for (const candidate of candidates) {
 		if (!candidate.id) continue;
@@ -232,9 +235,13 @@ export function validateTeamModelPolicy(
 		checkModel(modelId, `teams.modelPolicy.overrides.${action}`);
 	}
 
-	for (const [member, modelId] of Object.entries(normalized.memberOverrides || {})) {
+	for (const [member, modelId] of Object.entries(
+		normalized.memberOverrides || {},
+	)) {
 		if (!modelId) {
-			errors.push(`Empty model ID in teams.modelPolicy.memberOverrides.${member}`);
+			errors.push(
+				`Empty model ID in teams.modelPolicy.memberOverrides.${member}`,
+			);
 			continue;
 		}
 		checkModel(modelId, `teams.modelPolicy.memberOverrides.${member}`);

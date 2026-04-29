@@ -213,7 +213,10 @@ export function mergeSandboxConfig(
 		profile: override.profile ?? base.profile,
 		args: override.args ?? base.args,
 		template: override.template ?? base.template,
-		policy: resolveSandboxPolicy(base.policy || DEFAULT_SANDBOX_POLICY, override.policy),
+		policy: resolveSandboxPolicy(
+			base.policy || DEFAULT_SANDBOX_POLICY,
+			override.policy,
+		),
 	};
 }
 

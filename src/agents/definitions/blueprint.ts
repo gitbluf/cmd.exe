@@ -5,8 +5,8 @@
  * Generates .ai/plan-*.md files with actionable steps
  */
 
-import type { AgentDefinition } from "./types";
 import { getPlatformSandboxStrategy } from "../../sandbox";
+import type { AgentDefinition } from "./types";
 
 export const BLUEPRINT: AgentDefinition = {
 	id: "blueprint",

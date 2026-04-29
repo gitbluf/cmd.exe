@@ -49,7 +49,10 @@ export function getTeamPaths(
 	};
 }
 
-export function ensureTeamDirs(workspaceRoot: string, teamId: string): TeamStorePaths {
+export function ensureTeamDirs(
+	workspaceRoot: string,
+	teamId: string,
+): TeamStorePaths {
 	const p = getTeamPaths(workspaceRoot, teamId);
 	fs.mkdirSync(p.teamsRoot, { recursive: true });
 	fs.mkdirSync(p.teamDir, { recursive: true });
@@ -158,7 +161,11 @@ export function getActiveTeamId(workspaceRoot: string): string | null {
 export function setActiveTeamId(workspaceRoot: string, teamId: string): void {
 	const teamsRoot = getTeamsRoot(workspaceRoot);
 	fs.mkdirSync(teamsRoot, { recursive: true });
-	fs.writeFileSync(path.join(teamsRoot, ACTIVE_TEAM_FILE), teamId.trim(), "utf8");
+	fs.writeFileSync(
+		path.join(teamsRoot, ACTIVE_TEAM_FILE),
+		teamId.trim(),
+		"utf8",
+	);
 }
 
 export function clearActiveTeamId(workspaceRoot: string): void {
@@ -202,7 +209,10 @@ export function getMember(
 	}
 }
 
-export function listMembers(workspaceRoot: string, teamId: string): TeamMember[] {
+export function listMembers(
+	workspaceRoot: string,
+	teamId: string,
+): TeamMember[] {
 	const p = getTeamPaths(workspaceRoot, teamId);
 	if (!fs.existsSync(p.membersDir)) return [];
 
@@ -232,7 +242,11 @@ export function deleteMember(
 	}
 }
 
-export function saveTask(workspaceRoot: string, teamId: string, task: TeamTask): void {
+export function saveTask(
+	workspaceRoot: string,
+	teamId: string,
+	task: TeamTask,
+): void {
 	const p = ensureTeamDirs(workspaceRoot, teamId);
 	const taskPath = path.join(p.tasksDir, `${task.id}.json`);
 	atomicWriteJson(taskPath, task);
@@ -273,7 +287,11 @@ export function listTasks(workspaceRoot: string, teamId: string): TeamTask[] {
 	return out.sort((a, b) => numericTaskId(a.id) - numericTaskId(b.id));
 }
 
-export function deleteTask(workspaceRoot: string, teamId: string, taskId: string): void {
+export function deleteTask(
+	workspaceRoot: string,
+	teamId: string,
+	taskId: string,
+): void {
 	const p = getTeamPaths(workspaceRoot, teamId);
 	const taskPath = path.join(p.tasksDir, `${taskId}.json`);
 	if (fs.existsSync(taskPath)) {

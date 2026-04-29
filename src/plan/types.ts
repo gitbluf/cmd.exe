@@ -23,10 +23,6 @@ export interface PlanState {
 export function createPlanId(): string {
 	const now = new Date();
 	const date = now.toISOString().split("T")[0].replace(/-/g, "");
-	const time = now
-		.toISOString()
-		.split("T")[1]
-		?.split(".")[0]
-		.replace(/:/g, "");
+	const time = now.toISOString().split("T")[1]?.split(".")[0].replace(/:/g, "");
 	return `plan-${date}-${time}`;
 }

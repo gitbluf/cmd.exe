@@ -9,9 +9,9 @@ import {
 	type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
 import type { BashOperations } from "@mariozechner/pi-coding-agent";
+import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import type { SandboxPolicy } from "../sandbox/tools";
 import { getIconRegistry } from "../ui/icons";
-import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 
 export interface SandboxState {
 	enabled: boolean;

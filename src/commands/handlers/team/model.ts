@@ -1,8 +1,15 @@
 import { checkTeamModelCandidate, loadTeamState } from "../../../teams";
 import { getIconRegistry } from "../../../ui/icons";
-import { ensureActiveTeam, extractOption, type TeamCommandRuntime } from "./context";
+import {
+	ensureActiveTeam,
+	extractOption,
+	type TeamCommandRuntime,
+} from "./context";
 
-export async function handleTeamModel(rest: string, runtime: TeamCommandRuntime): Promise<void> {
+export async function handleTeamModel(
+	rest: string,
+	runtime: TeamCommandRuntime,
+): Promise<void> {
 	const { ctx, root, config } = runtime;
 	const [sub, ...parts] = rest.trim().split(/\s+/).filter(Boolean);
 	const subcommand = (sub || "policy").toLowerCase();
