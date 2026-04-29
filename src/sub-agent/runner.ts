@@ -7,6 +7,7 @@ import {
 	createAgentSession,
 	createReadTool,
 	DefaultResourceLoader,
+	getAgentDir,
 	SessionManager,
 	type ExtensionAPI,
 	type ToolDefinition,
@@ -55,6 +56,7 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 	try {
 		loader = new DefaultResourceLoader({
 			cwd: opts.cwd,
+			agentDir: getAgentDir(),
 			systemPromptOverride: () => opts.systemPrompt,
 			noExtensions: true,
 			noSkills: true,
