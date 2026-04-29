@@ -108,6 +108,7 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 	}
 
 	let output = "";
+	let sawTextDeltaForCurrentAssistant = false;
 	const maxWidgetLines = 25;
 	const completedWidgetLines = 10;
 
@@ -163,10 +164,41 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 	// Initialize widget
 	updateWidget("streaming");
 
+	const extractTextFromContent = (content: unknown): string => {
+		if (typeof content === "string") return content;
+		if (!Array.isArray(content)) return "";
+		return content
+			.filter(
+				(c): c is { type: "text"; text: string } =>
+					typeof c === "object" &&
+					c !== null &&
+					(c as { type?: unknown }).type === "text" &&
+					typeof (c as { text?: unknown }).text === "string",
+			)
+			.map((c) => c.text)
+			.join("");
+	};
+
+	const extractAssistantText = (message: unknown): string => {
+		const assistant = message as {
+			role?: string;
+			content?: unknown;
+		};
+		if (assistant.role !== "assistant") return "";
+		return extractTextFromContent(assistant.content);
+	};
+
 	const unsubscribe = session.subscribe((event) => {
 		switch (event.type) {
+			case "message_start":
+				if ((event.message as { role?: string }).role === "assistant") {
+					sawTextDeltaForCurrentAssistant = false;
+				}
+				break;
+
 			case "message_update":
 				if (event.assistantMessageEvent?.type === "text_delta") {
+					sawTextDeltaForCurrentAssistant = true;
 					output += event.assistantMessageEvent.delta;
 					updateWidget("streaming");
 				} else if (event.assistantMessageEvent?.type === "thinking_delta") {
@@ -175,25 +207,44 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 				}
 				break;
 
+			case "message_end": {
+				if (!sawTextDeltaForCurrentAssistant) {
+					const text = extractAssistantText(event.message).trim();
+					if (text) {
+						if (output && !output.endsWith("\n")) output += "\n";
+						output += text;
+						updateWidget("streaming");
+					}
+				}
+				break;
+			}
+
 			case "tool_execution_start": {
 				const icons = getIconRegistry();
 				output += `\n${icons.tool} ${event.toolName}`;
-				if (event.params) {
-					const params = event.params;
-					if (params.path) output += ` ${params.path}`;
-					if (params.command) output += ` $ ${params.command}`;
-				}
+				const args = (event as { args?: { path?: string; command?: string } }).args;
+				if (args?.path) output += ` ${args.path}`;
+				if (args?.command) output += ` $ ${args.command}`;
 				output += "\n";
 				updateWidget("streaming");
 				break;
 			}
 
-			case "tool_execution_update":
-				if (event.output) {
-					output += event.output;
+			case "tool_execution_update": {
+				const partialResult = (
+					event as { partialResult?: { content?: Array<{ type?: string; text?: string }> } }
+				).partialResult;
+				const partialText =
+					partialResult?.content
+						?.filter((c) => c.type === "text" && typeof c.text === "string")
+						.map((c) => c.text)
+						.join("") ?? "";
+				if (partialText) {
+					output += partialText;
 					updateWidget("streaming");
 				}
 				break;
+			}
 
 			case "tool_execution_end": {
 				const iconsEnd = getIconRegistry();
@@ -212,6 +263,23 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 	try {
 		await session.prompt(opts.mission);
+
+		// Fallback: reconstruct output from transcript if streaming events produced no text
+		if (!output.trim()) {
+			const transcript = session.state.messages
+				.filter((m) => m.role === "assistant" || m.role === "toolResult")
+				.map((m) => extractTextFromContent((m as { content?: unknown }).content))
+				.filter((text) => text.trim().length > 0)
+				.join("\n\n")
+				.trim();
+			if (transcript) {
+				output = transcript;
+				updateWidget("streaming");
+			} else if (session.state.errorMessage) {
+				output = `[sub-agent error] ${session.state.errorMessage}`;
+				updateWidget("streaming");
+			}
+		}
 	} catch (e) {
 		failed = true;
 		const original = e as Error;
