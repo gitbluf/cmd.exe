@@ -2,14 +2,7 @@
  * UI module - active exports
  */
 
-export {
-	AgentOutputPanel,
-	ANSI,
-	colorize,
-	DispatchControlPanel,
-	separator,
-	stripAnsi,
-} from "./components";
+export { ANSI, colorize, stripAnsi } from "./components";
 
 export type {
 	DashboardConfig,
