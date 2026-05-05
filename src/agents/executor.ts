@@ -5,6 +5,8 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import type { Api, Model } from "@mariozechner/pi-ai";
+import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
 import {
 	createAgentSession,
 	createBashTool,
@@ -29,8 +31,6 @@ import type {
 	AgentEventCallbacks,
 	AgentSessionState,
 } from "./types";
-import type { Model, Api } from "@mariozechner/pi-ai";
-import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
 
 type AgentSession = Awaited<ReturnType<typeof createAgentSession>>["session"];
 type AgentSessionEvent = Parameters<

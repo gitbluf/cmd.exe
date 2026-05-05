@@ -24,7 +24,7 @@ export async function handleTeamInit(
 	setActiveTeamId(root, teamId);
 
 	const icons = getIconRegistry();
-	ctx.ui.notify(`${icons.success} Active team: ${state.id}`, "success");
+	ctx.ui.notify(`${icons.success} Active team: ${state.id}`, "info");
 }
 
 export async function handleTeamId(runtime: TeamCommandRuntime): Promise<void> {

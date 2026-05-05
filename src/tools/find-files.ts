@@ -5,8 +5,13 @@
  * in an isolated DATAWEAVER session and returning only curated results.
  */
 
-import type { ExtensionAPI, ModelRegistry, ToolDefinition } from "@mariozechner/pi-coding-agent";
-import type { Model, Api } from "@mariozechner/pi-ai";
+import type { Api, Model } from "@mariozechner/pi-ai";
+import type {
+	ExtensionAPI,
+	ExtensionContext,
+	ModelRegistry,
+	ToolDefinition,
+} from "@mariozechner/pi-coding-agent";
 import {
 	createFindTool,
 	createGrepTool,
@@ -46,8 +51,8 @@ export type FindFilesInput = {
 export function createFindFilesTool(opts: {
 	cwd: string;
 	modelRegistry: ModelRegistry;
-	model: Model<Api>;
-	ui?: ExtensionAPI["ui"];
+	model?: Model<Api>;
+	ui?: ExtensionContext["ui"];
 	pi?: ExtensionAPI;
 	assistantSlot?: SlotConfig;
 }): ToolDefinition {
@@ -59,23 +64,11 @@ export function createFindFilesTool(opts: {
 			"Spawns a read-only reconnaissance agent that searches, reads, " +
 			"and returns a curated summary of relevant files. " +
 			"Use this instead of manually reading directories.",
-		promptSnippet:
-			"Find and locate files in the codebase by description or pattern. " +
-			"Returns file paths and summaries without polluting context.",
-		promptGuidelines: [
-			"Use find_files when you need to locate files before reading/editing them.",
-			"Prefer find_files over manually reading directory listings.",
-			"The query should describe WHAT you're looking for, not HOW to find it.",
-		],
+
 		parameters: FindFilesParams,
 
-		async execute(
-			toolCallId: string,
-			params: FindFilesInput,
-			_signal: AbortSignal | undefined,
-			onUpdate: (update: { content: Array<{ type: "text"; text: string }> }) => void,
-			_ctx: unknown,
-		) {
+		async execute(toolCallId, rawParams, _signal, onUpdate, _ctx) {
+			const params = rawParams as FindFilesInput;
 			// Defensive validation: ensure cwd is valid
 			const cwd = opts.cwd || process.cwd();
 			if (!cwd || typeof cwd !== "string") {
@@ -96,7 +89,7 @@ export function createFindFilesTool(opts: {
 
 			// Resolve assistant slot for cheap model
 			let resolution: {
-				model: Model<Api>;
+				model: Model<Api> | undefined;
 				modelId: string;
 				thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 			};
@@ -153,6 +146,7 @@ export function createFindFilesTool(opts: {
 						text: `${agentLabel} Searching: ${params.query}...`,
 					},
 				],
+				details: {},
 			});
 
 			try {

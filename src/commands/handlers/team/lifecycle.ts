@@ -48,7 +48,7 @@ export async function handleTeamSpawn(
 		workspaceMode,
 	});
 
-	ctx.ui.notify(`Spawned member ${member.name} (${member.status})`, "success");
+	ctx.ui.notify(`Spawned member ${member.name} (${member.status})`, "info");
 }
 
 export async function handleTeamStatus(
@@ -96,12 +96,12 @@ export async function handleTeamShutdown(
 
 	if (!target || target === "all") {
 		const result = await shutdownAllMembers(root, teamId, reason);
-		ctx.ui.notify(`Shutdown ${result.count} member(s)`, "success");
+		ctx.ui.notify(`Shutdown ${result.count} member(s)`, "info");
 		return;
 	}
 
 	const member = await shutdownMember(root, teamId, target, reason);
-	ctx.ui.notify(`Shutdown ${member.name}`, "success");
+	ctx.ui.notify(`Shutdown ${member.name}`, "info");
 }
 
 export async function handleTeamKill(
@@ -129,7 +129,7 @@ export async function handleTeamDone(
 	const result = await teamDone(root, teamId, force);
 	ctx.ui.notify(
 		`Team done. Members stopped: ${result.stoppedMembers}. Tasks: ${result.taskSummary.completed}/${result.taskSummary.total} completed.`,
-		"success",
+		"info",
 	);
 }
 
@@ -142,7 +142,7 @@ export async function handleTeamCleanup(
 	const force = hasFlag(rest, "--force");
 	const result = await cleanupTeam(root, teamId, force);
 	if (result.deleted) {
-		ctx.ui.notify(`Cleaned up team ${teamId}`, "success");
+		ctx.ui.notify(`Cleaned up team ${teamId}`, "info");
 		return;
 	}
 	ctx.ui.notify(`No cleanup performed for ${teamId}`, "warning");

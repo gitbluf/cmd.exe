@@ -9,15 +9,24 @@ import {
 	visibleWidth,
 } from "@mariozechner/pi-tui";
 
+type ViewerThemeColor = "accent" | "border" | "dim";
+
+interface ViewerTheme {
+	fg: (kind: ViewerThemeColor, text: string) => string;
+	bold: (text: string) => string;
+}
+
 export class OutputViewerComponent {
 	private lines: string[];
 	private title: string;
 	private scrollY = 0;
+	private theme?: ViewerTheme;
 	onClose?: () => void;
 
-	constructor(title: string, output: string) {
+	constructor(title: string, output: string, theme?: ViewerTheme) {
 		this.title = title;
 		this.lines = output.split("\n");
+		this.theme = theme;
 	}
 
 	handleInput(data: string): void {
@@ -42,10 +51,14 @@ export class OutputViewerComponent {
 		const maxScroll = Math.max(0, this.lines.length - outputAreaHeight);
 		if (this.scrollY > maxScroll) this.scrollY = maxScroll;
 
-		const border = (s: string) => `\x1b[2m${s}\x1b[0m`;
-		const accent = (s: string) => `\x1b[36m${s}\x1b[0m`;
-		const dim = (s: string) => `\x1b[90m${s}\x1b[0m`;
-		const bold = (s: string) => `\x1b[1m${s}\x1b[22m`;
+		const border = (s: string) =>
+			this.theme ? this.theme.fg("border", s) : `\x1b[2m${s}\x1b[0m`;
+		const accent = (s: string) =>
+			this.theme ? this.theme.fg("accent", s) : `\x1b[36m${s}\x1b[0m`;
+		const dim = (s: string) =>
+			this.theme ? this.theme.fg("dim", s) : `\x1b[90m${s}\x1b[0m`;
+		const bold = (s: string) =>
+			this.theme ? this.theme.bold(s) : `\x1b[1m${s}\x1b[22m`;
 
 		const bLine = (content: string) => {
 			const cw = visibleWidth(content);

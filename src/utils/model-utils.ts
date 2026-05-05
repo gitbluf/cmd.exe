@@ -2,8 +2,11 @@
  * Model utilities - shared helpers for finding and setting models
  */
 
-import type { ExtensionAPI, ModelRegistry } from "@mariozechner/pi-coding-agent";
-import type { Model, Api } from "@mariozechner/pi-ai";
+import type { Api, Model } from "@mariozechner/pi-ai";
+import type {
+	ExtensionAPI,
+	ModelRegistry,
+} from "@mariozechner/pi-coding-agent";
 import type { ThinkingLevel } from "../config/slots";
 
 /**

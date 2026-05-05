@@ -7,7 +7,7 @@
  *   - Fallback chain if preferred model unavailable
  */
 
-import type { Model, Api } from "@mariozechner/pi-ai";
+import type { Api, Model } from "@mariozechner/pi-ai";
 import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
 
 export type ActionType =
@@ -167,10 +167,23 @@ export function createModelConfig(data: unknown): ModelConfig {
 	}
 
 	if (typeof data === "object" && data !== null) {
+		const obj = data as {
+			default?: unknown;
+			overrides?: unknown;
+			fallback?: unknown;
+		};
+
+		const defaultModel = typeof obj.default === "string" ? obj.default : "";
+		const overrides =
+			typeof obj.overrides === "object" && obj.overrides !== null
+				? (obj.overrides as Partial<Record<ActionType, string>>)
+				: {};
+		const fallback = typeof obj.fallback === "boolean" ? obj.fallback : true;
+
 		return {
-			default: data.default || "",
-			overrides: data.overrides || {},
-			fallback: data.fallback !== false, // true by default
+			default: defaultModel,
+			overrides,
+			fallback,
 		};
 	}
 

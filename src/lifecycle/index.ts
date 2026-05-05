@@ -24,6 +24,7 @@ import {
 	updatePlanStatus,
 } from "../plan/widget";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
+import { clearAskWidgetActive } from "../sub-agent";
 import type { TemplateConfig } from "../templates/types";
 import { getIconRegistry } from "../ui/icons";
 import { getWorkspaceRoot } from "../utils/config";
@@ -58,6 +59,7 @@ export function setupLifecycleHooks(
 
 	pi.on("session_start", async (_event, ctx) => {
 		applyPlanMode();
+		clearAskWidgetActive();
 
 		const root = getWorkspaceRoot(ctx.cwd);
 		clearPlan(root);
@@ -123,6 +125,7 @@ export function setupLifecycleHooks(
 		if (ctx.hasUI) {
 			ctx.ui.setWidget("ask", undefined);
 		}
+		clearAskWidgetActive();
 	});
 
 	// Detect [DONE:n] markers and new plans after each turn
@@ -171,7 +174,7 @@ export function setupLifecycleHooks(
 							const icons = getIconRegistry();
 							ctx.ui.notify(
 								`${icons.success} Plan completed and cleared.`,
-								"success",
+								"info",
 							);
 							updatePlanStatus(ctx, null);
 							clearPlanWidgets(ctx);
@@ -249,6 +252,7 @@ export function setupLifecycleHooks(
 	// Reset sandbox on session shutdown
 	pi.on("session_shutdown", async (_event, ctx) => {
 		await resetSandbox();
+		clearAskWidgetActive();
 
 		// Save plan state
 		if (ctx.hasUI) {

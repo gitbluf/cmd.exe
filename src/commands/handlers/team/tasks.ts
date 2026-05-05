@@ -30,7 +30,7 @@ export async function handleTeamTask(
 				return;
 			}
 			const task = await createTaskLocked(root, teamId, { subject });
-			ctx.ui.notify(`Created task ${task.id}: ${task.subject}`, "success");
+			ctx.ui.notify(`Created task ${task.id}: ${task.subject}`, "info");
 			return;
 		}
 
@@ -94,7 +94,7 @@ export async function handleTeamTask(
 			await withTeamLock(root, teamId, "tasks", () =>
 				assignTask(root, teamId, taskId, assignee),
 			);
-			ctx.ui.notify(`Assigned task ${taskId} -> ${assignee}`, "success");
+			ctx.ui.notify(`Assigned task ${taskId} -> ${assignee}`, "info");
 			return;
 		}
 
@@ -107,7 +107,7 @@ export async function handleTeamTask(
 			await withTeamLock(root, teamId, "tasks", () =>
 				unassignTask(root, teamId, taskId),
 			);
-			ctx.ui.notify(`Unassigned task ${taskId}`, "success");
+			ctx.ui.notify(`Unassigned task ${taskId}`, "info");
 			return;
 		}
 
@@ -125,7 +125,7 @@ export async function handleTeamTask(
 				return;
 			}
 			await setTaskStatusLocked(root, teamId, taskId, status as any);
-			ctx.ui.notify(`Task ${taskId} -> ${status}`, "success");
+			ctx.ui.notify(`Task ${taskId} -> ${status}`, "info");
 			return;
 		}
 
@@ -158,14 +158,14 @@ export async function handleTeamTask(
 				await withTeamLock(root, teamId, "tasks", () =>
 					addDependency(root, teamId, taskId, depId),
 				);
-				ctx.ui.notify(`Added dependency: ${taskId} -> ${depId}`, "success");
+				ctx.ui.notify(`Added dependency: ${taskId} -> ${depId}`, "info");
 				return;
 			}
 			if (depAction === "rm") {
 				await withTeamLock(root, teamId, "tasks", () =>
 					removeDependency(root, teamId, taskId, depId),
 				);
-				ctx.ui.notify(`Removed dependency: ${taskId} -X-> ${depId}`, "success");
+				ctx.ui.notify(`Removed dependency: ${taskId} -X-> ${depId}`, "info");
 				return;
 			}
 			ctx.ui.notify("Usage: /team task dep <add|rm|ls> ...", "warning");

@@ -3,19 +3,23 @@
  * Spawns a sub-agent session with a custom system prompt and mission.
  */
 
+import type { Api, Model } from "@mariozechner/pi-ai";
+import type {
+	CreateAgentSessionOptions,
+	ExtensionAPI,
+	ExtensionContext,
+	ModelRegistry,
+} from "@mariozechner/pi-coding-agent";
 import {
 	createAgentSession,
 	createReadTool,
 	DefaultResourceLoader,
 	getAgentDir,
 	SessionManager,
-	type ExtensionAPI,
-	type ToolDefinition,
 } from "@mariozechner/pi-coding-agent";
-import type { Model, Api } from "@mariozechner/pi-ai";
-import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
 import { truncateToWidth } from "@mariozechner/pi-tui";
 import { getIconRegistry } from "../ui/icons";
+import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
 import { storeSubAgentOutput } from "./store";
 
 export interface RunSubAgentOptions {
@@ -23,17 +27,19 @@ export interface RunSubAgentOptions {
 	mission: string;
 	cwd: string;
 	modelRegistry: ModelRegistry;
-	model: Model<Api>;
-	tools?: ToolDefinition[];
+	model: Model<Api> | undefined;
+	tools?: NonNullable<CreateAgentSessionOptions["tools"]>;
 	widgetId?: string;
 	widgetTitle?: string;
-	ui?: ExtensionAPI["ui"];
+	ui?: ExtensionContext["ui"];
 	pi?: ExtensionAPI;
 	/** Thinking level for models that support reasoning */
 	thinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 	/** Keep widget visible after completion instead of clearing it */
 	keepWidget?: boolean;
 }
+
+export { getAskWidgetState } from "./ask-state";
 
 /**
  * Spawn a sub-agent session with a custom system prompt and mission.
@@ -134,6 +140,10 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 								? "streaming..."
 								: "complete — last output:";
 						const border = theme.fg("border", "─".repeat(width));
+						const footerHint =
+							status === "complete"
+								? theme.fg("dim", "  ctrl+shift+o to expand full output")
+								: "";
 
 						const raw = [
 							border,
@@ -150,6 +160,7 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 							...displayLines.map((line: string) =>
 								theme.fg("muted", `  ${line}`),
 							),
+							...(footerHint ? [footerHint] : []),
 							border,
 						];
 
@@ -222,7 +233,8 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 			case "tool_execution_start": {
 				const icons = getIconRegistry();
 				output += `\n${icons.tool} ${event.toolName}`;
-				const args = (event as { args?: { path?: string; command?: string } }).args;
+				const args = (event as { args?: { path?: string; command?: string } })
+					.args;
 				if (args?.path) output += ` ${args.path}`;
 				if (args?.command) output += ` $ ${args.command}`;
 				output += "\n";
@@ -232,7 +244,11 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 			case "tool_execution_update": {
 				const partialResult = (
-					event as { partialResult?: { content?: Array<{ type?: string; text?: string }> } }
+					event as {
+						partialResult?: {
+							content?: Array<{ type?: string; text?: string }>;
+						};
+					}
 				).partialResult;
 				const partialText =
 					partialResult?.content
@@ -268,15 +284,14 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 		if (!output.trim()) {
 			const transcript = session.state.messages
 				.filter((m) => m.role === "assistant" || m.role === "toolResult")
-				.map((m) => extractTextFromContent((m as { content?: unknown }).content))
+				.map((m) =>
+					extractTextFromContent((m as { content?: unknown }).content),
+				)
 				.filter((text) => text.trim().length > 0)
 				.join("\n\n")
 				.trim();
 			if (transcript) {
 				output = transcript;
-				updateWidget("streaming");
-			} else if (session.state.errorMessage) {
-				output = `[sub-agent error] ${session.state.errorMessage}`;
 				updateWidget("streaming");
 			}
 		}
@@ -301,6 +316,18 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 			} else {
 				// Clear the streaming widget
 				opts.ui.setWidget(opts.widgetId, undefined);
+			}
+		}
+
+		if (opts.widgetId === "ask") {
+			if (opts.keepWidget && opts.ui) {
+				const iconsAsk = getIconRegistry();
+				setAskWidgetActive(
+					opts.widgetTitle || `${iconsAsk.agentDefault} Sub-Agent`,
+					output,
+				);
+			} else {
+				clearAskWidgetActive();
 			}
 		}
 
