@@ -46,12 +46,6 @@ export interface TeamModelCheckResult {
 	warnings: string[];
 }
 
-export interface TeamModelPolicyValidation {
-	valid: boolean;
-	errors: string[];
-	warnings: string[];
-}
-
 export function normalizeTeamModelPolicy(
 	policy?: TeamModelPolicy,
 ): TeamModelPolicy {
@@ -204,54 +198,6 @@ export function checkTeamModelCandidate(opts: {
 			warnings: [err.message],
 		};
 	}
-}
-
-export function validateTeamModelPolicy(
-	policy: TeamModelPolicy | undefined,
-	modelRegistry: any,
-): TeamModelPolicyValidation {
-	const normalized = normalizeTeamModelPolicy(policy);
-	const errors: string[] = [];
-	const warnings: string[] = [];
-
-	const checkModel = (modelId: string, context: string) => {
-		if (!findModel(modelRegistry, modelId)) {
-			warnings.push(`Unknown model in ${context}: ${modelId}`);
-		}
-		if (isDeprecatedModelId(modelId)) {
-			warnings.push(`Deprecated model in ${context}: ${modelId}`);
-		}
-	};
-
-	if (normalized.default) {
-		checkModel(normalized.default, "teams.modelPolicy.default");
-	}
-
-	for (const [action, modelId] of Object.entries(normalized.overrides || {})) {
-		if (!modelId) {
-			errors.push(`Empty model ID in teams.modelPolicy.overrides.${action}`);
-			continue;
-		}
-		checkModel(modelId, `teams.modelPolicy.overrides.${action}`);
-	}
-
-	for (const [member, modelId] of Object.entries(
-		normalized.memberOverrides || {},
-	)) {
-		if (!modelId) {
-			errors.push(
-				`Empty model ID in teams.modelPolicy.memberOverrides.${member}`,
-			);
-			continue;
-		}
-		checkModel(modelId, `teams.modelPolicy.memberOverrides.${member}`);
-	}
-
-	return {
-		valid: errors.length === 0,
-		errors,
-		warnings,
-	};
 }
 
 function findModel(modelRegistry: any, modelId: string): any {

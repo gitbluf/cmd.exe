@@ -3,7 +3,6 @@
  */
 
 import {
-	deleteTask,
 	getTask,
 	listTasks,
 	nextTaskId,
@@ -17,7 +16,7 @@ export interface TeamTaskView extends TeamTask {
 	blockedBy: string[];
 }
 
-export function createTask(
+function createTask(
 	workspaceRoot: string,
 	teamId: string,
 	input: { subject: string; assignee?: string; deps?: string[] },
@@ -76,7 +75,7 @@ export function getTaskView(
 	return tasks.find((t) => t.id === taskId) || null;
 }
 
-export function setTaskStatus(
+function setTaskStatus(
 	workspaceRoot: string,
 	teamId: string,
 	taskId: string,
@@ -149,19 +148,6 @@ export function unassignTask(
 	return task;
 }
 
-export function setTaskResultSummary(
-	workspaceRoot: string,
-	teamId: string,
-	taskId: string,
-	summary: string,
-): TeamTask {
-	const task = mustGetTask(workspaceRoot, teamId, taskId);
-	task.resultSummary = summary;
-	task.updatedAt = new Date().toISOString();
-	saveTask(workspaceRoot, teamId, task);
-	return task;
-}
-
 export function addDependency(
 	workspaceRoot: string,
 	teamId: string,
@@ -217,21 +203,6 @@ export function listDependencies(
 	const blockedBy = deps.filter((dep) => dep.status !== "completed");
 
 	return { deps, blockedBy };
-}
-
-export function clearTasks(
-	workspaceRoot: string,
-	teamId: string,
-	mode: "completed" | "all",
-): { deleted: number } {
-	const tasks = listTasks(workspaceRoot, teamId);
-	let deleted = 0;
-	for (const task of tasks) {
-		if (mode === "completed" && task.status !== "completed") continue;
-		deleteTask(workspaceRoot, teamId, task.id);
-		deleted += 1;
-	}
-	return { deleted };
 }
 
 export function isTaskBlocked(

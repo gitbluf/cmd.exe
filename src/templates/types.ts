@@ -43,11 +43,6 @@ export interface AgentTemplate {
 	};
 }
 
-export interface ToolDefinition {
-	description: string;
-	command: string;
-}
-
 export interface TemplateConfig {
 	// Global model
 	model?: string;

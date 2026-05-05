@@ -7,8 +7,6 @@ export {
 	ANSI,
 	colorize,
 	DispatchControlPanel,
-	formatStatus,
-	ICONS,
 	separator,
 	stripAnsi,
 } from "./components";

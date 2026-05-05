@@ -9,7 +9,6 @@ import {
 	listMembers,
 	listTasks,
 	saveMember,
-	setActiveTeamId,
 	withTeamLock,
 } from "./store";
 import type { TeamMember, TeamTask } from "./types";
@@ -154,10 +153,6 @@ export async function cleanupTeam(
 		clearActiveTeamId(workspaceRoot);
 		return { deleted: true, taskSummary };
 	});
-}
-
-export function activateTeam(workspaceRoot: string, teamId: string): void {
-	setActiveTeamId(workspaceRoot, teamId);
 }
 
 export interface TeamTaskSummary {

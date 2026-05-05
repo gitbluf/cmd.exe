@@ -20,43 +20,6 @@ const ANSI = {
 	bgCyan: "\u001b[46m",
 };
 
-/**
- * Legacy ICONS export - maintained for backward compatibility
- * Use getIconRegistry() for new code
- */
-const ICONS = {
-	get jack() {
-		return getIconRegistry().jack;
-	},
-	get net() {
-		return getIconRegistry().net;
-	},
-	get code() {
-		return getIconRegistry().code;
-	},
-	get check() {
-		return getIconRegistry().check;
-	},
-	get cross() {
-		return getIconRegistry().cross;
-	},
-	get dot() {
-		return getIconRegistry().dot;
-	},
-	get arrow() {
-		return getIconRegistry().arrow;
-	},
-	get spark() {
-		return getIconRegistry().spark;
-	},
-	get lock() {
-		return getIconRegistry().lock;
-	},
-	get branch() {
-		return getIconRegistry().branch;
-	},
-};
-
 function colorize(text: string, color: string, bold?: boolean) {
 	const b = bold ? ANSI.bright : "";
 	return `${b}${color}${text}${ANSI.reset}`;
@@ -67,33 +30,6 @@ const ANSI_REGEX = /\u001b\[[0-9;]*m/g;
 
 function stripAnsi(s: string) {
 	return s.replace(ANSI_REGEX, "");
-}
-
-function timestamp() {
-	return new Date().toISOString().split("T")[1].split(".")[0];
-}
-
-function formatStatus(
-	text: string,
-	type: "info" | "success" | "error" | "warning",
-) {
-	const ts = colorize(timestamp(), ANSI.dim);
-	let icon = ICONS.dot;
-	let color = ANSI.cyan;
-
-	if (type === "success") {
-		icon = ICONS.check;
-		color = ANSI.green;
-	} else if (type === "error") {
-		icon = ICONS.cross;
-		color = ANSI.red;
-	} else if (type === "warning") {
-		icon = ICONS.spark;
-		color = ANSI.yellow;
-	}
-
-	const badge = colorize(icon, color, true);
-	return `${badge} ${colorize(`[${ts}]`, ANSI.dim)} ${text}`;
 }
 
 function separator(width = 60) {
@@ -178,8 +114,9 @@ class AgentOutputPanel implements Component {
 						? ANSI.cyan
 						: ANSI.yellow;
 
+		const icons = getIconRegistry();
 		const header = colorize(
-			`${ICONS.net} ${this.agentName.toUpperCase()} `,
+			`${icons.net} ${this.agentName.toUpperCase()} `,
 			statusColor,
 			true,
 		);
@@ -207,9 +144,7 @@ export {
 	DispatchControlPanel,
 	AgentOutputPanel,
 	ANSI,
-	ICONS,
 	colorize,
 	stripAnsi,
-	formatStatus,
 	separator,
 };
