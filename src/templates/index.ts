@@ -2,8 +2,8 @@
  * Templates module - agent template definitions and utilities
  */
 
-export { AVAILABLE_TOOLS, DEFAULT_TEMPLATES } from "./defaults";
-export type { AgentTemplate, TemplateConfig, ToolDefinition } from "./types";
+export { DEFAULT_TEMPLATES } from "./defaults";
+export type { AgentTemplate, TemplateConfig } from "./types";
 export {
 	applyAgentOverrides,
 	formatTemplateInfo,

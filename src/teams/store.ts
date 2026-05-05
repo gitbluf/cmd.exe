@@ -230,18 +230,6 @@ export function listMembers(
 	return out.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export function deleteMember(
-	workspaceRoot: string,
-	teamId: string,
-	memberName: string,
-): void {
-	const p = getTeamPaths(workspaceRoot, teamId);
-	const memberPath = path.join(p.membersDir, `${memberName}.json`);
-	if (fs.existsSync(memberPath)) {
-		fs.unlinkSync(memberPath);
-	}
-}
-
 export function saveTask(
 	workspaceRoot: string,
 	teamId: string,

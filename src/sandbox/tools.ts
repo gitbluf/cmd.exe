@@ -6,12 +6,6 @@
  * that can be configured per agent.
  */
 
-import {
-	createBashTool,
-	createEditTool,
-	createReadTool,
-	createWriteTool,
-} from "@mariozechner/pi-coding-agent";
 import { adapters } from "./adapters";
 
 export interface SandboxNetworkRules {
@@ -75,59 +69,6 @@ export function wrapBashCommand(cmd: string, config: SandboxConfig): string {
 		default:
 			return adapter.wrap({ cmd });
 	}
-}
-
-/**
- * Create a sandboxed bash tool
- *
- * Pi SDK tools already scope to cwd (workspace), providing basic sandboxing.
- * This wrapper can be extended to apply additional sandbox strategies
- * if configured.
- */
-export function createSandboxedBashTool(
-	cwd: string,
-	_sandboxConfig: SandboxConfig = { strategy: "none" },
-) {
-	const baseTool = createBashTool(cwd);
-
-	// For now, return the pi SDK tool as-is
-	// It already provides workspace isolation via cwd parameter
-	// Future: wrap with sandboxConfig.strategy if strategy !== "none"
-
-	return baseTool;
-}
-
-/**
- * Create a sandboxed read tool
- *
- * Pi SDK read tool already scopes to cwd (workspace)
- */
-export function createSandboxedReadTool(cwd: string) {
-	return createReadTool(cwd);
-}
-
-/**
- * Create a sandboxed write tool
- *
- * Pi SDK write tool already scopes to cwd (workspace)
- */
-export function createSandboxedWriteTool(
-	cwd: string,
-	_sandboxConfig: SandboxConfig = { strategy: "none" },
-) {
-	return createWriteTool(cwd);
-}
-
-/**
- * Create a sandboxed edit tool
- *
- * Pi SDK edit tool already scopes to cwd (workspace)
- */
-export function createSandboxedEditTool(
-	cwd: string,
-	_sandboxConfig: SandboxConfig = { strategy: "none" },
-) {
-	return createEditTool(cwd);
 }
 
 /**
@@ -317,33 +258,4 @@ export function buildBwrapArgs(policy: SandboxPolicy, cwd: string): string[] {
 	}
 
 	return args;
-}
-
-/**
- * Parse sandbox config from string
- */
-export function parseSandboxConfig(configStr?: string): SandboxConfig {
-	if (!configStr) {
-		return getDefaultSandboxConfig();
-	}
-
-	const parts = configStr.split(":");
-	const strategy = parts[0] as "none" | "sandboxExec" | "bwrap" | "custom";
-
-	if (!["none", "sandboxExec", "bwrap", "custom"].includes(strategy)) {
-		console.warn(`Invalid sandbox strategy: ${strategy}, using none`);
-		return getDefaultSandboxConfig();
-	}
-
-	const config: SandboxConfig = { strategy };
-
-	if (strategy === "sandboxExec" && parts[1]) {
-		config.profile = parts[1];
-	} else if (strategy === "bwrap" && parts[1]) {
-		config.args = parts.slice(1);
-	} else if (strategy === "custom" && parts[1]) {
-		config.template = parts.slice(1).join(":");
-	}
-
-	return config;
 }

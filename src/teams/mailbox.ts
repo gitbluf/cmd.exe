@@ -77,7 +77,7 @@ export function sendBroadcastMessage(
 	};
 }
 
-export function readInbox(
+function readInbox(
 	workspaceRoot: string,
 	teamId: string,
 	memberName: string,
