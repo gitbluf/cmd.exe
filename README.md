@@ -17,6 +17,9 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 # Create and save plans
 # In Plan mode: ask the LLM to create a plan, then save it
 /plan:save
+
+# Toggle RTK bash optimization (when installed + enabled in config)
+/rtk
 ```
 
 ## 📦 Installation
@@ -66,53 +69,51 @@ pi install /path/to/cmd.exe
 ```bash
 pi
 # You should see cmd.exe commands available:
-# /swarm, /plan, /todos, /plan:save, /blackice, etc.
+# /swarm, /plan, /todos, /plan:save, /rtk, /blackice, etc.
 ```
 
 ## ⚙️ Configuration
 
-### Quick Setup
+### Config File
 
-Create `~/.pi/agent/extensions/dispatch.json`:
+`cmd.exe` reads config from:
+
+```bash
+~/.pi/agent/extensions/dispatch.json
+```
+
+### Minimal Setup
 
 ```json
 {
   "slots": {
     "plan_mode": {
-      "model": "claude-opus-4.6"
+      "model": "github-copilot/claude-sonnet-4.5"
     },
     "build_mode": {
-      "model": "claude-sonnet-4.5",
+      "model": "github-copilot/claude-sonnet-4.5",
       "thinking": "high"
     },
     "assistant": {
-      "model": "gpt-4o-mini"
+      "model": "github-copilot/gpt-4o-mini"
     }
   }
 }
 ```
 
-### What Each Slot Controls
+### Supported Top-Level Keys
 
-| Slot | Controls |
-|------|----------|
-| `plan_mode` | Main session in Plan mode |
-| `build_mode` | Main session in Build mode |
-| `assistant` | Background tools (`find_files`, DATAWEAVER) |
-
-**Note:** `/ask` uses the current mode's slot (no separate config needed).
+- `slots`
+- `rtk_enabled`
+- `teams`
+- `agentTemplates`
+- `agents`
+- `icons`
+- `sandbox`
 
 ### Full Configuration Reference
 
-See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
-
-- Complete slots configuration with thinking levels and tools
-- Teams configuration (model policies, action types, member overrides)
-- Agent template definitions and customization
-- Icon customization
-- Sandbox configuration
-- Model resolution strategies
-- Performance and cost optimization tips
+See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for current, code-aligned schemas and defaults for each supported key.
 
 ## 🌟 Core Features
 
@@ -133,6 +134,14 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
 - Footer shows: `🚀 BUILD`
 
 Toggle with `/plan` command.
+
+### ⚡ RTK Bash Optimization
+
+When `rtk_enabled` is set and `rtk` is available in your PATH, cmd.exe prefixes supported bash commands with `rtk`.
+
+- Reduces token-heavy shell output for supported commands
+- Safe fallback: if `rtk` is missing, normal bash execution is used
+- Runtime toggle: `/rtk`
 
 ### 🐝 Multi-Agent Swarms
 

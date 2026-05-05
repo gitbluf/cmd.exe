@@ -51,6 +51,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 		sandbox: defaultSandboxConfig,
 		teams: DEFAULT_TEAMS_CONFIG,
 		slots: DEFAULT_SLOTS,
+		rtk_enabled: false,
 	};
 
 	// Load and merge user config if provided
@@ -121,6 +122,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				sandbox: mergedSandbox,
 				icons: userConfig.icons || config.icons,
 				slots: mergeSlots(slots), // Always returns full SlotsConfig
+				rtk_enabled: userConfig.rtk_enabled ?? config.rtk_enabled,
 				teams: {
 					...DEFAULT_TEAMS_CONFIG,
 					...(userConfig.teams || {}),

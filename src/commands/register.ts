@@ -13,6 +13,7 @@ import {
 	handleAsk,
 	handlePlan,
 	handlePlanSave,
+	handleRtk,
 	handleTeam,
 	handleTeamDashboard,
 	handleTodos,
@@ -68,6 +69,13 @@ export function registerAllCommands(
 			"Ask a one-off question without polluting main context (ephemeral session)",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
 			await handleAsk(args, ctx, config);
+		},
+	});
+
+	pi.registerCommand("rtk", {
+		description: "Toggle RTK command prefixing for bash tool execution",
+		handler: async (args: string, ctx: ExtensionCommandContext) => {
+			await handleRtk(args, ctx);
 		},
 	});
 

@@ -23,6 +23,7 @@ import {
 	flashStepComplete,
 	updatePlanStatus,
 } from "../plan/widget";
+import { getRtkStatusText, initializeRtk } from "../rtk";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import { clearAskWidgetActive } from "../sub-agent";
 import type { TemplateConfig } from "../templates/types";
@@ -94,6 +95,7 @@ export function setupLifecycleHooks(
 
 		if (ctx.hasUI) {
 			ctx.ui.setStatus("mode", getModeStatusText("plan"));
+			ctx.ui.setStatus("rtk", getRtkStatusText());
 		}
 
 		const success = await trySetModel(
@@ -232,6 +234,29 @@ export function setupLifecycleHooks(
 		return {
 			systemPrompt: event.systemPrompt + modePrompt,
 		};
+	});
+
+	// Setup RTK status on session start
+	pi.on("session_start", (_event, ctx) => {
+		const rtkFlagEnabled = pi.getFlag("rtk") as boolean;
+		const rtkState = initializeRtk({
+			configEnabled: config.rtk_enabled,
+			flagEnabled: rtkFlagEnabled,
+		});
+
+		if (!ctx.hasUI) return;
+
+		ctx.ui.setStatus("rtk", getRtkStatusText());
+
+		const icons = getIconRegistry();
+		if (rtkState.enabled) {
+			ctx.ui.notify(`${icons.spark} RTK enabled`, "info");
+		} else if (rtkState.requested && !rtkState.available) {
+			ctx.ui.notify(
+				`${icons.warning} RTK requested but not found in PATH. Falling back to normal bash execution.`,
+				"warning",
+			);
+		}
 	});
 
 	// Setup sandbox on session start
