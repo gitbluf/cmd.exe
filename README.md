@@ -74,50 +74,46 @@ pi
 
 ## ⚙️ Configuration
 
-### Quick Setup
+### Config File
 
-Create `~/.pi/agent/extensions/dispatch.json`:
+`cmd.exe` reads config from:
+
+```bash
+~/.pi/agent/extensions/dispatch.json
+```
+
+### Minimal Setup
 
 ```json
 {
-  "rtk_enabled": true,
   "slots": {
     "plan_mode": {
-      "model": "claude-opus-4.6"
+      "model": "github-copilot/claude-sonnet-4.5"
     },
     "build_mode": {
-      "model": "claude-sonnet-4.5",
+      "model": "github-copilot/claude-sonnet-4.5",
       "thinking": "high"
     },
     "assistant": {
-      "model": "gpt-4o-mini"
+      "model": "github-copilot/gpt-4o-mini"
     }
   }
 }
 ```
 
-### What Each Slot Controls
+### Supported Top-Level Keys
 
-| Slot | Controls |
-|------|----------|
-| `plan_mode` | Main session in Plan mode |
-| `build_mode` | Main session in Build mode |
-| `assistant` | Background tools (`find_files`, DATAWEAVER) |
-
-**Note:** `/ask` uses the current mode's slot (no separate config needed).
+- `slots`
+- `rtk_enabled`
+- `teams`
+- `agentTemplates`
+- `agents`
+- `icons`
+- `sandbox`
 
 ### Full Configuration Reference
 
-See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
-
-- Complete slots configuration with thinking levels and tools
-- Teams configuration (model policies, action types, member overrides)
-- Agent template definitions and customization
-- Icon customization
-- Sandbox configuration
-- RTK integration (`rtk_enabled`, `/rtk`)
-- Model resolution strategies
-- Performance and cost optimization tips
+See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for current, code-aligned schemas and defaults for each supported key.
 
 ## 🌟 Core Features
 
