@@ -17,6 +17,9 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 # Create and save plans
 # In Plan mode: ask the LLM to create a plan, then save it
 /plan:save
+
+# Toggle RTK bash optimization (when installed + enabled in config)
+/rtk
 ```
 
 ## 📦 Installation
@@ -66,7 +69,7 @@ pi install /path/to/cmd.exe
 ```bash
 pi
 # You should see cmd.exe commands available:
-# /swarm, /plan, /todos, /plan:save, /blackice, etc.
+# /swarm, /plan, /todos, /plan:save, /rtk, /blackice, etc.
 ```
 
 ## ⚙️ Configuration
@@ -77,6 +80,7 @@ Create `~/.pi/agent/extensions/dispatch.json`:
 
 ```json
 {
+  "rtk_enabled": true,
   "slots": {
     "plan_mode": {
       "model": "claude-opus-4.6"
@@ -111,6 +115,7 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
 - Agent template definitions and customization
 - Icon customization
 - Sandbox configuration
+- RTK integration (`rtk_enabled`, `/rtk`)
 - Model resolution strategies
 - Performance and cost optimization tips
 
@@ -133,6 +138,14 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for:
 - Footer shows: `🚀 BUILD`
 
 Toggle with `/plan` command.
+
+### ⚡ RTK Bash Optimization
+
+When `rtk_enabled` is set and `rtk` is available in your PATH, cmd.exe prefixes supported bash commands with `rtk`.
+
+- Reduces token-heavy shell output for supported commands
+- Safe fallback: if `rtk` is missing, normal bash execution is used
+- Runtime toggle: `/rtk`
 
 ### 🐝 Multi-Agent Swarms
 

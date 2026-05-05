@@ -8,6 +8,7 @@
  *   /todos                    - Show current plan progress
  *   /plan:save                - Save active plan to disk
  *   /ask                      - Ask a one-off question
+ *   /rtk                      - Toggle RTK bash prefixing
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -16,6 +17,7 @@ import { Box, Text } from "@mariozechner/pi-tui";
 import { registerAllCommands } from "./commands/register";
 import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
+import { createRtkSpawnHook } from "./rtk";
 import { getAskWidgetState, OutputViewerComponent } from "./sub-agent";
 import { createFindFilesTool, createTeamsTool } from "./tools";
 import { getIconRegistry, initIcons } from "./ui/icons";
@@ -111,7 +113,10 @@ function registerAskOutputShortcut(pi: ExtensionAPI): void {
  * when enabled, or falls back to the standard bash tool.
  */
 function registerSandboxedBash(pi: ExtensionAPI): void {
-	const localBash = createBashTool(process.cwd());
+	const rtkSpawnHook = createRtkSpawnHook();
+	const localBash = createBashTool(process.cwd(), {
+		spawnHook: rtkSpawnHook,
+	});
 
 	pi.registerTool({
 		...localBash,
@@ -122,6 +127,7 @@ function registerSandboxedBash(pi: ExtensionAPI): void {
 			}
 			const sandboxedBash = createBashTool(ctx.cwd, {
 				operations: createSandboxedBashOps(),
+				spawnHook: rtkSpawnHook,
 			});
 			return sandboxedBash.execute(id, params, signal, onUpdate);
 		},
@@ -151,6 +157,12 @@ export default function (pi: ExtensionAPI) {
 	// Register flags
 	pi.registerFlag("no-sandbox", {
 		description: "Disable OS-level sandboxing for bash commands",
+		type: "boolean",
+		default: false,
+	});
+
+	pi.registerFlag("rtk", {
+		description: "Enable RTK command prefixing for bash commands",
 		type: "boolean",
 		default: false,
 	});

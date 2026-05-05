@@ -5,6 +5,7 @@
 export { handleAsk } from "./ask";
 export { applyMode, handlePlan } from "./build";
 export { handlePlanSave } from "./plan-save";
+export { handleRtk } from "./rtk";
 export { handleTeam } from "./team";
 export { handleTeamDashboard } from "./team/dashboard";
 export { handleTodos } from "./todos";

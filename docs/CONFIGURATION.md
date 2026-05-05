@@ -26,6 +26,9 @@ Complete reference for configuring the cmd.exe extension for pi.
   
   // Icon/emoji customization
   "icons": { ... },
+
+  // RTK bash prefixing toggle
+  "rtk_enabled": boolean,
   
   // Global sandbox configuration
   "sandbox": { ... }
@@ -224,6 +227,48 @@ Old `modelConfig` and `modes` keys are auto-migrated with deprecation warnings:
   "slots": {
     "plan_mode": { "model": "claude-opus-4.6" },
     "build_mode": { "model": "claude-sonnet-4.5" },
+    "assistant": { "model": "gpt-4o-mini" }
+  }
+}
+```
+
+---
+
+## RTK Integration
+
+Enable [RTK (Rust Token Killer)](https://github.com/rtk-ai/rtk) command prefixing for bash tool execution.
+
+When enabled, cmd.exe prefixes supported bash commands with `rtk` before execution.
+
+### Schema
+
+```typescript
+{
+  "rtk_enabled"?: boolean
+}
+```
+
+### Defaults
+
+- `false` by default
+- If set to `true` but `rtk` is not found in PATH, RTK is automatically disabled for that session
+
+### Runtime Toggle
+
+You can toggle RTK during a session with:
+
+```bash
+/rtk
+```
+
+### Example
+
+```json
+{
+  "rtk_enabled": true,
+  "slots": {
+    "plan_mode": { "model": "claude-sonnet-4.5" },
+    "build_mode": { "model": "claude-sonnet-4.5", "thinking": "high" },
     "assistant": { "model": "gpt-4o-mini" }
   }
 }
@@ -630,6 +675,7 @@ Full configuration showing all available options:
 
 ```json
 {
+  "rtk_enabled": true,
   "slots": {
     "plan_mode": {
       "model": "claude-opus-4.6",
