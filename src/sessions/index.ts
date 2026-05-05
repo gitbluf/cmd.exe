@@ -4,13 +4,8 @@
 
 export {
 	getRecentSessions,
-	getSession,
-	getSessionsByAgent,
-	getSessionsByPlan,
-	getSessionsByTeam,
 	listSessions,
 	loadSessionRegistry,
-	pruneSessionRegistry,
 	recordSession,
 	saveSessionRegistry,
 } from "./registry";

@@ -75,17 +75,6 @@ export function saveSessionRegistry(
 }
 
 /**
- * Get a specific session by ID
- */
-export function getSession(
-	workspaceRoot: string,
-	id: string,
-): SessionRecord | null {
-	const registry = loadSessionRegistry(workspaceRoot);
-	return registry.sessions.find((s) => s.id === id) || null;
-}
-
-/**
  * List sessions, optionally filtered
  */
 export function listSessions(
@@ -160,58 +149,6 @@ export function recordSession(
 	}
 
 	saveSessionRegistry(workspaceRoot, registry);
-}
-
-/**
- * Prune old sessions, keeping only latest N
- */
-export function pruneSessionRegistry(
-	workspaceRoot: string,
-	keepLatest: number = 100,
-): void {
-	const registry = loadSessionRegistry(workspaceRoot);
-
-	if (registry.sessions.length > keepLatest) {
-		registry.sessions = registry.sessions
-			.sort(
-				(a, b) =>
-					new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-			)
-			.slice(0, keepLatest);
-
-		saveSessionRegistry(workspaceRoot, registry);
-	}
-}
-
-/**
- * Get sessions by agent
- */
-export function getSessionsByAgent(
-	workspaceRoot: string,
-	agentId: string,
-	limit?: number,
-): SessionRecord[] {
-	return listSessions(workspaceRoot, { agent: agentId, limit });
-}
-
-/**
- * Get sessions for a plan
- */
-export function getSessionsByPlan(
-	workspaceRoot: string,
-	planId: string,
-): SessionRecord[] {
-	return listSessions(workspaceRoot, { planId });
-}
-
-/**
- * Get sessions for a team
- */
-export function getSessionsByTeam(
-	workspaceRoot: string,
-	teamId: string,
-): SessionRecord[] {
-	return listSessions(workspaceRoot, { teamId });
 }
 
 /**
