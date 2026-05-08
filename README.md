@@ -6,12 +6,6 @@
 # Switch to Build mode (default is Plan mode - read-only)
 /plan
 
-# Dispatch specialized agents to work in parallel
-/swarm task-1 ghost "implement auth module" | task-2 dataweaver "map authentication flow"
-
-# Let BLACKICE orchestrator decompose complex tasks
-/blackice refactor the authentication system for better security
-
 # Create and save plans
 # In Plan mode: ask the LLM to create a plan, then save it
 /plan:save
@@ -67,7 +61,7 @@ pi install /path/to/cmd.exe
 ```bash
 pi
 # You should see cmd.exe commands available:
-# /swarm, /plan, /todos, /plan:save, /rtk, /blackice, etc.
+# /plan, /todos, /plan:save, /ask, /rtk
 ```
 
 ## ⚙️ Configuration
@@ -103,9 +97,6 @@ pi
 
 - `slots`
 - `rtk_enabled`
-- `teams`
-- `agentTemplates`
-- `agents`
 - `icons`
 - `sandbox`
 
@@ -141,40 +132,13 @@ When `rtk_enabled` is set and `rtk` is available in your PATH, cmd.exe prefixes 
 - Safe fallback: if `rtk` is missing, normal bash execution is used
 - Runtime toggle: `/rtk`
 
-### 🐝 Multi-Agent Swarms
-
-Dispatch multiple specialized agents to work concurrently:
-
-```bash
-/swarm task-1 ghost "fix auth bug" | task-2 cortex "analyze logs" | task-3 hardline "security audit"
-```
-
-**Commands:**
-
-- `/swarm` - Dispatch agents with custom tasks
-- `/swarm:list` - View available agent templates
-- `/swarm:status` - Check swarm execution history
-- `/swarm:dashboard` - Real-time interactive monitoring
-- `/swarm:task <id>` - View detailed task output
-
-**Options:**
-
-```bash
-/swarm --concurrency 3 --timeout 600000 task-1 ghost "X" | task-2 dataweaver "Y"
-```
-
-- `--concurrency N` - Max parallel tasks (default: 5)
-- `--timeout N` - Per-task timeout in milliseconds (default: 300000)
-- `--recordOutput` - Output recording: none, truncated, full
-- `--retryFailed` - Retry failed tasks automatically
-
 ### 📋 Plan Tracking
 
 The main session in Plan mode can create implementation plans:
 
 ```bash
 # In Plan mode, ask the LLM to create a plan
-/ops  # Switch to Plan mode
+/plan  # Switch to Plan mode
 "Create a plan for refactoring the authentication system"
 
 # Plan is auto-detected and activated
@@ -184,19 +148,9 @@ The main session in Plan mode can create implementation plans:
 /plan:save  # Writes to .agents/plan-{timestamp}.md
 
 # Execute in Build mode
-/ops  # Switch to Build mode
+/plan  # Switch to Build mode
 # LLM marks steps complete with [DONE:1], [DONE:2], etc.
 ```
-
-### 👁️ BLACKICE Orchestrator
-
-Intelligent task decomposition and routing:
-
-```bash
-/blackice <complex-request>
-```
-
-BLACKICE analyzes your request, breaks it into specialized subtasks, and dispatches the optimal agents automatically.
 
 ### 🔍 Smart File Discovery
 
@@ -216,21 +170,6 @@ find_files({ query: "authentication middleware" })
 
 Available in both Plan and Build modes.
 
-## 🤖 Built-in Agent Templates
-
-| Agent | Role | Temperature | Tools | Best For |
-|-------|------|-------------|-------|----------|
-| **ghost** | Implementation Specialist | 0.1 | read, write, edit, bash | Code changes, execution |
-| **dataweaver** | Information Researcher | 0.7 | read | Documentation, exploration |
-| **hardline** | Command Executor | 0.2 | bash, read, find_files | Scripts, builds, diagnostics |
-
-Each agent has:
-
-- **Specialized system prompt** optimized for their role
-- **Curated toolset** matching their capabilities
-- **Temperature tuning** for deterministic vs creative output
-- **Model selection** appropriate for their task complexity
-
 ## 📁 Project Structure
 
 ```
@@ -238,7 +177,6 @@ cmd.exe/
 ├── src/
 │   ├── agents/           # Agent definitions
 │   ├── commands/         # Command handlers
-│   ├── swarms/           # Multi-agent orchestration
 │   ├── sub-agent/        # Single-agent execution
 │   ├── modes/            # Plan/Build mode system
 │   ├── config/           # Slot-based configuration
@@ -249,26 +187,10 @@ cmd.exe/
 ├── docs/
 │   ├── CONFIGURATION.md  # Complete config reference
 │   └── ICONS.md          # Icon customization
-├── AGENTS.md             # Agent system documentation
-├── QUICKSTART.md         # Quick reference guide
-├── ARCHITECTURE.md       # Technical architecture
-└── IMPLEMENTATION.md     # Implementation details
+└── AGENTS.md             # Agent system documentation
 ```
 
 ## 🚀 Usage Examples
-
-### Multi-Agent Workflow
-
-```bash
-# Complex refactoring with specialized agents
-/swarm \
-  task-1 dataweaver "Design new authentication flow" | \
-  task-2 hardline "Audit current security vulnerabilities" | \
-  task-3 ghost "Implement OAuth2 integration"
-
-# Monitor progress
-/swarm:dashboard
-```
 
 ### Strategic Planning
 
@@ -293,86 +215,23 @@ What are the architectural trade-offs for adding real-time features?
 # LLM marks steps with [DONE:1], [DONE:2], etc.
 ```
 
-### Intelligent Orchestration
-
-```bash
-# Let BLACKICE figure out the optimal approach
-/blackice Migrate our authentication system from session-based to JWT tokens with refresh token rotation
-```
-
-### Security Audit
-
-```bash
-# Comprehensive security review
-/swarm \
-  task-1 hardline "Audit API endpoints for vulnerabilities" | \
-  task-2 hardline "Review authentication & authorization" | \
-  task-3 dataweaver "Document security best practices we're missing"
-```
-
-## 📊 Monitoring & Debugging
-
-### Swarm State
-
-Swarms are persisted under `<workspace>/.agents/dispatch/` (registry: `.dispatch-swarms.json`):
-
-```json
-{
-  "id": "swarm-1234567890",
-  "status": "completed",
-  "tasks": [
-    {
-      "id": "task-1",
-      "agent": "ghost",
-      "status": "completed",
-      "duration": 12450,
-      "tokens": { "input": 1200, "output": 3400 }
-    }
-  ]
-}
-```
-
-### Dashboard
-
-Real-time monitoring with `/swarm:dashboard`:
-
-- Task status and progress bars
-- Token usage statistics
-- Execution timelines
-- Output previews
-- Interactive navigation
-
-### Output Logs
-
-- Truncated output in swarm state
-- Full output in `.agents/dispatch/output/<swarm-id>/<task-id>.log`
-- View with `/swarm:task <task-id>`
-
 ## 🛠️ Requirements
 
 - **pi coding agent** v0.55.0+
 - **Node.js** 18+ or Bun
 - **LLM API access** (OpenAI, Anthropic, GitHub Copilot)
-- **Git** (optional, for workspace isolation)
 
 ## 📚 Documentation
 
 - **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** - Complete configuration reference ⭐
 - **[docs/ICONS.md](docs/ICONS.md)** - Icon customization
-- **[AGENTS.md](AGENTS.md)** - Agent types and swarm commands
-- **[QUICKSTART.md](QUICKSTART.md)** - Quick reference guide
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture
-- **[IMPLEMENTATION.md](IMPLEMENTATION.md)** - Implementation details
+- **[AGENTS.md](AGENTS.md)** - Agent commands and templates
 
 ## 🎨 Design Philosophy
 
-**Cyberpunk Aesthetic** - Neuromancer-inspired agent naming (GHOST, BLACKICE, CORTEX)
+**Cyberpunk Aesthetic** - Neuromancer-inspired agent naming (GHOST, DATAWEAVER, HARDLINE)
 
 **Surgical Precision** - Agents are specialists, not generalists. Each has a narrow, well-defined role.
-
-**Concurrent Execution** - Multiple agents work simultaneously with intelligent coordination.
-
-**Persistent State** - All executions are recorded for debugging and analysis.
 
 **User Control** - Explicit mode switching and detailed monitoring give users full visibility.
 
@@ -386,17 +245,12 @@ Real-time monitoring with `/swarm:dashboard`:
 
 ## ✅ Status
 
-- ✅ Multi-agent swarm execution
 - ✅ Dual mode system (Plan/Build)
 - ✅ Slot-based model configuration
-- ✅ Teams configuration support
-- ✅ Real-time monitoring dashboard
-- ✅ Persistent swarm state
-- ✅ BLACKICE orchestration
 - ✅ Plan tracking with `/todos` and `/plan:save`
+- ✅ RTK bash optimization
 - ✅ Icon customization
 - ✅ Comprehensive documentation
-- 🔄 Git worktree isolation (optional)
 - 🔄 Advanced retry strategies (future)
 
 ## 🤝 Contributing

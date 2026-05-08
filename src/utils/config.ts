@@ -7,13 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { DEFAULT_SLOTS, mergeSlots } from "../config/slots";
 import { getDefaultSandboxConfig, mergeSandboxConfig } from "../sandbox";
-import {
-	applyAgentOverrides,
-	DEFAULT_TEMPLATES,
-	mergeTemplates,
-	validateTemplate,
-} from "../templates";
-import type { AgentTemplate, TemplateConfig } from "../templates/types";
+import type { TemplateConfig } from "../templates/types";
 
 /**
  * Load configuration from JSON file
@@ -40,28 +34,17 @@ export function loadConfigFile(
 export function loadConfig(configPath?: string): TemplateConfig {
 	const defaultSandboxConfig = getDefaultSandboxConfig();
 
-	// Start with defaults
 	let config: TemplateConfig = {
-		model: "gpt-4o",
-		agentTemplates: DEFAULT_TEMPLATES,
-		agents: {},
-		defaultAgents: 3,
-		defaultMission: "Infiltrate the monolith, extract creds, leave no trace.",
 		sandbox: defaultSandboxConfig,
 		slots: DEFAULT_SLOTS,
 		rtk_enabled: false,
 	};
 
-	// Load and merge user config if provided
 	if (configPath) {
 		console.log(`[dispatch] Loading config from: ${configPath}`);
 		const userConfig = loadConfigFile(configPath);
 		if (userConfig) {
 			console.log(`[dispatch] Config loaded successfully`);
-			const userTemplates = (userConfig.agentTemplates || {}) as Record<
-				string,
-				AgentTemplate
-			>;
 			const mergedSandbox = mergeSandboxConfig(
 				defaultSandboxConfig,
 				userConfig.sandbox,
@@ -114,47 +97,13 @@ export function loadConfig(configPath?: string): TemplateConfig {
 			}
 
 			config = {
-				model: userConfig.model || config.model,
-				agentTemplates: mergeTemplates(DEFAULT_TEMPLATES, userTemplates),
-				agents: userConfig.agents || {},
-				defaultAgents: userConfig.defaultAgents || config.defaultAgents,
-				defaultMission: userConfig.defaultMission || config.defaultMission,
 				sandbox: mergedSandbox,
 				icons: userConfig.icons || config.icons,
-				slots: mergeSlots(slots), // Always returns full SlotsConfig
+				slots: mergeSlots(slots),
 				rtk_enabled: userConfig.rtk_enabled ?? config.rtk_enabled,
 			};
 		} else {
 			console.log(`[dispatch] Config file not found, using defaults`);
-		}
-	}
-
-	// Apply agent overrides from config
-	if (config.agents && Object.keys(config.agents).length > 0) {
-		config.agentTemplates = applyAgentOverrides(
-			config.agentTemplates || {},
-			config.agents,
-		);
-	}
-
-	// Validate all templates
-	const invalidTemplates: string[] = [];
-	if (config.agentTemplates) {
-		for (const [name, template] of Object.entries(config.agentTemplates)) {
-			const errors = validateTemplate(name, template as AgentTemplate);
-			if (errors.length > 0) {
-				console.error(
-					`[dispatch] Template validation failed:\n${errors.join("\n")}`,
-				);
-				invalidTemplates.push(name);
-			}
-		}
-	}
-
-	// Remove invalid templates
-	for (const name of invalidTemplates) {
-		if (config.agentTemplates) {
-			delete config.agentTemplates[name];
 		}
 	}
 

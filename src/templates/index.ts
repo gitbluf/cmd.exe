@@ -1,20 +1,5 @@
 /**
- * Templates module - agent template definitions and utilities
+ * Templates module
  */
 
-export { DEFAULT_TEMPLATES } from "./defaults";
-export type { AgentTemplate, TemplateConfig } from "./types";
-export {
-	applyAgentOverrides,
-	formatTemplateInfo,
-	getAvailableAgentIds,
-	getEffectiveModel,
-	getEffectiveTemperature,
-	getRandomTemplate,
-	getTemplate,
-	getTemplateNames,
-	isAgentDisabled,
-	listTemplates,
-	mergeTemplates,
-	validateTemplate,
-} from "./utils";
+export type { TemplateConfig } from "./types";

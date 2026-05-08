@@ -263,39 +263,6 @@ Locate files in the codebase matching a query. Spawns a read-only DATAWEAVER sub
 
 ---
 
-## Agent Templates
-
-By default, runtime loads these templates: `ghost`, `dataweaver`, `hardline`.
-
-The codebase also defines additional agents (`cortex`, `blackice`, `blueprint`), but those must be added to `agentTemplates` config to be available at runtime.
-
-### Default-loaded: ghost
-
-- **Role:** Implementation Specialist
-- **Focus:** Code changes, execution, delivery
-- **Prompt:** Surgical, precise, implementation-focused
-- **Tools:** read, write, edit, bash
-- **Temperature:** 0.1 (deterministic)
-
-### Default-loaded: dataweaver
-
-- **Role:** Information Researcher
-- **Focus:** Documentation, exploration, findings
-- **Prompt:** Thorough, curious, detail-oriented
-- **Tools:** read, bash (read-only with command allowlist)
-  - When invoked via `find_files` tool: also gets `ls`, `grep`, and `find` for efficient file discovery
-- **Temperature:** 0.4 (balanced)
-
-### Default-loaded: hardline
-
-- **Role:** Security Auditor
-- **Focus:** Code review, vulnerability detection
-- **Prompt:** Critical, thorough, security-minded
-- **Tools:** read, bash
-- **Temperature:** 0.2 (strict)
-
----
-
 Current date: 2026-05-08
 Current working directory: /Users/mpetrovic/Dev/devoops/github/cmd.exe
 ## Operating Mode: BUILD

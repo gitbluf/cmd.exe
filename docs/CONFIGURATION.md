@@ -16,9 +16,6 @@ Only these top-level keys are relevant for the extension:
 
 - `slots`
 - `rtk_enabled`
-- `teams`
-- `agentTemplates`
-- `agents`
 - `icons`
 - `sandbox`
 
@@ -131,142 +128,7 @@ Enables RTK bash command prefixing support.
 
 ---
 
-## 3) Teams config (`teams`)
-
-Controls team model policy behavior used by team commands/tools.
-
-### Schema
-
-```ts
-{
-  "teams"?: {
-    "enabled"?: boolean,
-    "defaultThinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh",
-    "modelPolicy"?: {
-      "default"?: string,
-      "overrides"?: Partial<Record<
-        | "leader"
-        | "teammate_default"
-        | "delegate"
-        | "task_planning"
-        | "task_execution"
-        | "review"
-        | "research"
-        | "message_summarization"
-        | "hooks",
-        string
-      >>,
-      "memberOverrides"?: Record<string, string>,
-      "fallback"?: boolean,
-      "strict"?: boolean,
-      "disallowDeprecatedInheritance"?: boolean
-    }
-  }
-}
-```
-
-### Defaults
-
-```json
-{
-  "teams": {
-    "enabled": false,
-    "defaultThinking": "medium",
-    "modelPolicy": {
-      "fallback": true,
-      "strict": false,
-      "disallowDeprecatedInheritance": true
-    }
-  }
-}
-```
-
----
-
-## 4) Agent templates (`agentTemplates`)
-
-Defines agent templates used for swarm/sub-agent execution.
-
-### Schema
-
-```ts
-{
-  "agentTemplates"?: {
-    "[agentId]": {
-      "id"?: string,
-      "name"?: string,
-      "agentType"?: "cortex" | "blueprint" | "dataweaver" | "ghost" | "hardline",
-      "role": string,
-      "description": string,
-      "systemPrompt": string,
-      "tools": string[],
-      "canWrite"?: boolean,
-      "canExecuteShell"?: boolean,
-      "readOnlyBash"?: boolean,
-      "model": string,
-      "maxTokens": number,
-      "temperature": number,
-      "modelOverride"?: string,
-      "temperatureOverride"?: number,
-      "disabled"?: boolean,
-      "sandbox"?: {
-        "strategy"?: "none" | "sandboxExec" | "bwrap" | "custom",
-        "profile"?: string,
-        "args"?: string[],
-        "template"?: string
-      }
-    }
-  }
-}
-```
-
-### Runtime defaults
-
-Default-loaded templates are:
-
-- `ghost`
-- `dataweaver`
-- `hardline`
-
----
-
-## 5) Per-agent overrides (`agents`)
-
-Lightweight overrides on top of templates.
-
-### Schema
-
-```ts
-{
-  "agents"?: {
-    "[agentId]": {
-      "model"?: string,
-      "temperature"?: number,
-      "disabled"?: boolean
-    }
-  }
-}
-```
-
-### Example
-
-```json
-{
-  "agents": {
-    "ghost": {
-      "model": "github-copilot/claude-sonnet-4.5",
-      "temperature": 0.05
-    },
-    "hardline": {
-      "disabled": true
-    }
-  }
-}
-```
-
----
-
-## 6) Icons (`icons`)
+## 3) Icons (`icons`)
 
 Override UI icons used by the extension.
 
@@ -282,7 +144,7 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ---
 
-## 7) Sandbox (`sandbox`)
+## 4) Sandbox (`sandbox`)
 
 Controls sandbox strategy/policy used by extension workflows.
 
@@ -335,24 +197,6 @@ Controls sandbox strategy/policy used by extension workflows.
     },
     "assistant": {
       "model": "github-copilot/gpt-4o-mini"
-    }
-  },
-  "teams": {
-    "defaultThinking": "medium",
-    "modelPolicy": {
-      "default": "github-copilot/claude-sonnet-4.5",
-      "fallback": true,
-      "strict": false,
-      "overrides": {
-        "task_planning": "github-copilot/claude-sonnet-4.5",
-        "task_execution": "github-copilot/claude-sonnet-4.5",
-        "research": "github-copilot/gpt-4o-mini"
-      }
-    }
-  },
-  "agents": {
-    "hardline": {
-      "disabled": false
     }
   },
   "icons": {
