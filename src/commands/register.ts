@@ -7,6 +7,7 @@ import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
+import type { MemberSessionManager } from "../teams/member-session";
 import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import {
@@ -34,11 +35,12 @@ function getRoot(ctx: ExtensionCommandContext): string {
 export function registerAllCommands(
 	pi: ExtensionAPI,
 	config: TemplateConfig,
+	sessionManager?: MemberSessionManager,
 ): void {
 	pi.registerCommand("team:dashboard", {
 		description: "Interactive team dashboard",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleTeamDashboard(args, ctx, getRoot(ctx));
+			await handleTeamDashboard(args, ctx, getRoot(ctx), sessionManager);
 		},
 	});
 
@@ -46,7 +48,7 @@ export function registerAllCommands(
 		description:
 			"Toggle between Plan mode (read-only) and Build mode (full tools)",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handlePlan(args, ctx, pi, config.slots!);
+			await handlePlan(args, ctx, pi, config.slots ?? {});
 		},
 	});
 
@@ -82,7 +84,7 @@ export function registerAllCommands(
 	pi.registerCommand("team", {
 		description: "Manage teams, tasks, and model policy",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleTeam(args, ctx, getRoot(ctx), config);
+			await handleTeam(args, ctx, getRoot(ctx), config, sessionManager);
 		},
 	});
 }

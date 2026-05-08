@@ -19,6 +19,7 @@ import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
 import { createRtkSpawnHook } from "./rtk";
 import { getAskWidgetState, OutputViewerComponent } from "./sub-agent";
+import { MemberSessionManager } from "./teams/member-session";
 import { createFindFilesTool, createTeamsTool } from "./tools";
 import { getIconRegistry, initIcons } from "./ui/icons";
 import { getConfigPath, loadConfig } from "./utils/config";
@@ -147,8 +148,21 @@ export default function (pi: ExtensionAPI) {
 	// Initialize icon registry with user overrides
 	initIcons(config.icons);
 
-	// Lifecycle hooks (sandbox init, cleanup, mode management)
-	setupLifecycleHooks(pi, config);
+	// Create session manager if teams is configured
+	const sessionManager =
+		config.teams?.enabled !== false
+			? new MemberSessionManager({
+					cmuxSocketPath: config.teams?.cmux?.socketPath,
+					piPath: config.teams?.piPath,
+					bridgePath: config.teams?.bridgePath,
+					maxLiveMembers: config.teams?.maxLiveMembers,
+					humanInputPolicy: config.teams?.humanInputPolicy,
+					logging: config.teams?.logging,
+				})
+			: undefined;
+
+	// Lifecycle hooks (sandbox init, cleanup, mode management, team orphan cleanup)
+	setupLifecycleHooks(pi, config, sessionManager);
 
 	// Register UI components and shortcuts
 	registerOutputRenderer(pi);
@@ -200,6 +214,7 @@ export default function (pi: ExtensionAPI) {
 		cwd: process.cwd(),
 		config,
 		pi,
+		sessionManager,
 	});
 
 	pi.registerTool({
@@ -209,11 +224,12 @@ export default function (pi: ExtensionAPI) {
 				cwd: ctx.cwd,
 				config,
 				pi,
+				sessionManager,
 			});
 			return tool.execute(toolCallId, params, signal, onUpdate, ctx);
 		},
 	});
 
 	// Register all slash commands
-	registerAllCommands(pi, config);
+	registerAllCommands(pi, config, sessionManager);
 }

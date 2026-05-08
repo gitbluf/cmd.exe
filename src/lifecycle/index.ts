@@ -26,6 +26,9 @@ import {
 import { getRtkStatusText, initializeRtk } from "../rtk";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import { clearAskWidgetActive } from "../sub-agent";
+import type { MemberSessionManager } from "../teams/member-session";
+import { isPidAlive } from "../teams/runtime";
+import { listMembers, listTeams, saveMember } from "../teams/store";
 import type { TemplateConfig } from "../templates/types";
 import { getIconRegistry } from "../ui/icons";
 import { getWorkspaceRoot } from "../utils/config";
@@ -46,8 +49,12 @@ export { sandboxState } from "./sandbox";
 export function setupLifecycleHooks(
 	pi: ExtensionAPI,
 	config: TemplateConfig,
+	sessionManager?: MemberSessionManager,
 ): void {
-	const slots = config.slots!;
+	const slots = config.slots ?? {
+		plan_mode: { model: "" },
+		build_mode: { model: "" },
+	};
 	const sandboxPolicy = config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
 	setSandboxPolicy(sandboxPolicy);
 
@@ -69,6 +76,30 @@ export function setupLifecycleHooks(
 			ctx.ui.setStatus("mode", getModeStatusText("plan"));
 			updatePlanStatus(ctx, null);
 			clearPlanWidgets(ctx);
+		}
+
+		// Cleanup orphaned member PIDs from previous leader crash
+		if (sessionManager) {
+			for (const teamId of listTeams(root)) {
+				for (const member of listMembers(root, teamId)) {
+					if (member.pid && !isPidAlive(member.pid)) {
+						member.pid = undefined;
+						member.runtimeId = undefined;
+						member.processStartedAt = undefined;
+						member.surfaceId = undefined;
+						member.workspaceId = undefined;
+						member.controlSocketPath = undefined;
+						member.status = "offline";
+						member.lastActivity = "orphan: pid dead at startup";
+						saveMember(root, teamId, member);
+					} else if (member.pid && isPidAlive(member.pid)) {
+						console.warn(
+							`[teams] Stale live PID ${member.pid} for "${member.name}" (team ${teamId}) — not killing`,
+						);
+					}
+				}
+			}
+			sessionManager.startHeartbeat(root);
 		}
 
 		// Try to set the plan model
@@ -139,6 +170,7 @@ export function setupLifecycleHooks(
 		const mode = getCurrentMode();
 
 		// Extract text content from message (only if it's a text message)
+		// biome-ignore lint/suspicious/noExplicitAny: pi SDK message shape is opaque
 		const message = event.message as any;
 		if (!message.content) return;
 
@@ -147,7 +179,9 @@ export function setupLifecycleHooks(
 				? message.content
 				: Array.isArray(message.content)
 					? message.content
+							// biome-ignore lint/suspicious/noExplicitAny: pi SDK content block shape is opaque
 							.filter((c: any) => c.type === "text")
+							// biome-ignore lint/suspicious/noExplicitAny: pi SDK content block shape is opaque
 							.map((c: any) => c.text)
 							.join("")
 					: "";
@@ -278,6 +312,22 @@ export function setupLifecycleHooks(
 	pi.on("session_shutdown", async (_event, ctx) => {
 		await resetSandbox();
 		clearAskWidgetActive();
+
+		// Gracefully stop live team members
+		if (sessionManager) {
+			sessionManager.stopHeartbeat();
+			const root = getWorkspaceRoot(ctx.cwd);
+			if (config.teams?.shutdownPolicy !== "leave-running") {
+				for (const teamId of listTeams(root)) {
+					await sessionManager
+						.stopAll(root, teamId, "leader_shutdown")
+						.catch((err) =>
+							console.warn(`[teams] stopAll failed for ${teamId}:`, err),
+						);
+				}
+			}
+			await sessionManager.dispose();
+		}
 
 		// Save plan state
 		if (ctx.hasUI) {

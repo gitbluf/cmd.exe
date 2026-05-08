@@ -8,7 +8,6 @@ import type {
 	ModelInfo,
 	Provider,
 	ProviderConfig,
-	ProviderFactoryOptions,
 	ProviderType,
 } from "./types";
 
@@ -79,6 +78,7 @@ const OPENAI_MODELS: ModelInfo[] = [
 class BaseProvider implements Provider {
 	type: ProviderType;
 	config: ProviderConfig;
+	// biome-ignore lint/suspicious/noExplicitAny: third-party SDK client type varies by provider
 	protected client: any;
 
 	constructor(type: ProviderType, config: ProviderConfig) {
@@ -147,6 +147,7 @@ class BaseProvider implements Provider {
 		return validateProviderConfig(this.config);
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: returns third-party SDK client
 	getClient(): any {
 		if (!this.client) {
 			throw new ProviderError(
@@ -183,7 +184,9 @@ class OpenAIProvider extends BaseProvider {
 
 /**
  * Provider factory - creates provider instances
+ * @deprecated Prefer direct instantiation; class kept for backward compat.
  */
+// biome-ignore lint/complexity/noStaticOnlyClass: legacy factory pattern, kept for backward compat
 export class ProviderFactory {
 	/**
 	 * Create a provider instance

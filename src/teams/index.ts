@@ -2,6 +2,7 @@
  * Teams module - public API
  */
 
+export type { SpawnMemberOptions, TeamTaskSummary } from "./lifecycle";
 // Lifecycle
 export {
 	cleanupTeam,
@@ -12,9 +13,23 @@ export {
 	spawnMember,
 	teamDone,
 } from "./lifecycle";
+export type {
+	MemberRuntime,
+	MemberSessionManagerOptions,
+	StartMemberOptions,
+} from "./member-session";
+// Session management
+export { MemberSessionManager } from "./member-session";
 
 // Model policy
 export { checkTeamModelCandidate } from "./model-policy";
+
+// Runtime utilities
+export {
+	assertSafeName,
+	isPidAlive,
+	isSafeName,
+} from "./runtime";
 
 // Store
 export {
@@ -46,8 +61,8 @@ export type {
 	TeamMemberStatus,
 	TeamModelActionType,
 	TeamModelPolicy,
-	TeamsConfig,
 	TeamState,
+	TeamsConfig,
 	TeamTask,
 	TeamTaskStatus,
 } from "./types";

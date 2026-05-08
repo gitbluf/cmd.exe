@@ -39,7 +39,8 @@ export async function handleTeamModel(
 			policy: config.teams?.modelPolicy,
 			globalSlots: config.slots,
 			model,
-			actionType: actionType as any,
+			actionType:
+				actionType as import("../../../teams/types").TeamModelActionType,
 			memberName,
 		});
 

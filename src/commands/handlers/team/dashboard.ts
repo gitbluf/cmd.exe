@@ -4,6 +4,7 @@
 
 import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 import { getActiveTeamId, listTeams, loadTeamState } from "../../../teams";
+import type { MemberSessionManager } from "../../../teams/member-session";
 import { ANSI, colorize } from "../../../ui";
 import { getIconRegistry } from "../../../ui/icons";
 
@@ -11,6 +12,7 @@ export async function handleTeamDashboard(
 	_args: string,
 	ctx: ExtensionCommandContext,
 	root: string,
+	sessionManager?: MemberSessionManager,
 ): Promise<void> {
 	try {
 		const { createDashboard } = await import("../../../ui/dashboard");
@@ -24,6 +26,7 @@ export async function handleTeamDashboard(
 							!!team,
 					),
 			getActiveTeamId: () => getActiveTeamId(root),
+			sessionManager,
 			refreshInterval: 1000,
 		});
 

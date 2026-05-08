@@ -18,7 +18,9 @@ import {
 export function buildToolsFromTemplate(
 	toolNames: string[],
 	cwd: string,
+	// biome-ignore lint/suspicious/noExplicitAny: returns opaque pi SDK tool objects
 ): any[] {
+	// biome-ignore lint/suspicious/noExplicitAny: opaque pi SDK tool objects
 	const tools: any[] = [];
 	for (const name of toolNames) {
 		switch (name) {

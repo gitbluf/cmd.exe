@@ -46,7 +46,7 @@ class Logger {
 		return this.levelMap[level] >= this.levelMap[this.level];
 	}
 
-	private formatMessage(level: LogLevel, message: string): string {
+	private formatMessage(_level: LogLevel, message: string): string {
 		let formatted = message;
 		if (this.prefix) {
 			formatted = `[${this.prefix}] ${formatted}`;
@@ -58,24 +58,28 @@ class Logger {
 		return formatted;
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: variadic console args
 	debug(message: string, ...args: any[]): void {
 		if (this.shouldLog("debug")) {
 			console.debug(this.formatMessage("debug", message), ...args);
 		}
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: variadic console args
 	info(message: string, ...args: any[]): void {
 		if (this.shouldLog("info")) {
 			console.log(this.formatMessage("info", message), ...args);
 		}
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: variadic console args
 	warn(message: string, ...args: any[]): void {
 		if (this.shouldLog("warn")) {
 			console.warn(this.formatMessage("warn", message), ...args);
 		}
 	}
 
+	// biome-ignore lint/suspicious/noExplicitAny: variadic console args
 	error(message: string, ...args: any[]): void {
 		if (this.shouldLog("error")) {
 			console.error(this.formatMessage("error", message), ...args);

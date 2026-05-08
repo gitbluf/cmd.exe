@@ -25,6 +25,7 @@ export async function handleTeam(
 	ctx: ExtensionCommandContext,
 	root: string,
 	config: TemplateConfig,
+	sessionManager?: import("../../teams/member-session").MemberSessionManager,
 ): Promise<void> {
 	const input = (args || "").trim();
 	if (!input) {
@@ -32,7 +33,7 @@ export async function handleTeam(
 		return;
 	}
 
-	const runtime: TeamCommandRuntime = { ctx, root, config };
+	const runtime: TeamCommandRuntime = { ctx, root, config, sessionManager };
 	const [section] = input.split(/\s+/);
 	const rest = input.slice(section.length).trim();
 

@@ -73,6 +73,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 			let slots = userConfig.slots;
 			if (
 				!slots &&
+				// biome-ignore lint/suspicious/noExplicitAny: checking deprecated config shape
 				((userConfig as any).modelConfig || (userConfig as any).modes)
 			) {
 				console.warn(
@@ -83,6 +84,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				);
 
 				// Auto-migrate old keys to new slots (best-effort)
+				// biome-ignore lint/suspicious/noExplicitAny: reading deprecated config shape
 				const oldConfig = userConfig as any;
 				slots = {
 					plan_mode: {

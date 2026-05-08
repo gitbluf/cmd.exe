@@ -56,6 +56,7 @@ export const DEFAULT_SLOTS: SlotsConfig = {
 
 /** Result of resolving a slot against the model registry */
 export interface SlotResolution {
+	// biome-ignore lint/suspicious/noExplicitAny: SDK model type is opaque
 	model: any;
 	modelId: string;
 	thinking?: ThinkingLevel;
@@ -68,8 +69,10 @@ export interface SlotResolution {
  * Warns on fallback.
  */
 export function resolveSlot(
+	// biome-ignore lint/suspicious/noExplicitAny: SDK ModelRegistry has opaque shape
 	modelRegistry: any,
 	slot: SlotConfig,
+	// biome-ignore lint/suspicious/noExplicitAny: SDK Model type is opaque
 	currentModel?: any,
 ): SlotResolution {
 	// Try to find the configured model
@@ -112,19 +115,23 @@ export function resolveSlot(
  * Find a model in the registry by ID.
  * Supports exact, provider/id, and suffix matching.
  */
+// biome-ignore lint/suspicious/noExplicitAny: SDK ModelRegistry and Model types are opaque
 export function findModelInRegistry(modelRegistry: any, modelId: string): any {
 	const available = modelRegistry?.getAvailable?.();
 	if (!available) return null;
 
 	// Exact match
+	// biome-ignore lint/suspicious/noExplicitAny: SDK model shape is opaque
 	let model = available.find((m: any) => m.id === modelId);
 	if (model) return model;
 
 	// Provider/id match (e.g., "github-copilot/gpt-4o-mini")
+	// biome-ignore lint/suspicious/noExplicitAny: SDK model shape is opaque
 	model = available.find((m: any) => `${m.provider}/${m.id}` === modelId);
 	if (model) return model;
 
 	// Suffix match (e.g., "gpt-4o-mini" matches "github-copilot/gpt-4o-mini")
+	// biome-ignore lint/suspicious/noExplicitAny: SDK model shape is opaque
 	model = available.find((m: any) => m.id.endsWith(modelId));
 	if (model) return model;
 

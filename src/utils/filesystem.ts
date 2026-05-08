@@ -25,7 +25,7 @@ export function readFileSafe(
 		if (fs.existsSync(filePath)) {
 			return fs.readFileSync(filePath, encoding);
 		}
-	} catch (error) {
+	} catch (_error) {
 		// Silently ignore errors when reading
 	}
 	return undefined;
@@ -44,7 +44,7 @@ export function writeFileSafe(
 		ensureDirectory(dir);
 		fs.writeFileSync(filePath, content, encoding);
 		return true;
-	} catch (error) {
+	} catch (_error) {
 		return false;
 	}
 }
@@ -65,7 +65,7 @@ export function listFiles(dir: string, pattern?: RegExp): string[] {
 		}
 
 		return files;
-	} catch (error) {
+	} catch (_error) {
 		return [];
 	}
 }
@@ -84,7 +84,7 @@ export function deleteFileOrDir(filePath: string): boolean {
 			}
 			return true;
 		}
-	} catch (error) {
+	} catch (_error) {
 		// Silently ignore errors
 	}
 	return false;
@@ -96,7 +96,7 @@ export function deleteFileOrDir(filePath: string): boolean {
 export function fileExists(filePath: string): boolean {
 	try {
 		return fs.existsSync(filePath);
-	} catch (error) {
+	} catch (_error) {
 		return false;
 	}
 }
@@ -108,7 +108,7 @@ export function getFileSize(filePath: string): number | undefined {
 	try {
 		const stat = fs.statSync(filePath);
 		return stat.size;
-	} catch (error) {
+	} catch (_error) {
 		return undefined;
 	}
 }
@@ -121,7 +121,7 @@ export function formatFileSize(bytes: number): string {
 	const k = 1024;
 	const sizes = ["B", "KB", "MB", "GB"];
 	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return parseFloat((bytes / k ** i).toFixed(2)) + " " + sizes[i];
+	return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
