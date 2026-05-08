@@ -3,21 +3,20 @@
  * Spawns a sub-agent session with a custom system prompt and mission.
  */
 
-import type { Api, Model } from "@mariozechner/pi-ai";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import type {
 	CreateAgentSessionOptions,
 	ExtensionAPI,
 	ExtensionContext,
 	ModelRegistry,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
 	createAgentSession,
-	createReadTool,
 	DefaultResourceLoader,
 	getAgentDir,
 	SessionManager,
-} from "@mariozechner/pi-coding-agent";
-import { truncateToWidth } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { getIconRegistry } from "../ui/icons";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
 import { storeSubAgentOutput } from "./store";
@@ -90,7 +89,7 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 		selectedModel = available[0];
 	}
 
-	const tools = opts.tools || [createReadTool(opts.cwd)];
+	const tools = opts.tools || ["read"];
 
 	let session: Awaited<ReturnType<typeof createAgentSession>>["session"];
 	try {

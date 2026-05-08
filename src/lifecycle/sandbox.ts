@@ -8,7 +8,7 @@ import {
 	SandboxManager,
 	type SandboxRuntimeConfig,
 } from "@anthropic-ai/sandbox-runtime";
-import type { BashOperations } from "@mariozechner/pi-coding-agent";
+import type { BashOperations } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import type { SandboxPolicy } from "../sandbox/tools";
 import { getIconRegistry } from "../ui/icons";

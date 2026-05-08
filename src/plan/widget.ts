@@ -5,8 +5,8 @@
 import type {
 	ExtensionCommandContext,
 	ExtensionContext,
-} from "@mariozechner/pi-coding-agent";
-import { truncateToWidth } from "@mariozechner/pi-tui";
+} from "@earendil-works/pi-coding-agent";
+import { truncateToWidth } from "@earendil-works/pi-tui";
 import { getIconRegistry } from "../ui/icons";
 import { getCurrentStep, getPlanStats } from "./state";
 import type { PlanState, PlanStep } from "./types";

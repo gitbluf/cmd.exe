@@ -6,7 +6,7 @@
  * Non-blocking: user can keep typing while it updates.
  */
 
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 
 export type AgentPhase = "plan" | "synth" | "apply";
 export type AgentStatus = "running" | "done" | "error";

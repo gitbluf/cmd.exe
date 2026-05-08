@@ -2,7 +2,7 @@
  * /rtk command handler - toggle RTK bash command prefixing
  */
 
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import {
 	disableRtk,
 	enableRtk,

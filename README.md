@@ -1,7 +1,5 @@
 # cmd.exe: Multi-Agent AI Orchestration System
 
-A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI agents to work concurrently on complex tasks with intelligent orchestration.
-
 ## 🎯 Quick Start
 
 ```bash
@@ -26,12 +24,12 @@ A **cyberpunk-themed multi-agent framework** for pi that enables specialized AI 
 
 ### Prerequisites
 
-Ensure you have [pi coding agent](https://github.com/badlogic/pi) installed:
+Ensure you have [pi coding agent](https://github.com/earendil-works/pi) installed:
 
 ```bash
-npm install -g @mariozechner/pi-coding-agent
+npm install -g @earendil-works/pi-coding-agent
 # or
-bun add -g @mariozechner/pi-coding-agent
+bun add -g @earendil-works/pi-coding-agent
 ```
 
 ### Option 1: Install from npm (Recommended)
@@ -210,6 +208,7 @@ find_files({ query: "authentication middleware" })
 ```
 
 **How it works:**
+
 - Spawns DATAWEAVER in isolated session
 - Explores codebase with full read access
 - Returns only curated file list to main session
@@ -379,8 +378,8 @@ Real-time monitoring with `/swarm:dashboard`:
 
 ## 🚧 Tech Stack
 
-- **[@mariozechner/pi-coding-agent](https://github.com/badlogic/pi)** - Agent session management
-- **[@mariozechner/pi-tui](https://github.com/badlogic/pi)** - Terminal UI components
+- **[@earendil-works/pi-coding-agent](https://github.com/earendil-works/pi)** - Agent session management
+- **[@earendil-works/pi-tui](https://github.com/earendil-works/pi)** - Terminal UI components
 - **[@anthropic-ai/sandbox-runtime](https://github.com/anthropics/anthropic-sdk-typescript)** - Sandboxed execution
 - **TypeScript** - Type-safe implementation
 - **Bun** - Fast runtime and package management
@@ -402,7 +401,7 @@ Real-time monitoring with `/swarm:dashboard`:
 
 ## 🤝 Contributing
 
-This is an extension for the [pi coding agent](https://github.com/badlogic/pi). Follow pi's extension development guidelines.
+This is an extension for the [pi coding agent](https://github.com/earendil-works/pi). Follow pi's extension development guidelines.
 
 ## 📄 License
 

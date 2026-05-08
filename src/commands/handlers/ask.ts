@@ -6,8 +6,7 @@
  * Session is discarded after the answer is delivered.
  */
 
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
-import { createReadTool } from "@mariozechner/pi-coding-agent";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { resolveSlot, type SlotResolution } from "../../config/slots";
 import { getCurrentMode } from "../../modes";
 import { runSubAgent } from "../../sub-agent";
@@ -58,7 +57,7 @@ export async function handleAsk(
 			cwd: ctx.cwd,
 			modelRegistry: ctx.modelRegistry,
 			model: resolution.model,
-			tools: [createReadTool(ctx.cwd)],
+			tools: ["read"],
 			widgetId: "ask",
 			widgetTitle: `${icons.agentDefault} /ask → ${modelLabel}`,
 			ui: ctx.ui,

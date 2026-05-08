@@ -2,7 +2,7 @@
  * RTK Bash spawn hook factory.
  */
 
-import type { BashSpawnHook } from "@mariozechner/pi-coding-agent";
+import type { BashSpawnHook } from "@earendil-works/pi-coding-agent";
 import { prefixWithRtk } from "./commands";
 import { getRtkEnabled } from "./state";
 

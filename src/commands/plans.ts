@@ -3,7 +3,7 @@
  * List all plans with their status
  */
 
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { listPlans } from "../plans";
 import { ANSI, colorize } from "../ui";
 

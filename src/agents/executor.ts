@@ -5,17 +5,18 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import type { Api, Model } from "@mariozechner/pi-ai";
-import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
+import type { Api, Model } from "@earendil-works/pi-ai";
+import type {
+	ModelRegistry,
+	ToolDefinition,
+} from "@earendil-works/pi-coding-agent";
 import {
 	createAgentSession,
-	createBashTool,
-	createEditTool,
-	createReadTool,
-	createWriteTool,
+	createBashToolDefinition,
 	DefaultResourceLoader,
+	getAgentDir,
 	SessionManager,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import {
 	buildBwrapArgs,
 	buildSandboxExecProfile,
@@ -119,6 +120,7 @@ export class AgentExecutor {
 			// loading of the dispatch extension and unnecessary overhead for sub-agents
 			const loader = new DefaultResourceLoader({
 				cwd: this.cwd,
+				agentDir: getAgentDir(),
 				systemPromptOverride: () => this.config.template.systemPrompt,
 				noExtensions: true,
 				noSkills: true,
@@ -128,13 +130,14 @@ export class AgentExecutor {
 			await loader.reload();
 
 			// Build tool list based on template with sandboxing
-			const tools = this.buildTools();
+			const { tools, customTools } = this.buildTools();
 
 			// Create session (in-memory, not persisted to disk)
 			const { session } = await createAgentSession({
 				cwd: this.cwd,
 				model: selectedModel,
 				tools,
+				customTools,
 				resourceLoader: loader,
 				sessionManager: SessionManager.inMemory(),
 				modelRegistry,
@@ -230,29 +233,30 @@ Document your progress and findings.`;
 	/**
 	 * Build tool list based on template's tool names
 	 */
-	private buildTools() {
+	private buildTools(): { tools: string[]; customTools?: ToolDefinition[] } {
 		const toolNames = this.config.template.tools || [];
-		const tools = [];
+		const tools: string[] = [];
+		const customTools: ToolDefinition[] = [];
 		const sandboxConfig = this.getSandboxConfig();
 
 		for (const toolName of toolNames) {
 			switch (toolName) {
 				case "file_read":
-					tools.push(createReadTool(this.cwd));
+					tools.push("read");
 					break;
 				case "file_write":
-					tools.push(createWriteTool(this.cwd));
+					tools.push("write");
 					break;
 				case "file_edit":
-					tools.push(createEditTool(this.cwd));
+					tools.push("edit");
 					break;
 				case "shell_exec": {
 					const readOnly = this.config.template.readOnlyBash;
 
 					if (readOnly) {
 						// Read-only bash with allowlist filter
-						tools.push(
-							createBashTool(this.cwd, {
+						customTools.push(
+							createBashToolDefinition(this.cwd, {
 								spawnHook: ({ command, cwd, env }) => {
 									const validation = validateCommand(command);
 									if (!validation.allowed) {
@@ -266,18 +270,18 @@ Document your progress and findings.`;
 										env,
 									};
 								},
-							}),
+							}) as unknown as ToolDefinition,
 						);
 					} else {
 						// Standard sandboxed bash
-						tools.push(
-							createBashTool(this.cwd, {
+						customTools.push(
+							createBashToolDefinition(this.cwd, {
 								spawnHook: ({ command, cwd, env }) => ({
 									command: wrapBashCommand(command, sandboxConfig),
 									cwd,
 									env,
 								}),
-							}),
+							}) as unknown as ToolDefinition,
 						);
 					}
 					break;
@@ -285,9 +289,14 @@ Document your progress and findings.`;
 			}
 		}
 
-		return tools.length > 0
-			? tools
-			: [createReadTool(this.cwd), createBashTool(this.cwd)];
+		if (tools.length === 0 && customTools.length === 0) {
+			return { tools: ["read", "bash"] };
+		}
+
+		return {
+			tools,
+			customTools: customTools.length > 0 ? customTools : undefined,
+		};
 	}
 
 	/**

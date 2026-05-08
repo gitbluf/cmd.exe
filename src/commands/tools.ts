@@ -8,7 +8,7 @@ import {
 	createEditTool,
 	createReadTool,
 	createWriteTool,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 
 /**
  * Build pi SDK tool instances from template tool names.

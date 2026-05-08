@@ -5,19 +5,13 @@
  * in an isolated DATAWEAVER session and returning only curated results.
  */
 
-import type { Api, Model } from "@mariozechner/pi-ai";
+import type { Api, Model } from "@earendil-works/pi-ai";
 import type {
 	ExtensionAPI,
 	ExtensionContext,
 	ModelRegistry,
 	ToolDefinition,
-} from "@mariozechner/pi-coding-agent";
-import {
-	createFindTool,
-	createGrepTool,
-	createLsTool,
-	createReadTool,
-} from "@mariozechner/pi-coding-agent";
+} from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { DATAWEAVER } from "../agents/definitions";
 import { resolveSlot, type SlotConfig } from "../config/slots";
@@ -174,12 +168,7 @@ export function createFindFilesTool(opts: {
 					cwd,
 					modelRegistry: opts.modelRegistry,
 					model: resolution.model,
-					tools: [
-						createReadTool(cwd),
-						createLsTool(cwd),
-						createGrepTool(cwd),
-						createFindTool(cwd),
-					],
+					tools: ["read", "ls", "grep", "find"],
 					widgetId: `find-files-${toolCallId}`,
 					widgetTitle: agentLabel,
 					ui: opts.ui,

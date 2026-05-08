@@ -2,7 +2,7 @@
  * Extension lifecycle hooks and event handlers
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	getCurrentMode,
 	getModeStatusText,
@@ -93,7 +93,7 @@ export function setupLifecycleHooks(
 		}
 	});
 
-	pi.on("session_switch", async (_event, ctx) => {
+	pi.on("session_before_switch", async (_event, ctx) => {
 		applyPlanMode();
 
 		if (ctx.hasUI) {

@@ -9,9 +9,9 @@
  *   /rtk                      - Toggle RTK bash prefixing
  */
 
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { createBashTool } from "@mariozechner/pi-coding-agent";
-import { Box, Text } from "@mariozechner/pi-tui";
+import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import { createBashTool } from "@earendil-works/pi-coding-agent";
+import { Box, Text } from "@earendil-works/pi-tui";
 import { registerAllCommands } from "./commands/register";
 import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";

@@ -2,7 +2,7 @@
  * /todos command handler - Display current plan progress
  */
 
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { getPlan } from "../../plan/state";
 import { showExpandedPlan } from "../../plan/widget";
 import { getIconRegistry } from "../../ui/icons";

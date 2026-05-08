@@ -7,8 +7,8 @@ import { DATAWEAVER } from "./dataweaver";
 import { GHOST } from "./ghost";
 import { HARDLINE } from "./hardline";
 
-export { BLUEPRINT, CORTEX, DATAWEAVER, GHOST, HARDLINE };
 export type { AgentDefinition } from "./types";
+export { BLUEPRINT, CORTEX, DATAWEAVER, GHOST, HARDLINE };
 
 /** All agents indexed by ID */
 export const ALL_AGENTS = {

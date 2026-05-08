@@ -4,7 +4,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { getPlan } from "../../plan/state";
 import { getIconRegistry } from "../../ui/icons";
 

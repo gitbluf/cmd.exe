@@ -3,7 +3,7 @@
  * Remove all plans
  */
 
-import type { ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { clearAllPlans, listPlans } from "../plans";
 import { ANSI, colorize } from "../ui";
 
