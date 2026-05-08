@@ -7,7 +7,6 @@ import os from "node:os";
 import path from "node:path";
 import { DEFAULT_SLOTS, mergeSlots } from "../config/slots";
 import { getDefaultSandboxConfig, mergeSandboxConfig } from "../sandbox";
-import { DEFAULT_TEAMS_CONFIG } from "../teams";
 import {
 	applyAgentOverrides,
 	DEFAULT_TEMPLATES,
@@ -49,7 +48,6 @@ export function loadConfig(configPath?: string): TemplateConfig {
 		defaultAgents: 3,
 		defaultMission: "Infiltrate the monolith, extract creds, leave no trace.",
 		sandbox: defaultSandboxConfig,
-		teams: DEFAULT_TEAMS_CONFIG,
 		slots: DEFAULT_SLOTS,
 		rtk_enabled: false,
 	};
@@ -125,14 +123,6 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				icons: userConfig.icons || config.icons,
 				slots: mergeSlots(slots), // Always returns full SlotsConfig
 				rtk_enabled: userConfig.rtk_enabled ?? config.rtk_enabled,
-				teams: {
-					...DEFAULT_TEAMS_CONFIG,
-					...(userConfig.teams || {}),
-					modelPolicy: {
-						...DEFAULT_TEAMS_CONFIG.modelPolicy,
-						...(userConfig.teams?.modelPolicy || {}),
-					},
-				},
 			};
 		} else {
 			console.log(`[dispatch] Config file not found, using defaults`);

@@ -6,8 +6,6 @@
  * Supported command types
  */
 export type CommandType =
-	| "team"
-	| "team:dashboard"
 	| "plan"
 	| "todos"
 	| "plan:save"

@@ -13,9 +13,9 @@ import type {
 /**
  * Parse a command string into a Command object
  * Supports formats like:
- *   /team task list
- *   /help
- *   /team:dashboard
+ *   /plan
+ *   /ask what is X
+ *   /plan:save
  */
 export function parseCommand(input: string): Command {
 	const trimmed = input.trim();
@@ -30,8 +30,6 @@ export function parseCommand(input: string): Command {
 
 	// Parse command type
 	const validCommands: Record<string, CommandType> = {
-		team: "team",
-		"team:dashboard": "team:dashboard",
 		plan: "plan",
 		todos: "todos",
 		"plan:save": "plan:save",

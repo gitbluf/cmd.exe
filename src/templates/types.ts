@@ -4,7 +4,6 @@
 
 import type { SlotsConfig } from "../config/slots";
 import type { SandboxPolicy } from "../sandbox/tools";
-import type { TeamsConfig } from "../teams";
 import type { IconSet } from "../ui/icons";
 
 export interface AgentTemplate {
@@ -66,9 +65,6 @@ export interface TemplateConfig {
 
 	// Slot-based model configuration (plan_mode, build_mode, assistant)
 	slots: SlotsConfig;
-
-	// Team feature config
-	teams?: TeamsConfig;
 
 	// Icons customization
 	icons?: Partial<IconSet>;

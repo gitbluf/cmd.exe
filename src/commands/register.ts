@@ -7,7 +7,6 @@ import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@mariozechner/pi-coding-agent";
-import type { MemberSessionManager } from "../teams/member-session";
 import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import {
@@ -15,8 +14,6 @@ import {
 	handlePlan,
 	handlePlanSave,
 	handleRtk,
-	handleTeam,
-	handleTeamDashboard,
 	handleTodos,
 } from "./handlers";
 
@@ -35,15 +32,7 @@ function getRoot(ctx: ExtensionCommandContext): string {
 export function registerAllCommands(
 	pi: ExtensionAPI,
 	config: TemplateConfig,
-	sessionManager?: MemberSessionManager,
 ): void {
-	pi.registerCommand("team:dashboard", {
-		description: "Interactive team dashboard",
-		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleTeamDashboard(args, ctx, getRoot(ctx), sessionManager);
-		},
-	});
-
 	pi.registerCommand("plan", {
 		description:
 			"Toggle between Plan mode (read-only) and Build mode (full tools)",
@@ -78,13 +67,6 @@ export function registerAllCommands(
 		description: "Toggle RTK command prefixing for bash tool execution",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
 			await handleRtk(args, ctx);
-		},
-	});
-
-	pi.registerCommand("team", {
-		description: "Manage teams, tasks, and model policy",
-		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleTeam(args, ctx, getRoot(ctx), config, sessionManager);
 		},
 	});
 }

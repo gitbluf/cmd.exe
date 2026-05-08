@@ -1,25 +1,6 @@
-# Swarm Agent System
+# cmd.exe Extension
 
 ## Core Commands
-
-### /swarm <task-spec>
-
-Dispatch agents to work on tasks concurrently.
-
-**Usage:**
-
-```bash
-/swarm task-1 ghost "implement auth" | task-2 dataweaver "review design"
-/swarm --concurrency 3 task-1 ghost "do X" | task-2 cortex "do Y"
-```
-
-**Options:**
-
-- `--concurrency N` - Max parallel tasks (1-20, default 5)
-- `--timeout N` - Per-task timeout in ms (default 300000)
-- `--worktrees` - Enable git worktree isolation (true/false)
-- `--recordOutput` - Output recording: none, truncated, or full
-- `--retryFailed` - Retry failed tasks (true/false)
 
 ### /plan
 
@@ -78,25 +59,6 @@ Ask a one-off question to an LLM without polluting the main conversation context
 - Getting explanations without derailing main conversation
 - Testing a different model's response style
 
-### /swarm:list
-
-List all available agent templates with their roles, temperatures, and models.
-
-### /swarm:status [swarm-id]
-
-View swarm execution status and history.
-
-- Without args: shows recent history
-- With swarm-id: shows detailed status for that swarm
-
-### /swarm:dashboard
-
-Interactive monitoring dashboard with real-time swarm status, task details, and output.
-
-### /swarm:task [task-id]
-
-View detailed information about a specific task in a swarm.
-
 ### /plan:save
 
 Save the current active plan to disk.
@@ -117,6 +79,12 @@ Save the current active plan to disk.
 - Markdown file with plan metadata
 - Checklist with ✅ (completed) or ⬜ (pending)
 - Timestamp for each completed step
+
+### /rtk
+
+Toggle RTK command prefixing for bash tool execution.
+
+---
 
 ## Plan Mode & Plan Tracking
 
@@ -204,7 +172,7 @@ User: pi --resume
 
 ### Plan State Persistence
 
-Plan state is saved continuously but reset on every session start so you always begin with a clean todo board. The synthesized markdown file still exists for reference after completion.
+Plan state is saved continuously but reset on every session start so you always begin with a clean todo board.
 - **Location:** `.agents/.plan-state.json`
 - **Auto-saved:** After every step completion
 - **Cleared:** Automatically on session start (file deleted)
@@ -279,7 +247,23 @@ Agent: I've implemented the auth service... [DONE:4]
    - Immediate feedback
    - Then back to footer
 
-## Agent Templates: Runtime Defaults vs Defined Agents
+---
+
+## Tools
+
+### find_files
+
+Locate files in the codebase matching a query. Spawns a read-only DATAWEAVER sub-agent that searches, reads, and returns a curated summary of relevant files.
+
+**Parameters:**
+- `query` (required) — describe the files, patterns, or code you're looking for
+- `scope` (optional) — directory scope to narrow the search (e.g., `src/auth`)
+
+**Use this instead of manually reading directories.**
+
+---
+
+## Agent Templates
 
 By default, runtime loads these templates: `ghost`, `dataweaver`, `hardline`.
 
@@ -292,15 +276,6 @@ The codebase also defines additional agents (`cortex`, `blackice`, `blueprint`),
 - **Prompt:** Surgical, precise, implementation-focused
 - **Tools:** read, write, edit, bash
 - **Temperature:** 0.1 (deterministic)
-
-### Optional (defined, not default-loaded): cortex
-
-- **Role:** Code Reviewer
-- **Focus:** Correctness, security, performance analysis
-- **Prompt:** Critical, thorough, security-minded
-- **Tools:** read, find_files, write
-- **Temperature:** 0.2 (strict)
-- **Persistence:** Saves all reviews to `.agents/reviews/` for team reference
 
 ### Default-loaded: dataweaver
 
@@ -319,96 +294,17 @@ The codebase also defines additional agents (`cortex`, `blackice`, `blueprint`),
 - **Tools:** read, bash
 - **Temperature:** 0.2 (strict)
 
-### Optional (defined, not default-loaded): blackice
+---
 
-- **Role:** Orchestrator
-- **Focus:** Request routing, task decomposition
-- **Prompt:** Strategic, decomposition-focused
-- **Tools:** coordination only
-- **Temperature:** 0.4 (balanced)
+Current date: 2026-05-08
+Current working directory: /Users/mpetrovic/Dev/devoops/github/cmd.exe
+## Operating Mode: BUILD
 
-## Swarm Record Structure
+You are in **Build mode**. You have full access to implementation tools.
 
-Each swarm creates a persistent record:
-
-```json
-{
-  "id": "swarm-abc123",
-  "createdAt": "2025-02-26T23:45:00Z",
-  "status": "running|completed|failed|cancelled",
-  "completedAt": "2025-02-27T00:15:00Z",
-  "tasks": [
-    {
-      "id": "task-1",
-      "agent": "ghost",
-      "request": "implement auth module",
-      "status": "completed",
-      "output": "...",
-      "fullOutputPath": "path/to/output.log",
-      "duration": 12345,
-      "tokens": { "input": 1000, "output": 2000 }
-    }
-  ],
-  "options": {
-    "concurrency": 5,
-    "timeout": 300000,
-    "worktrees": false,
-    "recordOutput": "truncated"
-  },
-  "stats": {
-    "totalTasks": 2,
-    "completedTasks": 2,
-    "failedTasks": 0,
-    "totalTokens": { "input": 5000, "output": 10000 },
-    "totalDuration": 25000
-  }
-}
-```
-
-## Examples
-
-### Simple dispatch
-
-```bash
-/swarm task-1 ghost "implement login form"
-```
-
-### Multi-task dispatch
-
-```bash
-/swarm task-1 ghost "implement auth" | task-2 dataweaver "design DB schema" | task-3 hardline "analyze security"
-```
-
-### With options
-
-```bash
-/swarm --concurrency 2 --timeout 600000 task-1 ghost "X" | task-2 dataweaver "Y"
-```
-
-### Monitor swarms
-
-```bash
-/swarm:dashboard        # Interactive dashboard
-/swarm:status           # Recent history
-/swarm:status swarm-123 # Detailed view
-```
-
-## BLACKICE Orchestrator
-
-For complex task decomposition, use the BLACKICE orchestrator:
-
-```bash
-/blackice decompose this API refactor into specialized subtasks
-```
-
-BLACKICE analyzes your request and routes work to specialist agents automatically.
-
-## Next Steps
-
-The swarm system is designed for:
-
-- ✅ Concurrent multi-agent task execution
-- ✅ Persistent state and monitoring
-- ✅ Flexible agent roles and capabilities
-- 🔄 (Future) Git worktree isolation
-- 🔄 (Future) Advanced retry strategies
+### Available tools
+- read
+- write
+- edit
+- bash
+- find_files

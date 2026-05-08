@@ -1,9 +1,7 @@
 /**
- * cmd.exe Extension - Team orchestration for pi
+ * cmd.exe Extension - pi coding agent extension
  *
  * Core commands:
- *   /team:dashboard           - Interactive team dashboard
- *   /team <subcommand>        - Manage team state, tasks, and policy
  *   /plan                     - Toggle Plan/Build mode
  *   /todos                    - Show current plan progress
  *   /plan:save                - Save active plan to disk
@@ -19,8 +17,7 @@ import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
 import { createRtkSpawnHook } from "./rtk";
 import { getAskWidgetState, OutputViewerComponent } from "./sub-agent";
-import { MemberSessionManager } from "./teams/member-session";
-import { createFindFilesTool, createTeamsTool } from "./tools";
+import { createFindFilesTool } from "./tools";
 import { getIconRegistry, initIcons } from "./ui/icons";
 import { getConfigPath, loadConfig } from "./utils/config";
 
@@ -148,21 +145,8 @@ export default function (pi: ExtensionAPI) {
 	// Initialize icon registry with user overrides
 	initIcons(config.icons);
 
-	// Create session manager if teams is configured
-	const sessionManager =
-		config.teams?.enabled !== false
-			? new MemberSessionManager({
-					cmuxSocketPath: config.teams?.cmux?.socketPath,
-					piPath: config.teams?.piPath,
-					bridgePath: config.teams?.bridgePath,
-					maxLiveMembers: config.teams?.maxLiveMembers,
-					humanInputPolicy: config.teams?.humanInputPolicy,
-					logging: config.teams?.logging,
-				})
-			: undefined;
-
-	// Lifecycle hooks (sandbox init, cleanup, mode management, team orphan cleanup)
-	setupLifecycleHooks(pi, config, sessionManager);
+	// Lifecycle hooks (sandbox init, cleanup, mode management)
+	setupLifecycleHooks(pi, config);
 
 	// Register UI components and shortcuts
 	registerOutputRenderer(pi);
@@ -209,27 +193,6 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
-	// Register teams orchestration tool
-	const teamsTemplate = createTeamsTool({
-		cwd: process.cwd(),
-		config,
-		pi,
-		sessionManager,
-	});
-
-	pi.registerTool({
-		...teamsTemplate,
-		async execute(toolCallId, params, signal, onUpdate, ctx) {
-			const tool = createTeamsTool({
-				cwd: ctx.cwd,
-				config,
-				pi,
-				sessionManager,
-			});
-			return tool.execute(toolCallId, params, signal, onUpdate, ctx);
-		},
-	});
-
 	// Register all slash commands
-	registerAllCommands(pi, config, sessionManager);
+	registerAllCommands(pi, config);
 }
