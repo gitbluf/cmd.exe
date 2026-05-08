@@ -12,12 +12,15 @@ import type {
 	TeamTask,
 	TeamTaskStatus,
 } from "../teams";
+import type { MemberSessionManager } from "../teams/member-session";
 import { normalizeTeamModelPolicy } from "../teams/model-policy";
 import { getIconRegistry } from "./icons";
 
 export interface DashboardConfig {
 	loadTeams: () => TeamState[];
 	getActiveTeamId?: () => string | null;
+	/** Optional session manager for live member state (cache reads only) */
+	sessionManager?: MemberSessionManager;
 	/** Auto-refresh interval in ms (default 1000) */
 	refreshInterval?: number;
 }
@@ -323,6 +326,7 @@ class DashboardComponent implements Component {
 	private t: DashboardTheme;
 	private loadTeams: () => TeamState[];
 	private getActiveTeamId?: () => string | null;
+	private sessionManager?: MemberSessionManager;
 	private teams: TeamState[] = [];
 	private spinnerIdx = 0;
 	private _disposed = false;
@@ -339,6 +343,7 @@ class DashboardComponent implements Component {
 		this.t = theme ?? defaultTheme();
 		this.loadTeams = config.loadTeams;
 		this.getActiveTeamId = config.getActiveTeamId;
+		this.sessionManager = config.sessionManager;
 		this.refresh(true);
 	}
 
@@ -723,7 +728,12 @@ class DashboardComponent implements Component {
 			lines.push(boxLine(t, ` ${t.dim("No members in this team.")}`, w));
 		} else {
 			const cols = this.memberColumns(w);
-			const header = ` ${pad(" ", 2)}${pad("STATUS", cols.status)}${pad("NAME", cols.name)}${pad("MODEL", cols.model)}${pad("THINK", cols.thinking)}${pad("MODE", cols.mode)}${pad("ACTIVITY", cols.activity)}`;
+			const hasLive = !!this.sessionManager;
+			let header = ` ${pad(" ", 2)}${pad("STATUS", cols.status)}${pad("NAME", cols.name)}${pad("MODEL", cols.model)}${pad("THINK", cols.thinking)}${pad("MODE", cols.mode)}`;
+			if (hasLive) {
+				header += `${pad("PID", cols.pid)}${pad("LIVE", cols.live)}${pad("LAST OUTPUT", cols.lastOut)}`;
+			}
+			header += pad("ACTIVITY", cols.activity);
 			lines.push(boxLine(t, t.dim(t.bold(header)), w));
 			lines.push(t.border(`│${"─".repeat(w - 2)}│`));
 			const maxVisible = 8;
@@ -731,18 +741,36 @@ class DashboardComponent implements Component {
 			for (const member of visible) {
 				const icon = statusIcon(member.status, spinner);
 				const sFn = memberStatusStyle(t, member.status);
-				const row = [
+				const live = this._getLiveState(team.id, member.name);
+				const pidLabel = live.pid ? String(live.pid) : "-";
+				const liveLabel =
+					live.isStreaming === undefined ? "-" : live.isStreaming ? "●" : "○";
+				const lastOutLabel = live.lastText
+					? truncate(live.lastText.replace(/\n/g, " "), cols.lastOut)
+					: "-";
+				const rowParts = [
 					"  ",
 					sFn(pad(icon, cols.status)),
 					t.text(pad(member.name, cols.name)),
 					t.dim(pad(member.model || "(default)", cols.model)),
 					t.dim(pad(member.thinking || "medium", cols.thinking)),
 					t.dim(pad(teamMemberMode(member), cols.mode)),
+				];
+				if (hasLive) {
+					rowParts.push(
+						t.dim(pad(pidLabel, cols.pid)),
+						live.isStreaming
+							? t.accent(pad(liveLabel, cols.live))
+							: t.dim(pad(liveLabel, cols.live)),
+						t.dim(pad(lastOutLabel, cols.lastOut)),
+					);
+				}
+				rowParts.push(
 					t.dim(
 						pad(truncate(teamActivity(member), cols.activity), cols.activity),
 					),
-				].join("");
-				lines.push(boxLine(t, row, w));
+				);
+				lines.push(boxLine(t, rowParts.join(""), w));
 			}
 			if (team.members.length > maxVisible) {
 				lines.push(
@@ -816,21 +844,53 @@ class DashboardComponent implements Component {
 
 	private memberColumns(w: number) {
 		const available = w - 6;
+		const hasLive = !!this.sessionManager;
+		const pidCol = hasLive ? 8 : 0;
+		const liveCol = hasLive ? 6 : 0;
+		const lastOutCol = hasLive
+			? Math.min(30, Math.max(12, Math.floor(available * 0.2)))
+			: 0;
 		return {
 			status: 6,
 			name: Math.min(14, Math.max(10, Math.floor(available * 0.18))),
 			model: Math.min(14, Math.max(10, Math.floor(available * 0.18))),
 			thinking: 8,
 			mode: 11,
+			pid: pidCol,
+			live: liveCol,
+			lastOut: lastOutCol,
 			activity: Math.max(
-				10,
+				8,
 				available -
 					6 -
 					Math.min(14, Math.max(10, Math.floor(available * 0.18))) -
 					Math.min(14, Math.max(10, Math.floor(available * 0.18))) -
 					8 -
-					11,
+					11 -
+					pidCol -
+					liveCol -
+					lastOutCol,
 			),
+		};
+	}
+
+	/** Read live member state from cache — no RPC round-trip */
+	private _getLiveState(
+		teamId: string,
+		memberName: string,
+	): {
+		pid?: number;
+		isStreaming?: boolean;
+		lastText?: string | null;
+	} {
+		if (!this.sessionManager) return {};
+		const runtime = this.sessionManager.getRuntime(teamId, memberName);
+		if (!runtime) return {};
+		const cache = runtime.rpcClient.cache;
+		return {
+			pid: runtime.pid,
+			isStreaming: cache.isStreaming,
+			lastText: cache.lastAssistantText,
 		};
 	}
 

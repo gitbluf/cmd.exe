@@ -5,12 +5,14 @@ import {
 	loadTeamState,
 	setActiveTeamId,
 } from "../../../teams";
+import type { MemberSessionManager } from "../../../teams/member-session";
 import type { TemplateConfig } from "../../../templates/types";
 
 export interface TeamCommandRuntime {
 	ctx: ExtensionCommandContext;
 	root: string;
 	config: TemplateConfig;
+	sessionManager?: MemberSessionManager;
 }
 
 export function ensureActiveTeam(root: string, config: TemplateConfig): string {

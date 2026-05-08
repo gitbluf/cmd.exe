@@ -58,6 +58,7 @@ export interface Provider {
 	/**
 	 * Get the API client instance
 	 */
+	// biome-ignore lint/suspicious/noExplicitAny: returns third-party SDK client
 	getClient(): any;
 }
 

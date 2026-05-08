@@ -124,7 +124,12 @@ export async function handleTeamTask(
 				);
 				return;
 			}
-			await setTaskStatusLocked(root, teamId, taskId, status as any);
+			await setTaskStatusLocked(
+				root,
+				teamId,
+				taskId,
+				status as import("../../../teams/types").TeamTaskStatus,
+			);
 			ctx.ui.notify(`Task ${taskId} -> ${status}`, "info");
 			return;
 		}

@@ -38,14 +38,44 @@ export interface TeamModelPolicy {
 }
 
 export interface TeamsConfig {
+	// Existing
 	enabled?: boolean;
 	defaultThinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 	modelPolicy?: TeamModelPolicy;
+
+	// Live session
+	spawnMode?: "state-only" | "eager" | "on-demand";
+	maxLiveMembers?: number;
+	humanInputPolicy?:
+		| "allow"
+		| "steer-only-while-task-running"
+		| "locked-while-task-running";
+	shutdownPolicy?: "stop-live-members" | "leave-running";
+
+	// Binary paths (absolute or resolved via which)
+	piPath?: string;
+	bridgePath?: string;
+
+	// cmux integration
+	cmux?: {
+		socketPath?: string;
+	};
+
+	// Logging
+	logging?: {
+		enabled?: boolean;
+		maxBytes?: number;
+		keepLastLines?: number;
+		redactSecrets?: boolean;
+	};
 }
 
 export interface TeamMember {
+	// Core identity
 	name: string;
 	status: TeamMemberStatus;
+
+	// Existing config
 	sessionId?: string;
 	model?: string;
 	thinking?: TeamsConfig["defaultThinking"];
@@ -53,6 +83,18 @@ export interface TeamMember {
 	contextMode?: "fresh" | "branch";
 	lastHeartbeatAt?: string;
 	lastActivity?: string;
+
+	// Live process metadata (persisted for orphan detection)
+	pid?: number;
+	runtimeId?: string; // UUID, unique per spawn
+	processStartedAt?: string; // ISO8601
+
+	// cmux surface metadata
+	surfaceId?: string;
+	workspaceId?: string;
+
+	// Control bridge location (socket path only — token is NEVER persisted)
+	controlSocketPath?: string;
 }
 
 export interface TeamTask {
@@ -87,4 +129,14 @@ export const DEFAULT_TEAMS_CONFIG: TeamsConfig = {
 	enabled: false,
 	defaultThinking: "medium",
 	modelPolicy: DEFAULT_TEAM_MODEL_POLICY,
+	spawnMode: "on-demand",
+	maxLiveMembers: 4,
+	humanInputPolicy: "steer-only-while-task-running",
+	shutdownPolicy: "stop-live-members",
+	logging: {
+		enabled: true,
+		maxBytes: 10 * 1024 * 1024,
+		keepLastLines: 5000,
+		redactSecrets: true,
+	},
 };

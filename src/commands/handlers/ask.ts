@@ -30,8 +30,9 @@ export async function handleAsk(
 
 	// Use the current mode's slot (plan or build)
 	const mode = getCurrentMode();
-	const slot =
-		mode === "plan" ? config.slots!.plan_mode : config.slots!.build_mode;
+	const slot = (mode === "plan"
+		? config.slots?.plan_mode
+		: config.slots?.build_mode) ?? { model: "" };
 
 	let resolution: SlotResolution;
 	try {

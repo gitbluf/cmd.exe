@@ -99,7 +99,7 @@ export function flashStepComplete(
 		render: (width: number) => {
 			const lines = [
 				theme.fg("border", "─".repeat(width)),
-				` ${theme.fg("success", "✅ Step " + step.number + " complete")} — ${theme.fg("dim", step.description)}  ${theme.fg("accent", `[${stats.completed}/${stats.total}]`)}`,
+				` ${theme.fg("success", `✅ Step ${step.number} complete`)} — ${theme.fg("dim", step.description)}  ${theme.fg("accent", `[${stats.completed}/${stats.total}]`)}`,
 				theme.fg("border", "─".repeat(width)),
 			];
 			return lines.map((l) => truncateToWidth(l, width));

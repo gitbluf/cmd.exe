@@ -19,7 +19,9 @@ export type TeamModelResolutionSource =
 	| "firstAvailable";
 
 export interface ResolveTeamModelOptions {
+	// biome-ignore lint/suspicious/noExplicitAny: SDK ModelRegistry is opaque
 	modelRegistry: any;
+	// biome-ignore lint/suspicious/noExplicitAny: SDK Model is opaque
 	currentModel: any;
 	policy?: TeamModelPolicy;
 	globalSlots?: SlotsConfig;
@@ -29,6 +31,7 @@ export interface ResolveTeamModelOptions {
 }
 
 export interface TeamModelResolution {
+	// biome-ignore lint/suspicious/noExplicitAny: SDK Model is opaque
 	model: any;
 	resolvedModelId: string;
 	source: TeamModelResolutionSource;
@@ -162,7 +165,9 @@ export function resolveTeamModel(
 }
 
 export function checkTeamModelCandidate(opts: {
+	// biome-ignore lint/suspicious/noExplicitAny: SDK ModelRegistry is opaque
 	modelRegistry: any;
+	// biome-ignore lint/suspicious/noExplicitAny: SDK Model is opaque
 	currentModel: any;
 	policy?: TeamModelPolicy;
 	globalSlots?: SlotsConfig;
@@ -200,16 +205,20 @@ export function checkTeamModelCandidate(opts: {
 	}
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: SDK ModelRegistry and Model types are opaque
 function findModel(modelRegistry: any, modelId: string): any {
 	const available = modelRegistry?.getAvailable?.();
 	if (!available) return null;
 
+	// biome-ignore lint/suspicious/noExplicitAny: SDK model shape is opaque
 	let model = available.find((m: any) => m.id === modelId);
 	if (model) return model;
 
+	// biome-ignore lint/suspicious/noExplicitAny: SDK model shape is opaque
 	model = available.find((m: any) => m.id.endsWith(`/${modelId}`));
 	if (model) return model;
 
+	// biome-ignore lint/suspicious/noExplicitAny: SDK model shape is opaque
 	model = available.find((m: any) => m.id.endsWith(modelId));
 	if (model) return model;
 

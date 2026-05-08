@@ -38,8 +38,8 @@ export interface SandboxConfig {
  */
 export function wrapBashCommand(cmd: string, config: SandboxConfig): string {
 	const adapter = adapters[config.strategy] as
-		| { wrap: (args: any) => string }
-		| undefined;
+		// biome-ignore lint/suspicious/noExplicitAny: sandbox adapter wrap args vary by strategy
+		{ wrap: (args: any) => string } | undefined;
 	if (!adapter) {
 		console.warn(`Unknown sandbox strategy: ${config.strategy}, using none`);
 		return cmd;

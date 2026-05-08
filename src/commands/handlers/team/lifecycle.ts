@@ -19,7 +19,7 @@ export async function handleTeamSpawn(
 	rest: string,
 	runtime: TeamCommandRuntime,
 ): Promise<void> {
-	const { ctx, root, config } = runtime;
+	const { ctx, root, config, sessionManager } = runtime;
 	const [nameToken, ...parts] = rest.trim().split(/\s+/).filter(Boolean);
 	const name = sanitizeTeamId(nameToken || "");
 	if (!name) {
@@ -39,14 +39,20 @@ export async function handleTeamSpawn(
 	const model = extractOption(parts, "--model");
 	const thinking = (extractOption(parts, "--thinking") ||
 		config.teams?.defaultThinking ||
-		"medium") as any;
+		"medium") as "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 
-	const member = await spawnMember(root, teamId, name, {
-		model,
-		thinking,
-		contextMode,
-		workspaceMode,
-	});
+	const member = await spawnMember(
+		root,
+		teamId,
+		name,
+		{
+			model,
+			thinking,
+			contextMode,
+			workspaceMode,
+		},
+		sessionManager,
+	);
 
 	ctx.ui.notify(`Spawned member ${member.name} (${member.status})`, "info");
 }
@@ -88,19 +94,30 @@ export async function handleTeamShutdown(
 	rest: string,
 	runtime: TeamCommandRuntime,
 ): Promise<void> {
-	const { ctx, root, config } = runtime;
+	const { ctx, root, config, sessionManager } = runtime;
 	const teamId = ensureActiveTeam(root, config);
 	const parts = rest.trim().split(/\s+/).filter(Boolean);
 	const target = sanitizeTeamId(parts[0] || "all");
 	const reason = parts.slice(1).join(" ").trim() || undefined;
 
 	if (!target || target === "all") {
-		const result = await shutdownAllMembers(root, teamId, reason);
+		const result = await shutdownAllMembers(
+			root,
+			teamId,
+			reason,
+			sessionManager,
+		);
 		ctx.ui.notify(`Shutdown ${result.count} member(s)`, "info");
 		return;
 	}
 
-	const member = await shutdownMember(root, teamId, target, reason);
+	const member = await shutdownMember(
+		root,
+		teamId,
+		target,
+		reason,
+		sessionManager,
+	);
 	ctx.ui.notify(`Shutdown ${member.name}`, "info");
 }
 
@@ -108,14 +125,14 @@ export async function handleTeamKill(
 	rest: string,
 	runtime: TeamCommandRuntime,
 ): Promise<void> {
-	const { ctx, root, config } = runtime;
+	const { ctx, root, config, sessionManager } = runtime;
 	const name = sanitizeTeamId(rest.trim());
 	if (!name) {
 		ctx.ui.notify("Usage: /team kill <name>", "warning");
 		return;
 	}
 	const teamId = ensureActiveTeam(root, config);
-	const member = await killMember(root, teamId, name);
+	const member = await killMember(root, teamId, name, sessionManager);
 	ctx.ui.notify(`Killed ${member.name}`, "warning");
 }
 
@@ -123,10 +140,10 @@ export async function handleTeamDone(
 	rest: string,
 	runtime: TeamCommandRuntime,
 ): Promise<void> {
-	const { ctx, root, config } = runtime;
+	const { ctx, root, config, sessionManager } = runtime;
 	const teamId = ensureActiveTeam(root, config);
 	const force = hasFlag(rest, "--force");
-	const result = await teamDone(root, teamId, force);
+	const result = await teamDone(root, teamId, force, sessionManager);
 	ctx.ui.notify(
 		`Team done. Members stopped: ${result.stoppedMembers}. Tasks: ${result.taskSummary.completed}/${result.taskSummary.total} completed.`,
 		"info",
@@ -137,10 +154,10 @@ export async function handleTeamCleanup(
 	rest: string,
 	runtime: TeamCommandRuntime,
 ): Promise<void> {
-	const { ctx, root, config } = runtime;
+	const { ctx, root, config, sessionManager } = runtime;
 	const teamId = ensureActiveTeam(root, config);
 	const force = hasFlag(rest, "--force");
-	const result = await cleanupTeam(root, teamId, force);
+	const result = await cleanupTeam(root, teamId, force, sessionManager);
 	if (result.deleted) {
 		ctx.ui.notify(`Cleaned up team ${teamId}`, "info");
 		return;
