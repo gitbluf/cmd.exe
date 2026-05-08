@@ -111,18 +111,6 @@ export function loadConfig(configPath?: string): TemplateConfig {
 }
 
 /**
- * Save configuration to JSON file
- */
-export function saveConfig(configPath: string, config: TemplateConfig): void {
-	const dir = path.dirname(configPath);
-	if (!fs.existsSync(dir)) {
-		fs.mkdirSync(dir, { recursive: true });
-	}
-
-	fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-}
-
-/**
  * Get config file path
  */
 export function getConfigPath(): string {

@@ -19,7 +19,7 @@ import { trySetModel } from "../../utils/model-utils";
 /**
  * Apply a mode: set tools, model, and footer status
  */
-export async function applyMode(
+async function applyMode(
 	mode: SessionMode,
 	pi: ExtensionAPI,
 	ctx: ExtensionCommandContext,

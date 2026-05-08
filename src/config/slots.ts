@@ -35,8 +35,6 @@ export interface SlotsConfig {
 	assistant: SlotConfig;
 }
 
-/** Slot names for type-safe lookups */
-export type SlotName = keyof SlotsConfig;
 
 /** Default slot configuration */
 export const DEFAULT_SLOTS: SlotsConfig = {
