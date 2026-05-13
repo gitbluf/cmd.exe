@@ -2,9 +2,24 @@
 
 ## Core Commands
 
-### /plan
+### /apply
 
-Toggle between Plan mode (read-only analysis) and Build mode (full implementation).
+One-turn Build elevation — applies Build mode tools, model, and thinking for a single assistant turn, then automatically reverts to the prior state.
+
+When you run `/apply`, the session:
+1. Elevates to Build slot config (tools + model + thinking) for one turn
+2. Sends the prompt `"Build mode on Apply this"` on your behalf
+3. Reverts all capabilities back to baseline after the turn completes
+
+**Usage:**
+
+```bash
+/apply   # Trigger one build turn, then revert
+```
+
+### /apply --build
+
+Toggle between Plan mode (read-only analysis) and Build mode (full implementation). This is the persistent mode switch — replaces the old `/plan` command.
 
 **Plan Mode:**
 - Read-only tools: `read`, `find_files`
@@ -17,6 +32,12 @@ Toggle between Plan mode (read-only analysis) and Build mode (full implementatio
 - Executes changes surgically and precisely
 - If a plan is active, receives it in the system prompt
 - Marks steps complete with `[DONE:n]` tags
+
+**Usage:**
+
+```bash
+/apply --build   # Toggle Plan ↔ Build mode
+```
 
 ### /todos
 
@@ -59,14 +80,14 @@ Ask a one-off question to an LLM without polluting the main conversation context
 - Getting explanations without derailing main conversation
 - Testing a different model's response style
 
-### /plan:save
+### /todos:save
 
 Save the current active plan to disk.
 
 **Usage:**
 
 ```bash
-/plan:save
+/todos:save
 ```
 
 **Features:**
@@ -86,6 +107,24 @@ Toggle RTK command prefixing for bash tool execution.
 
 ---
 
+## Flags
+
+Flags can be passed when launching pi with `-p` mode:
+
+```bash
+pi -p --build        # Start in Build mode immediately
+pi -p --rtk          # Enable RTK bash prefixing
+pi -p --no-sandbox   # Disable OS-level sandboxing
+```
+
+| Flag | Type | Default | Description |
+|------|------|---------|-------------|
+| `--build` | boolean | false | Start in Build mode (equivalent to `/apply --build` at startup) |
+| `--rtk` | boolean | false | Enable RTK command prefixing for bash commands |
+| `--no-sandbox` | boolean | false | Disable OS-level sandboxing |
+
+---
+
 ## Plan Mode & Plan Tracking
 
 ### How Plans Work
@@ -96,7 +135,7 @@ Plans are structured, numbered sequences of implementation steps created by the 
 - In Plan mode, ask the LLM to create a plan
 - The agent outputs numbered steps with a "Plan:" header
 - System auto-detects and activates the plan
-- Use `/plan:save` to write it to disk
+- Use `/todos:save` to write it to disk
 
 ### Plan Lifecycle
 
@@ -107,7 +146,7 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 **1. Create**
 - In Plan mode: Ask the LLM to create a plan
 - Plan is auto-detected and stored
-- Optionally save with `/plan:save`
+- Optionally save with `/todos:save`
 
 **2. Activate**
 - Plan becomes "active" for this session and is cleared when a new session starts, keeping your slate fresh
@@ -115,7 +154,7 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 - Use `/todos` to view full plan
 
 **3. Execute**
-- Switch to Build mode with `/plan`
+- Switch to Build mode with `/apply --build`
 - Agent receives plan in system prompt
 - Work through steps in order
 
@@ -129,7 +168,7 @@ Create Plan → Activate → Execute Steps → Track Progress → Complete
 - All steps marked done
 - Footer shows 100%
 - Plan state clears automatically on next session start
-- Saved markdown files (via `/plan:save`) persist on disk
+- Saved markdown files (via `/todos:save`) persist on disk
 
 ### Example Workflow
 
@@ -149,7 +188,7 @@ Plan:
 → 📋 [0/7] ░░░░░░░░ 0% — "Audit current API structure"
 
 # 2. Save plan to disk (optional)
-User: /plan:save
+User: /todos:save
 → Plan saved to .agents/plan-20260311-143000.md
 
 # 3. View plan details
@@ -196,7 +235,7 @@ Plan:
 
 ### `[DONE:n]` Markers
 
-In Build mode with an active plan, the agent marks completed steps:
+In Build mode (persistent via `/apply --build`, or temporarily via `/apply`) the agent marks completed steps:
 
 ```
 Agent: I've implemented the auth service... [DONE:4]
@@ -262,16 +301,3 @@ Locate files in the codebase matching a query. Spawns a read-only DATAWEAVER sub
 **Use this instead of manually reading directories.**
 
 ---
-
-Current date: 2026-05-08
-Current working directory: /Users/mpetrovic/Dev/devoops/github/cmd.exe
-## Operating Mode: BUILD
-
-You are in **Build mode**. You have full access to implementation tools.
-
-### Available tools
-- read
-- write
-- edit
-- bash
-- find_files

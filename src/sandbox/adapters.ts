@@ -29,5 +29,3 @@ export const adapters = {
 			template.replace("{cmd}", escapeShell(cmd)).replace("{cwd}", "{cwd}"),
 	},
 };
-
-

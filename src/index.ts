@@ -2,9 +2,10 @@
  * cmd.exe Extension - pi coding agent extension
  *
  * Core commands:
- *   /plan                     - Toggle Plan/Build mode
+ *   /apply                    - One-turn Build elevation (inject "Build mode on Apply this")
+ *   /apply --build            - Toggle Plan/Build mode (replaces old /plan)
  *   /todos                    - Show current plan progress
- *   /plan:save                - Save active plan to disk
+ *   /todos:save               - Save active plan to disk (replaces old /plan:save)
  *   /ask                      - Ask a one-off question
  *   /rtk                      - Toggle RTK bash prefixing
  */
@@ -161,6 +162,13 @@ export default function (pi: ExtensionAPI) {
 
 	pi.registerFlag("rtk", {
 		description: "Enable RTK command prefixing for bash commands",
+		type: "boolean",
+		default: false,
+	});
+
+	pi.registerFlag("build", {
+		description:
+			"Start in Build mode (equivalent to running /apply --build at startup)",
 		type: "boolean",
 		default: false,
 	});

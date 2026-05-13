@@ -97,9 +97,7 @@ function parseSurfaceRef(stdout: string): string | undefined {
 
 	// Priority 2: UUID
 	const uuid = tokens.find((t) =>
-		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-			t,
-		),
+		/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t),
 	);
 	if (uuid) return uuid;
 
@@ -131,7 +129,9 @@ async function runCmux(args: string[], stage: string): Promise<string> {
 			code?: number;
 		};
 		const detail = e.stderr?.trim() || e.stdout?.trim() || e.message;
-		throw new Error(`[${stage}] cmux failed (exit ${e.code ?? "?"}): ${detail}`);
+		throw new Error(
+			`[${stage}] cmux failed (exit ${e.code ?? "?"}): ${detail}`,
+		);
 	}
 }
 
@@ -210,13 +210,7 @@ export async function spawnPiForkInNewSurface(
 	// ── Step 4: send command text to surface ─────────────────────────────────
 	try {
 		await runCmux(
-			[
-				"send",
-				"--surface",
-				surfaceRef,
-				...workspaceArgs,
-				childCommand,
-			],
+			["send", "--surface", surfaceRef, ...workspaceArgs, childCommand],
 			"send",
 		);
 	} catch (err) {

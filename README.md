@@ -4,11 +4,14 @@
 
 ```bash
 # Switch to Build mode (default is Plan mode - read-only)
-/plan
+/apply --build
+
+# One-turn build elevation (auto-reverts after the turn)
+/apply
 
 # Create and save plans
 # In Plan mode: ask the LLM to create a plan, then save it
-/plan:save
+/todos:save
 
 # Toggle RTK bash optimization (when installed + enabled in config)
 /rtk
@@ -61,7 +64,7 @@ pi install /path/to/cmd.exe
 ```bash
 pi
 # You should see cmd.exe commands available:
-# /plan, /todos, /plan:save, /ask, /rtk
+# /apply, /todos, /todos:save, /ask, /rtk
 ```
 
 ## ⚙️ Configuration
@@ -122,7 +125,7 @@ See **[docs/CONFIGURATION.md](docs/CONFIGURATION.md)** for current, code-aligned
 - Surgical code changes and testing
 - Footer shows: `🚀 BUILD`
 
-Toggle with `/plan` command.
+Toggle with `/apply --build` command.
 
 ### ⚡ RTK Bash Optimization
 
@@ -138,17 +141,21 @@ The main session in Plan mode can create implementation plans:
 
 ```bash
 # In Plan mode, ask the LLM to create a plan
-/plan  # Switch to Plan mode
+/apply --build  # Switch to Plan mode (if currently in Build)
 "Create a plan for refactoring the authentication system"
 
 # Plan is auto-detected and activated
 /todos  # View plan progress
 
 # Save plan to disk
-/plan:save  # Writes to .agents/plan-{timestamp}.md
+/todos:save  # Writes to .agents/plan-{timestamp}.md
 
-# Execute in Build mode
-/plan  # Switch to Build mode
+# Switch to Build mode for execution
+/apply --build
+
+# Or apply once without a permanent mode switch
+/apply
+
 # LLM marks steps complete with [DONE:1], [DONE:2], etc.
 ```
 
@@ -196,7 +203,7 @@ cmd.exe/
 
 ```bash
 # Switch to Plan mode for analysis
-/plan
+/apply --build
 
 # Analyze and plan
 What are the architectural trade-offs for adding real-time features?
@@ -206,10 +213,10 @@ What are the architectural trade-offs for adding real-time features?
 /todos
 
 # Save the plan to disk
-/plan:save
+/todos:save
 
 # Switch to Build mode for execution
-/plan
+/apply --build
 
 # Execute the plan step by step
 # LLM marks steps with [DONE:1], [DONE:2], etc.
@@ -245,9 +252,9 @@ What are the architectural trade-offs for adding real-time features?
 
 ## ✅ Status
 
-- ✅ Dual mode system (Plan/Build)
+- ✅ Dual mode system (Plan/Build) with `/apply` one-turn elevation
 - ✅ Slot-based model configuration
-- ✅ Plan tracking with `/todos` and `/plan:save`
+- ✅ Plan tracking with `/todos` and `/todos:save`
 - ✅ RTK bash optimization
 - ✅ Icon customization
 - ✅ Comprehensive documentation

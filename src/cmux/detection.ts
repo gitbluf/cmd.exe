@@ -26,13 +26,9 @@ export interface CmuxDetectionResult {
 export function isCmuxSession(
 	env: NodeJS.ProcessEnv = process.env,
 ): CmuxDetectionResult {
-	const matchedEnvKeys = Object.keys(env).filter((k) =>
-		k.startsWith("CMUX_"),
-	);
+	const matchedEnvKeys = Object.keys(env).filter((k) => k.startsWith("CMUX_"));
 
-	const hasStrongSignal = Boolean(
-		env.CMUX_WORKSPACE_ID || env.CMUX_SURFACE_ID,
-	);
+	const hasStrongSignal = Boolean(env.CMUX_WORKSPACE_ID || env.CMUX_SURFACE_ID);
 
 	if (!hasStrongSignal) {
 		return {

@@ -1,5 +1,5 @@
 /**
- * /plan:save command handler - Save active plan to disk
+ * /todos:save command handler - Save active plan to disk
  */
 
 import fs from "node:fs";
@@ -11,7 +11,7 @@ import { getIconRegistry } from "../../ui/icons";
 /**
  * Handle /plan:save command - writes current active plan to .agents/plan-{timestamp}.md
  */
-export async function handlePlanSave(
+export async function handleTodosSave(
 	_args: string,
 	ctx: ExtensionCommandContext,
 	root: string,
@@ -20,7 +20,10 @@ export async function handlePlanSave(
 	const icons = getIconRegistry();
 
 	if (!planState || planState.steps.length === 0) {
-		ctx.ui.notify(`${icons.warning} No active plan to save`, "warning");
+		ctx.ui.notify(
+			`${icons.warning} No active plan to save. Use /todos to check status.`,
+			"warning",
+		);
 		return;
 	}
 
@@ -52,7 +55,7 @@ export async function handlePlanSave(
 		const sizeKB = (markdown.length / 1024).toFixed(2);
 
 		ctx.ui.notify(
-			`${icons.success} Plan saved to .agents/${planFilename} (${lines} lines, ${sizeKB} KB)`,
+			`${icons.success} Plan saved to .agents/${planFilename} (${lines} lines, ${sizeKB} KB) — use /todos to view`,
 			"info",
 		);
 	} catch (error) {

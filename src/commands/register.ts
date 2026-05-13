@@ -12,11 +12,11 @@ import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import {
 	handleAgentNew,
+	handleApply,
 	handleAsk,
-	handlePlan,
-	handlePlanSave,
 	handleRtk,
 	handleTodos,
+	handleTodosSave,
 } from "./handlers";
 
 /**
@@ -35,11 +35,11 @@ export function registerAllCommands(
 	pi: ExtensionAPI,
 	config: TemplateConfig,
 ): void {
-	pi.registerCommand("plan", {
+	pi.registerCommand("apply", {
 		description:
-			"Toggle between Plan mode (read-only) and Build mode (full tools)",
+			"/apply → one-turn Build elevation | /apply --build → toggle Plan/Build mode",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handlePlan(args, ctx, pi, config.slots ?? {});
+			await handleApply(args, ctx, pi, config.slots ?? {});
 		},
 	});
 
@@ -50,10 +50,10 @@ export function registerAllCommands(
 		},
 	});
 
-	pi.registerCommand("plan:save", {
+	pi.registerCommand("todos:save", {
 		description: "Save active plan to .agents/plan-{timestamp}.md",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handlePlanSave(args, ctx, getRoot(ctx));
+			await handleTodosSave(args, ctx, getRoot(ctx));
 		},
 	});
 
@@ -75,8 +75,7 @@ export function registerAllCommands(
 	// Only register /agent:new when running inside a CMUX session
 	if (isCmuxSession().ok) {
 		pi.registerCommand("agent:new", {
-			description:
-				"Spawn a forked pi agent in a new CMUX surface (CMUX only)",
+			description: "Spawn a forked pi agent in a new CMUX surface (CMUX only)",
 			handler: async (args: string, ctx: ExtensionCommandContext) => {
 				await handleAgentNew(args, ctx, pi);
 			},

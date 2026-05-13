@@ -92,7 +92,9 @@ export async function handleAgentNew(
 		payloadFile = await writeForkPayloadTemp(payload);
 	} catch (err) {
 		const msg = (err as Error).message;
-		console.warn(`[agent:new] Payload build/write failed, continuing V1: ${msg}`);
+		console.warn(
+			`[agent:new] Payload build/write failed, continuing V1: ${msg}`,
+		);
 		ctx.ui.notify(
 			`${icons.warning} Fork context unavailable, spawning without payload`,
 			"warning",
@@ -100,7 +102,10 @@ export async function handleAgentNew(
 	}
 
 	// ── Notify intent ─────────────────────────────────────────────────────────
-	ctx.ui.notify(`${icons.pending} Spawning forked agent in new surface…`, "info");
+	ctx.ui.notify(
+		`${icons.pending} Spawning forked agent in new surface…`,
+		"info",
+	);
 
 	// ── Spawn ─────────────────────────────────────────────────────────────────
 	const result = await spawnPiForkInNewSurface({
