@@ -18,7 +18,7 @@ export interface IconSet {
 	cross: string; // ✗
 
 	// Mode indicators
-	modePlan: string; //⚡
+	modePlan: string; //🧠
 	modeBuild: string; //🚀
 
 	// Agent indicators
@@ -26,6 +26,9 @@ export interface IconSet {
 	agentPlanner: string; // 🧠
 	agentDataweaver: string; // 🕸️
 	agentDefault: string; // ⚙️
+
+	// Mode toggles
+	rtk: string; // 🏷️
 
 	// Feature indicators
 	sandbox: string; // 🔒
@@ -67,7 +70,7 @@ export const DEFAULT_ICONS: IconSet = {
 	cross: "✗",
 
 	// Mode indicators
-	modePlan: "⚡",
+	modePlan: "🧠",
 	modeBuild: "🚀",
 
 	// Agent indicators
@@ -75,6 +78,9 @@ export const DEFAULT_ICONS: IconSet = {
 	agentPlanner: "🧠",
 	agentDataweaver: "🕸️",
 	agentDefault: "⚙️",
+
+	// Mode toggles
+	rtk: "🏷️",
 
 	// Feature indicators
 	sandbox: "🔒",
