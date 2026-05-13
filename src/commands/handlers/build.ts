@@ -127,7 +127,7 @@ async function handleApplyOnce(
 	ctx.ui.notify(`${icons.modeBuild} Applying once with Build tools…`, "info");
 
 	// Trigger one assistant turn with the synthetic prompt
-	pi.sendUserMessage("Build mode on Apply this");
+	pi.sendUserMessage("Build mode on Apply this", { deliverAs: "followUp" });
 }
 
 /**

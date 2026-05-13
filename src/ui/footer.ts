@@ -46,11 +46,16 @@ export function setFooterModel(id: string | undefined): void {
 // current session stats without needing to query Pi internals from the render.
 
 let currentContextTokens: number | undefined = undefined;
+let currentContextPercent: number | undefined = undefined;
 let currentCostTotal: number | undefined = undefined;
 let currentCwd: string | undefined = undefined;
 
-export function setFooterContext(tokens: number | null | undefined): void {
+export function setFooterContext(
+	tokens: number | null | undefined,
+	percent?: number | null,
+): void {
 	currentContextTokens = tokens ?? undefined;
+	currentContextPercent = percent != null ? percent : undefined;
 }
 
 /** Accumulate per-turn LLM cost into the running session total. */
@@ -211,7 +216,7 @@ function buildTelemetryLine(
 	const cwdRaw = currentCwd ? formatCwd(currentCwd) : "";
 	const ctxRaw =
 		currentContextTokens !== undefined
-			? `${formatTokens(currentContextTokens)} ctx`
+			? `${formatTokens(currentContextTokens)} ctx${currentContextPercent !== undefined ? ` (${Math.round(currentContextPercent)}%)` : ""}`
 			: "";
 	const tokRaw =
 		currentTotalTokens !== undefined && currentTotalTokens > 0

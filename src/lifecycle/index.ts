@@ -337,7 +337,7 @@ export function setupLifecycleHooks(
 		if (!ctx.hasUI) return;
 
 		const usage = ctx.getContextUsage();
-		if (usage) setFooterContext(usage.tokens);
+		if (usage) setFooterContext(usage.tokens, usage.percent);
 
 		// biome-ignore lint/suspicious/noExplicitAny: pi SDK message usage shape is opaque
 		const turnCost = (event.message as any)?.usage?.cost?.total;
