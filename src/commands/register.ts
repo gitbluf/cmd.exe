@@ -7,9 +7,11 @@ import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
+import { isCmuxSession } from "../cmux";
 import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import {
+	handleAgentNew,
 	handleAsk,
 	handlePlan,
 	handlePlanSave,
@@ -69,4 +71,15 @@ export function registerAllCommands(
 			await handleRtk(args, ctx);
 		},
 	});
+
+	// Only register /agent:new when running inside a CMUX session
+	if (isCmuxSession().ok) {
+		pi.registerCommand("agent:new", {
+			description:
+				"Spawn a forked pi agent in a new CMUX surface (CMUX only)",
+			handler: async (args: string, ctx: ExtensionCommandContext) => {
+				await handleAgentNew(args, ctx, pi);
+			},
+		});
+	}
 }
