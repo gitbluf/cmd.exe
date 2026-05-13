@@ -171,6 +171,18 @@ export async function initializeSandbox(
 }
 
 /**
+ * Return compact sandbox stats for the footer chip, or null when not active.
+ */
+export function getSandboxStats(): { domains: number; writes: number } | null {
+	if (!sandboxState.enabled || !sandboxState.initialized) return null;
+	return {
+		domains: sandboxConfig.network?.allowedDomains?.length ?? 0,
+		writes: (sandboxConfig.filesystem?.allowWrite as string[] | undefined)
+			?.length ?? 0,
+	};
+}
+
+/**
  * Reset sandbox on session shutdown
  */
 export async function resetSandbox(): Promise<void> {

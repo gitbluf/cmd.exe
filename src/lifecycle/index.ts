@@ -2,7 +2,7 @@
  * Extension lifecycle hooks and event handlers
  */
 
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
 	getCurrentMode,
 	getModeStatusText,
@@ -37,6 +37,18 @@ import {
 } from "../session";
 import { clearAskWidgetActive } from "../sub-agent";
 import type { TemplateConfig } from "../templates/types";
+import {
+	addFooterCacheDelta,
+	addFooterCostDelta,
+	addFooterTokensDelta,
+	installFooter,
+	setFooterCacheTotal,
+	setFooterContext,
+	setFooterCostTotal,
+	setFooterCwd,
+	setFooterModel,
+	setFooterTokensTotal,
+} from "../ui/footer";
 import { getIconRegistry } from "../ui/icons";
 import { getWorkspaceRoot } from "../utils/config";
 import { trySetModel } from "../utils/model-utils";
@@ -49,6 +61,62 @@ import {
 } from "./sandbox";
 
 export { sandboxState } from "./sandbox";
+
+/**
+ * Sum cost and cache token usage from all assistant messages in the current
+ * branch. Used to seed footer telemetry on session start / resume / fork so
+ * the footer reflects session history rather than starting from zero.
+ */
+function computeBranchTelemetry(ctx: ExtensionContext): {
+	cost: number | undefined;
+	cacheRead: number | undefined;
+	cacheWrite: number | undefined;
+	totalTokens: number | undefined;
+} {
+	let cost = 0;
+	let cacheRead = 0;
+	let cacheWrite = 0;
+	let totalTokens = 0;
+	let hasAny = false;
+
+	for (const entry of ctx.sessionManager.getBranch()) {
+		// biome-ignore lint/suspicious/noExplicitAny: session entry message shape is opaque
+		const msg = (entry as any).message;
+		if (msg?.role !== "assistant") continue;
+
+		const c = msg.usage?.cost?.total;
+		if (typeof c === "number" && c > 0) {
+			cost += c;
+			hasAny = true;
+		}
+
+		const cr = msg.usage?.cacheRead;
+		if (typeof cr === "number" && cr > 0) {
+			cacheRead += cr;
+			hasAny = true;
+		}
+
+		const cw = msg.usage?.cacheWrite;
+		if (typeof cw === "number" && cw > 0) {
+			cacheWrite += cw;
+			hasAny = true;
+		}
+
+		const tt = msg.usage?.totalTokens;
+		if (typeof tt === "number" && tt > 0) {
+			totalTokens += tt;
+			hasAny = true;
+		}
+	}
+
+	if (!hasAny) return { cost: undefined, cacheRead: undefined, cacheWrite: undefined, totalTokens: undefined };
+	return {
+		cost: cost > 0 ? cost : undefined,
+		cacheRead: cacheRead > 0 ? cacheRead : undefined,
+		cacheWrite: cacheWrite > 0 ? cacheWrite : undefined,
+		totalTokens: totalTokens > 0 ? totalTokens : undefined,
+	};
+}
 
 /**
  * Setup all lifecycle hooks for the extension
@@ -177,6 +245,14 @@ export function setupLifecycleHooks(
 			ctx.ui.setStatus("mode", getModeStatusText(startMode));
 			updatePlanStatus(ctx, null);
 			clearPlanWidgets(ctx);
+			installFooter(ctx, pi);
+			setFooterModel(ctx.model?.id);
+			setFooterCwd(ctx.cwd);
+			const branchTelemetry = computeBranchTelemetry(ctx);
+			setFooterCostTotal(branchTelemetry.cost);
+			setFooterCacheTotal(branchTelemetry.cacheRead, branchTelemetry.cacheWrite);
+			setFooterTokensTotal(branchTelemetry.totalTokens);
+			setFooterContext(undefined);
 		}
 
 		// Try to set the startup model
@@ -232,8 +308,16 @@ export function setupLifecycleHooks(
 		}
 	});
 
+	// Keep footer model chip in sync whenever the user switches models.
+	pi.on("model_select", (event, ctx) => {
+		setFooterModel(event.model.id);
+		// Reuse the mode setStatus call as a re-render trigger for the footer.
+		if (ctx.hasUI) {
+			ctx.ui.setStatus("mode", getModeStatusText(getCurrentMode()));
+		}
+	});
+
 	pi.on("turn_start", (_event, ctx) => {
-		// Re-apply effective mode tools each turn to prevent drift.
 		// When an apply-once elevation is active, use build mode tools.
 		const effectiveMode = isApplyOnceActive() ? "build" : getCurrentMode();
 		const slot = effectiveMode === "plan" ? slots.plan_mode : slots.build_mode;
@@ -245,6 +329,35 @@ export function setupLifecycleHooks(
 			ctx.ui.setWidget("ask", undefined);
 		}
 		clearAskWidgetActive();
+	});
+
+	// Update footer telemetry (context usage + accumulated cost) after each turn.
+	// This runs as a separate handler so it never interferes with plan/apply-once logic.
+	pi.on("turn_end", async (event, ctx) => {
+		if (!ctx.hasUI) return;
+
+		const usage = ctx.getContextUsage();
+		if (usage) setFooterContext(usage.tokens);
+
+		// biome-ignore lint/suspicious/noExplicitAny: pi SDK message usage shape is opaque
+		const turnCost = (event.message as any)?.usage?.cost?.total;
+		if (typeof turnCost === "number" && turnCost > 0) {
+			addFooterCostDelta(turnCost);
+		}
+
+		const cacheRead = (event.message as any)?.usage?.cacheRead;
+		const cacheWrite = (event.message as any)?.usage?.cacheWrite;
+		if (typeof cacheRead === "number" || typeof cacheWrite === "number") {
+			addFooterCacheDelta(cacheRead ?? 0, cacheWrite ?? 0);
+		}
+
+		const totalTokens = (event.message as any)?.usage?.totalTokens;
+		if (typeof totalTokens === "number" && totalTokens > 0) {
+			addFooterTokensDelta(totalTokens);
+		}
+
+		// Trigger footer re-render
+		ctx.ui.setStatus("mode", getModeStatusText(getCurrentMode()));
 	});
 
 	// Detect [DONE:n] markers and new plans after each turn; restore apply-once state

@@ -17,6 +17,7 @@ import {
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
+import { bottomBar, contentLine, topBar } from "../ui/style";
 import { getIconRegistry } from "../ui/icons";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
 import { storeSubAgentOutput } from "./store";
@@ -124,43 +125,52 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 				return {
 					render: (width: number) => {
 						const icons = getIconRegistry();
+						const borderFn = (s: string) => theme.fg("border", s);
 						const maxLines =
 							status === "complete" ? completedWidgetLines : maxWidgetLines;
-						const lines = output.split("\n");
-						const displayLines = lines.slice(-maxLines);
-						const truncated = lines.length > maxLines;
+						const outputLines = output.split("\n");
+						const displayLines = outputLines.slice(-maxLines);
+						const truncated = outputLines.length > maxLines;
 
+						// Title bar content
 						const statusIcon =
 							status === "complete"
 								? theme.fg("success", `${icons.check} `)
 								: "";
-						const statusText =
+						const statusLabel =
 							status === "streaming"
-								? "streaming..."
-								: "complete — last output:";
-						const border = theme.fg("border", "─".repeat(width));
-						const footerHint =
+								? theme.fg("dim", "streaming…")
+								: theme.fg("dim", "complete — last output:");
+						const agentTitle = theme.fg(
+							"accent",
+							opts.widgetTitle || `${icons.agentDefault} Sub-Agent`,
+						);
+						const titleContent = `${statusIcon}${agentTitle} ${statusLabel}`;
+
+						// Bottom hint
+						const hintContent =
 							status === "complete"
-								? theme.fg("dim", "  ctrl+shift+o to expand full output")
+								? theme.fg("dim", "ctrl+shift+o to expand full output")
 								: "";
 
 						const raw = [
-							border,
-							` ${statusIcon}${theme.fg("accent", opts.widgetTitle || `${icons.agentDefault} Sub-Agent`)} ${theme.fg("dim", statusText)}`,
-							border,
+							topBar(titleContent, width, borderFn),
 							...(truncated
 								? [
-										theme.fg(
-											"dim",
-											`  [...${lines.length - maxLines} earlier lines]`,
+										contentLine(
+											theme.fg(
+												"dim",
+												`[…${outputLines.length - maxLines} earlier lines]`,
+											),
+											width,
+											borderFn,
 										),
 									]
 								: []),
 							...displayLines.map((line: string) =>
-								theme.fg("muted", `  ${line}`),
+								contentLine(theme.fg("muted", `  ${line}`), width, borderFn),
 							),
-							...(footerHint ? [footerHint] : []),
-							border,
+							bottomBar(hintContent, width, borderFn),
 						];
 
 						return raw.map((line) => truncateToWidth(line, width));
