@@ -8,7 +8,7 @@
 import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { isForkPayloadV2, type ForkPayloadV2 } from "./fork-payload-types";
+import { type ForkPayloadV2, isForkPayloadV2 } from "./fork-payload-types";
 
 /** Env var the child process reads to locate its payload file. */
 export const FORK_PAYLOAD_ENV_KEY = "PI_FORK_PAYLOAD_FILE";
@@ -52,9 +52,7 @@ export async function readForkPayloadTemp(
 	}
 
 	if (!isForkPayloadV2(parsed)) {
-		throw new Error(
-			`Fork payload file failed V2 validation: ${filePath}`,
-		);
+		throw new Error(`Fork payload file failed V2 validation: ${filePath}`);
 	}
 
 	return parsed;

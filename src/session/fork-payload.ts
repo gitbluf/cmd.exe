@@ -6,8 +6,8 @@
  */
 
 import type { SessionEntry } from "@earendil-works/pi-coding-agent";
-import type { SessionMode } from "../modes";
 import type { ThinkingLevel } from "../config/slots";
+import type { SessionMode } from "../modes";
 import {
 	DEFAULT_FORK_PAYLOAD_LIMITS,
 	type ForkPayloadLimits,
@@ -96,7 +96,6 @@ function extractAllMessages(branch: SessionEntry[]): {
  */
 function applyLimits(
 	messages: RawMessage[],
-	totalChars: number,
 	limits: ForkPayloadLimits,
 ): {
 	kept: RawMessage[];
@@ -183,7 +182,6 @@ export function buildForkPayloadV2(
 
 	const { kept, truncated, droppedMessages, includedChars } = applyLimits(
 		allMessages,
-		totalChars,
 		limits,
 	);
 

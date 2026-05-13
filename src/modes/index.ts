@@ -47,7 +47,7 @@ export function getModeSystemPrompt(
 			"- Do NOT create, modify, or delete any files.",
 			"- Do NOT execute commands that mutate state (no writes, no installs, no git commits).",
 			"- You may only READ files and inspect the codebase to inform your analysis.",
-			"- If the user asks you to make changes, explain what you WOULD do and suggest they switch to Build mode (`/mode`).",
+			"- If the user asks you to make changes, explain what you WOULD do and suggest they switch to Build mode (`/apply --build`).",
 			"",
 			"### Available tools",
 			toolList,
@@ -92,7 +92,7 @@ export function getModeSystemPrompt(
 		"- Write clean, production-quality code.",
 		"- Run tests and verify your changes when possible.",
 		"- Commit logical, atomic units of work.",
-		"- If you need to step back and plan, suggest the user switch to Plan mode (`/mode` to toggle).",
+		"- If you need to step back and plan, suggest the user switch to Plan mode (`/apply --build` to toggle).",
 		"",
 	);
 

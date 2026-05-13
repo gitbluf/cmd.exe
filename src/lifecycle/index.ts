@@ -9,6 +9,11 @@ import {
 	getModeSystemPrompt,
 	setCurrentMode,
 } from "../modes";
+import {
+	clearApplyOnce,
+	getApplyOnceRestore,
+	isApplyOnceActive,
+} from "../modes/apply-once";
 import { createPlanId, getPlanStats, parsePlanFromText } from "../plan";
 import {
 	clearPlan,
@@ -66,8 +71,26 @@ export function setupLifecycleHooks(
 		pi.setActiveTools([...planTools]);
 	};
 
+	// Apply build mode on session start when --build flag is set
+	const applyBuildMode = () => {
+		setCurrentMode("build");
+		const buildTools = slots.build_mode.tools || [
+			"read",
+			"write",
+			"edit",
+			"bash",
+			"find_files",
+		];
+		pi.setActiveTools([...buildTools]);
+	};
+
 	pi.on("session_start", async (_event, ctx) => {
-		applyPlanMode();
+		const buildFlagEnabled = pi.getFlag("build") as boolean;
+		if (buildFlagEnabled) {
+			applyBuildMode();
+		} else {
+			applyPlanMode();
+		}
 		clearAskWidgetActive();
 
 		// ── V2 fork payload bootstrap ──────────────────────────────────────────
@@ -81,10 +104,7 @@ export function setupLifecycleHooks(
 				await deleteForkPayloadTemp(payloadFilePath);
 
 				// Build bootstrap message content
-				const lines: string[] = [
-					`## Fork Context (from parent session)`,
-					``,
-				];
+				const lines: string[] = [`## Fork Context (from parent session)`, ``];
 
 				if (payload.context.summary) {
 					lines.push(payload.context.summary, "");
@@ -101,9 +121,7 @@ export function setupLifecycleHooks(
 									: "Tool";
 						const preview = msg.text.slice(0, 400).replace(/\n+/g, " ");
 						lines.push(
-							`**${label}:** ${preview}${
-								msg.text.length > 400 ? "…" : ""
-							}`,
+							`**${label}:** ${preview}${msg.text.length > 400 ? "…" : ""}`,
 						);
 					}
 					lines.push("");
@@ -155,60 +173,70 @@ export function setupLifecycleHooks(
 		clearPlan(root);
 
 		if (ctx.hasUI) {
-			ctx.ui.setStatus("mode", getModeStatusText("plan"));
+			const startMode = buildFlagEnabled ? "build" : "plan";
+			ctx.ui.setStatus("mode", getModeStatusText(startMode));
 			updatePlanStatus(ctx, null);
 			clearPlanWidgets(ctx);
 		}
 
-		// Try to set the plan model
+		// Try to set the startup model
+		const startSlot = buildFlagEnabled ? slots.build_mode : slots.plan_mode;
 		const success = await trySetModel(
 			pi,
 			ctx,
-			slots.plan_mode.model,
-			slots.plan_mode.thinking,
+			startSlot.model,
+			startSlot.thinking,
 		);
 		if (!success && ctx.hasUI) {
 			const icons = getIconRegistry();
 			console.warn(
-				`[lifecycle] Plan mode model not available: ${slots.plan_mode.model}`,
+				`[lifecycle] Startup model not available: ${startSlot.model}`,
 			);
 			ctx.ui.notify(
-				`${icons.warning} Plan mode model "${slots.plan_mode.model}" not available, keeping current model`,
+				`${icons.warning} Startup model "${startSlot.model}" not available, keeping current model`,
 				"warning",
 			);
 		}
 	});
 
 	pi.on("session_before_switch", async (_event, ctx) => {
-		applyPlanMode();
+		const buildFlagEnabled = pi.getFlag("build") as boolean;
+		if (buildFlagEnabled) {
+			applyBuildMode();
+		} else {
+			applyPlanMode();
+		}
 
 		if (ctx.hasUI) {
-			ctx.ui.setStatus("mode", getModeStatusText("plan"));
+			const switchMode = buildFlagEnabled ? "build" : "plan";
+			ctx.ui.setStatus("mode", getModeStatusText(switchMode));
 			ctx.ui.setStatus("rtk", getRtkStatusText());
 		}
 
+		const switchSlot = buildFlagEnabled ? slots.build_mode : slots.plan_mode;
 		const success = await trySetModel(
 			pi,
 			ctx,
-			slots.plan_mode.model,
-			slots.plan_mode.thinking,
+			switchSlot.model,
+			switchSlot.thinking,
 		);
 		if (!success && ctx.hasUI) {
 			const icons = getIconRegistry();
 			console.warn(
-				`[lifecycle] Plan mode model not available: ${slots.plan_mode.model}`,
+				`[lifecycle] Switch mode model not available: ${switchSlot.model}`,
 			);
 			ctx.ui.notify(
-				`${icons.warning} Plan mode model "${slots.plan_mode.model}" not available, keeping current model`,
+				`${icons.warning} Model "${switchSlot.model}" not available, keeping current model`,
 				"warning",
 			);
 		}
 	});
 
 	pi.on("turn_start", (_event, ctx) => {
-		// Re-apply current mode tools each turn to prevent drift
-		const mode = getCurrentMode();
-		const slot = mode === "plan" ? slots.plan_mode : slots.build_mode;
+		// Re-apply effective mode tools each turn to prevent drift.
+		// When an apply-once elevation is active, use build mode tools.
+		const effectiveMode = isApplyOnceActive() ? "build" : getCurrentMode();
+		const slot = effectiveMode === "plan" ? slots.plan_mode : slots.build_mode;
 		const tools = slot.tools || [];
 		pi.setActiveTools([...tools]);
 
@@ -219,83 +247,132 @@ export function setupLifecycleHooks(
 		clearAskWidgetActive();
 	});
 
-	// Detect [DONE:n] markers and new plans after each turn
-	pi.on("turn_end", (event, ctx) => {
-		if (!ctx.hasUI || !event.message) return;
-
+	// Detect [DONE:n] markers and new plans after each turn; restore apply-once state
+	pi.on("turn_end", async (event, ctx) => {
 		const root = getWorkspaceRoot(ctx.cwd);
-		const plan = loadPlanState(root);
-		const mode = getCurrentMode();
 
-		// Extract text content from message (only if it's a text message)
-		// biome-ignore lint/suspicious/noExplicitAny: pi SDK message shape is opaque
-		const message = event.message as any;
-		if (!message.content) return;
+		// Resolve effective mode for plan detection (apply-once uses build mode)
+		const effectiveMode = isApplyOnceActive() ? "build" : getCurrentMode();
 
-		const content =
-			typeof message.content === "string"
-				? message.content
-				: Array.isArray(message.content)
-					? message.content
-							// biome-ignore lint/suspicious/noExplicitAny: pi SDK content block shape is opaque
-							.filter((c: any) => c.type === "text")
-							// biome-ignore lint/suspicious/noExplicitAny: pi SDK content block shape is opaque
-							.map((c: any) => c.text)
-							.join("")
-					: "";
+		try {
+			if (ctx.hasUI && event.message) {
+				const plan = loadPlanState(root);
+				const mode = effectiveMode;
 
-		if (!content) return;
+				// Extract text content from message (only if it's a text message)
+				// biome-ignore lint/suspicious/noExplicitAny: pi SDK message shape is opaque
+				const message = event.message as any;
 
-		// Detect [DONE:n] markers if we have an active plan
-		if (plan) {
-			const doneMatches = content.matchAll(/\[DONE:(\d+)\]/g);
-			for (const match of doneMatches) {
-				const stepNumber = Number.parseInt(match[1], 10);
-				const wasCompleted = markStepDone(root, stepNumber);
+				const content =
+					typeof message?.content === "string"
+						? message.content
+						: Array.isArray(message?.content)
+							? message.content
+									// biome-ignore lint/suspicious/noExplicitAny: pi SDK content block shape is opaque
+									.filter((c: any) => c.type === "text")
+									// biome-ignore lint/suspicious/noExplicitAny: pi SDK content block shape is opaque
+									.map((c: any) => c.text)
+									.join("")
+							: "";
 
-				if (wasCompleted) {
-					const updatedPlan = loadPlanState(root);
-					if (updatedPlan) {
-						const stats = getPlanStats(updatedPlan);
-						const step = updatedPlan.steps.find((s) => s.number === stepNumber);
-						if (step) {
-							flashStepComplete(ctx, step, stats);
-							updatePlanStatus(ctx, updatedPlan);
+				if (content) {
+					// Detect [DONE:n] markers if we have an active plan
+					if (plan) {
+						const doneMatches = content.matchAll(/\[DONE:(\d+)\]/g);
+						for (const match of doneMatches) {
+							const stepNumber = Number.parseInt(match[1], 10);
+							const wasCompleted = markStepDone(root, stepNumber);
+
+							if (wasCompleted) {
+								const updatedPlan = loadPlanState(root);
+								if (updatedPlan) {
+									const stats = getPlanStats(updatedPlan);
+									const step = updatedPlan.steps.find(
+										(s) => s.number === stepNumber,
+									);
+									if (step) {
+										flashStepComplete(ctx, step, stats);
+										updatePlanStatus(ctx, updatedPlan);
+									}
+
+									if (isPlanComplete(updatedPlan)) {
+										clearPlan(root);
+										const icons = getIconRegistry();
+										ctx.ui.notify(
+											`${icons.success} Plan completed and cleared.`,
+											"info",
+										);
+										updatePlanStatus(ctx, null);
+										clearPlanWidgets(ctx);
+									}
+								}
+							}
 						}
+					}
 
-						if (isPlanComplete(updatedPlan)) {
-							clearPlan(root);
-							const icons = getIconRegistry();
-							ctx.ui.notify(
-								`${icons.success} Plan completed and cleared.`,
-								"info",
-							);
-							updatePlanStatus(ctx, null);
-							clearPlanWidgets(ctx);
+					// Auto-detect new plans in plan mode (only if no active plan)
+					if (mode === "plan") {
+						const currentPlan = loadPlanState(root);
+						if (!currentPlan) {
+							const detectedSteps = parsePlanFromText(content);
+							if (detectedSteps) {
+								const newPlan = {
+									id: createPlanId(),
+									steps: detectedSteps,
+									source: "conversation" as const,
+									createdAt: new Date().toISOString(),
+								};
+								setPlan(root, newPlan);
+								updatePlanStatus(ctx, newPlan);
+								ctx.ui.notify(
+									`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /apply --build to execute.`,
+									"info",
+								);
+							}
 						}
 					}
 				}
 			}
-		}
+		} finally {
+			// ── Apply-once restore ──────────────────────────────────────────
+			// Runs unconditionally — even when the turn produced no text — so
+			// the one-turn elevation is never left active beyond a single turn.
+			if (isApplyOnceActive()) {
+				const restore = getApplyOnceRestore();
+				clearApplyOnce(); // clear before restoring to prevent re-entry
 
-		// Auto-detect new plans in plan mode (only if no active plan)
-		if (mode === "plan") {
-			const currentPlan = loadPlanState(root);
-			if (!currentPlan) {
-				const detectedSteps = parsePlanFromText(content);
-				if (detectedSteps) {
-					const newPlan = {
-						id: createPlanId(),
-						steps: detectedSteps,
-						source: "conversation" as const,
-						createdAt: new Date().toISOString(),
-					};
-					setPlan(root, newPlan);
-					updatePlanStatus(ctx, newPlan);
-					ctx.ui.notify(
-						`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /plan to execute.`,
-						"info",
+				// Restore tools
+				pi.setActiveTools([...restore.tools]);
+
+				// Restore model/thinking if we captured it
+				if (restore.modelId) {
+					const restored = await trySetModel(
+						pi,
+						ctx,
+						restore.modelId,
+						restore.thinking as Parameters<typeof trySetModel>[3],
 					);
+					if (!restored) {
+						console.warn(
+							`[lifecycle] apply-once: failed to restore model "${restore.modelId}"`,
+						);
+						if (ctx.hasUI) {
+							const icons = getIconRegistry();
+							ctx.ui.notify(
+								`${icons.warning} Could not restore previous model after apply`,
+								"warning",
+							);
+						}
+					}
+				} else if (restore.thinking) {
+					pi.setThinkingLevel(
+						restore.thinking as Parameters<typeof pi.setThinkingLevel>[0],
+					);
+				}
+
+				// Restore footer mode indicator
+				if (ctx.hasUI) {
+					ctx.ui.setStatus("mode", getModeStatusText(restore.mode));
 				}
 			}
 		}
@@ -303,7 +380,8 @@ export function setupLifecycleHooks(
 
 	// Inject mode-specific system prompt instructions before each agent turn
 	pi.on("before_agent_start", async (event, ctx) => {
-		const mode = getCurrentMode();
+		// Use effective mode: apply-once elevation runs under build mode semantics
+		const mode = isApplyOnceActive() ? "build" : getCurrentMode();
 		const slot = mode === "plan" ? slots.plan_mode : slots.build_mode;
 		const tools = slot.tools || [];
 

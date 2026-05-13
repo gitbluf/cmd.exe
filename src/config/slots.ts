@@ -35,7 +35,6 @@ export interface SlotsConfig {
 	assistant: SlotConfig;
 }
 
-
 /** Default slot configuration */
 export const DEFAULT_SLOTS: SlotsConfig = {
 	plan_mode: {
