@@ -122,6 +122,7 @@ function registerSandboxedBash(pi: ExtensionAPI): void {
 	registerToolWithDefaultRenderer(pi, {
 		...localBash,
 		label: "bash (sandboxed)",
+		renderShell: "self",
 		renderCall(args, theme, _ctx) {
 			return renderBashCall(
 				args as { command: string; timeout?: number },

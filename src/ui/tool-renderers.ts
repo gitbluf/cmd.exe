@@ -397,7 +397,11 @@ function previewArgs(args: unknown): string {
  * Generic renderCall: works for any tool.
  * Renders: `toolName  key=val  key=val`
  */
-export function renderGenericCall(toolName: string, args: unknown, theme: Theme): Text {
+export function renderGenericCall(
+	toolName: string,
+	args: unknown,
+	theme: Theme,
+): Text {
 	let text = theme.fg("toolTitle", theme.bold(toolName));
 	const preview = previewArgs(args);
 	if (preview) text += theme.fg("dim", `  ${preview}`);
@@ -418,7 +422,9 @@ export function renderGenericResult(
 
 	const icons = getIconRegistry();
 	const output = textOf(result);
-	const lineCount = output ? output.split("\n").filter((l) => l.trim()).length : 0;
+	const lineCount = output
+		? output.split("\n").filter((l) => l.trim()).length
+		: 0;
 
 	let text = opts.isError
 		? theme.fg("error", `${icons.cross} error`)
@@ -428,9 +434,83 @@ export function renderGenericResult(
 
 	if (opts.expanded && output) {
 		const lines = output.split("\n");
-		for (const line of lines.slice(0, 20)) text += `\n${theme.fg("muted", line)}`;
+		for (const line of lines.slice(0, 20))
+			text += `\n${theme.fg("muted", line)}`;
 		if (lines.length > 20)
 			text += `\n${theme.fg("dim", `  …${lines.length - 20} more`)}`;
+	}
+
+	return new Text(text, 0, 0);
+}
+
+// ── find_files ────────────────────────────────────────────────────────────────
+
+export function renderFindFilesCall(
+	args: { query: string; scope?: string },
+	theme: Theme,
+): Text {
+	const icons = getIconRegistry();
+	const MAX_Q = 60;
+	const q =
+		args.query.length > MAX_Q
+			? `${args.query.slice(0, MAX_Q - 1)}…`
+			: args.query;
+	let text = theme.fg("toolTitle", `${icons.agentDataweaver} find_files `);
+	text += theme.fg("accent", q);
+	if (args.scope) text += theme.fg("dim", `  in ${args.scope}`);
+	return new Text(text, 0, 0);
+}
+
+export function renderFindFilesResult(
+	result: ToolResult,
+	opts: { expanded: boolean; isPartial: boolean; isError?: boolean },
+	theme: Theme,
+): Text {
+	if (opts.isPartial) return new Text(theme.fg("dim", "searching…"), 0, 0);
+
+	const icons = getIconRegistry();
+	const details = result.details as
+		| {
+				truncated?: boolean;
+				outputLength?: number;
+				found?: number;
+				modelId?: string;
+		  }
+		| undefined;
+	const output = textOf(result);
+
+	if (
+		opts.isError ||
+		!output ||
+		output.toLowerCase().includes("no files found")
+	) {
+		return new Text(
+			opts.isError
+				? theme.fg("error", `${icons.cross} failed`)
+				: theme.fg("dim", "no files found"),
+			0,
+			0,
+		);
+	}
+
+	// Count result entries: numbered lines like "1.", "2.", etc.
+	const fileCount = output
+		.split("\n")
+		.filter((l) => /^\s*\d+\./.test(l)).length;
+
+	let text =
+		fileCount > 0
+			? theme.fg("success", `${icons.check} ${fileCount} files`)
+			: theme.fg("success", `${icons.check} done`);
+
+	if (details?.truncated) text += theme.fg("warning", "  truncated");
+
+	if (opts.expanded && output) {
+		const lines = output.split("\n");
+		for (const line of lines.slice(0, 30))
+			text += `\n${theme.fg("muted", line)}`;
+		if (lines.length > 30)
+			text += `\n${theme.fg("dim", `  …${lines.length - 30} more`)}`;
 	}
 
 	return new Text(text, 0, 0);

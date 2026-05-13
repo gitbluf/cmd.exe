@@ -52,6 +52,7 @@ export function registerBuiltinToolRenderers(
 	registerToolWithDefaultRenderer(pi, {
 		...originalRead,
 		label: "read",
+		renderShell: "self",
 		renderCall(args, theme, _ctx) {
 			return renderReadCall(
 				args as { path: string; offset?: number; limit?: number },
@@ -81,6 +82,7 @@ export function registerBuiltinToolRenderers(
 	registerToolWithDefaultRenderer(pi, {
 		...originalWrite,
 		label: "write",
+		renderShell: "self",
 		renderCall(args, theme, _ctx) {
 			return renderWriteCall(args as { path: string; content: string }, theme);
 		},
@@ -94,6 +96,7 @@ export function registerBuiltinToolRenderers(
 	registerToolWithDefaultRenderer(pi, {
 		...originalGrep,
 		label: "grep",
+		renderShell: "self",
 		renderCall(args, theme, _ctx) {
 			return renderGrepCall(
 				args as {
@@ -115,6 +118,7 @@ export function registerBuiltinToolRenderers(
 	registerToolWithDefaultRenderer(pi, {
 		...originalFind,
 		label: "find",
+		renderShell: "self",
 		renderCall(args, theme, _ctx) {
 			return renderFindCall(args as { pattern: string; path?: string }, theme);
 		},
@@ -128,6 +132,7 @@ export function registerBuiltinToolRenderers(
 	registerToolWithDefaultRenderer(pi, {
 		...originalLs,
 		label: "ls",
+		renderShell: "self",
 		renderCall(args, theme, _ctx) {
 			return renderLsCall(args as { path?: string }, theme);
 		},

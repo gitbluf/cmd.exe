@@ -17,6 +17,10 @@ import { DATAWEAVER } from "../agents/definitions";
 import { resolveSlot, type SlotConfig } from "../config/slots";
 import { runSubAgent } from "../sub-agent";
 import { getIconRegistry } from "../ui/icons";
+import {
+	renderFindFilesCall,
+	renderFindFilesResult,
+} from "../ui/tool-renderers";
 
 /**
  * Tool parameters schema
@@ -53,6 +57,7 @@ export function createFindFilesTool(opts: {
 	return {
 		name: "find_files",
 		label: "Find Files",
+		renderShell: "self",
 		description:
 			"Locate files in the codebase matching a query. " +
 			"Spawns a read-only reconnaissance agent that searches, reads, " +
@@ -60,6 +65,21 @@ export function createFindFilesTool(opts: {
 			"Use this instead of manually reading directories.",
 
 		parameters: FindFilesParams,
+
+		renderCall(args, theme, _ctx) {
+			return renderFindFilesCall(
+				args as { query: string; scope?: string },
+				theme,
+			);
+		},
+
+		renderResult(result, options, theme, ctx) {
+			return renderFindFilesResult(
+				result,
+				{ ...options, isError: ctx.isError },
+				theme,
+			);
+		},
 
 		async execute(toolCallId, rawParams, _signal, onUpdate, _ctx) {
 			const params = rawParams as FindFilesInput;
