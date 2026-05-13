@@ -25,6 +25,11 @@ import {
 } from "../plan/widget";
 import { getRtkStatusText, initializeRtk } from "../rtk";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
+import {
+	deleteForkPayloadTemp,
+	FORK_PAYLOAD_ENV_KEY,
+	readForkPayloadTemp,
+} from "../session";
 import { clearAskWidgetActive } from "../sub-agent";
 import type { TemplateConfig } from "../templates/types";
 import { getIconRegistry } from "../ui/icons";
@@ -64,6 +69,87 @@ export function setupLifecycleHooks(
 	pi.on("session_start", async (_event, ctx) => {
 		applyPlanMode();
 		clearAskWidgetActive();
+
+		// ── V2 fork payload bootstrap ──────────────────────────────────────────
+		const payloadFilePath = process.env[FORK_PAYLOAD_ENV_KEY];
+		if (payloadFilePath) {
+			// Clear env marker immediately — prevents reprocessing on reload
+			delete process.env[FORK_PAYLOAD_ENV_KEY];
+
+			try {
+				const payload = await readForkPayloadTemp(payloadFilePath);
+				await deleteForkPayloadTemp(payloadFilePath);
+
+				// Build bootstrap message content
+				const lines: string[] = [
+					`## Fork Context (from parent session)`,
+					``,
+				];
+
+				if (payload.context.summary) {
+					lines.push(payload.context.summary, "");
+				}
+
+				if (payload.context.recentMessages.length > 0) {
+					lines.push(`### Recent context`);
+					for (const msg of payload.context.recentMessages) {
+						const label =
+							msg.role === "user"
+								? "User"
+								: msg.role === "assistant"
+									? "Assistant"
+									: "Tool";
+						const preview = msg.text.slice(0, 400).replace(/\n+/g, " ");
+						lines.push(
+							`**${label}:** ${preview}${
+								msg.text.length > 400 ? "…" : ""
+							}`,
+						);
+					}
+					lines.push("");
+				}
+
+				const stats = payload.context.stats;
+				lines.push(
+					`*Forked from: \`${payload.parentSessionFile ?? "unknown"}\`*`,
+					`*Messages: ${stats.includedMessages} included` +
+						(stats.droppedMessages > 0
+							? `, ${stats.droppedMessages} dropped`
+							: "") +
+						"*",
+				);
+
+				pi.sendMessage({
+					customType: "fork-bootstrap",
+					content: lines.join("\n"),
+					display: true,
+					details: {
+						parentSessionFile: payload.parentSessionFile,
+						stats: payload.context.stats,
+					},
+				});
+
+				if (ctx.hasUI) {
+					const icons = getIconRegistry();
+					ctx.ui.notify(
+						`${icons.branch} Fork context loaded ` +
+							`(${stats.includedMessages} messages)`,
+						"info",
+					);
+				}
+			} catch (err) {
+				console.warn(
+					`[lifecycle] Fork payload ingestion failed: ${(err as Error).message}`,
+				);
+				if (ctx.hasUI) {
+					const icons = getIconRegistry();
+					ctx.ui.notify(
+						`${icons.warning} Fork context could not be loaded`,
+						"warning",
+					);
+				}
+			}
+		}
 
 		const root = getWorkspaceRoot(ctx.cwd);
 		clearPlan(root);
