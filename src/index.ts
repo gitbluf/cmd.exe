@@ -18,8 +18,10 @@ import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
 import { createRtkSpawnHook } from "./rtk";
 import { getAskWidgetState, OutputViewerComponent } from "./sub-agent";
-import { createFindFilesTool } from "./tools";
+import { createFindFilesTool, registerBuiltinToolRenderers } from "./tools";
+import { registerToolWithDefaultRenderer } from "./tools/register-with-default-renderer";
 import { getIconRegistry, initIcons } from "./ui/icons";
+import { renderBashCall, renderBashResult } from "./ui/tool-renderers";
 import { getConfigPath, loadConfig } from "./utils/config";
 
 // ─── Sub-agent output message renderer ──────────────────────
@@ -117,9 +119,22 @@ function registerSandboxedBash(pi: ExtensionAPI): void {
 		spawnHook: rtkSpawnHook,
 	});
 
-	pi.registerTool({
+	registerToolWithDefaultRenderer(pi, {
 		...localBash,
 		label: "bash (sandboxed)",
+		renderCall(args, theme, _ctx) {
+			return renderBashCall(
+				args as { command: string; timeout?: number },
+				theme,
+			);
+		},
+		renderResult(result, options, theme, ctx) {
+			return renderBashResult(
+				result,
+				{ ...options, isError: ctx.isError },
+				theme,
+			);
+		},
 		async execute(id, params, signal, onUpdate, ctx) {
 			if (!sandboxState.enabled || !sandboxState.initialized) {
 				return localBash.execute(id, params, signal, onUpdate);
@@ -176,6 +191,9 @@ export default function (pi: ExtensionAPI) {
 	// Register sandboxed bash tool
 	registerSandboxedBash(pi);
 
+	// Register built-in tools with compact renderers
+	registerBuiltinToolRenderers(pi, process.cwd());
+
 	// Register find_files tool
 	const findFilesTemplate = createFindFilesTool({
 		cwd: process.cwd(),
@@ -186,7 +204,7 @@ export default function (pi: ExtensionAPI) {
 		assistantSlot: config.slots?.assistant,
 	});
 
-	pi.registerTool({
+	registerToolWithDefaultRenderer(pi, {
 		...findFilesTemplate,
 		async execute(toolCallId, params, signal, onUpdate, ctx) {
 			const tool = createFindFilesTool({
