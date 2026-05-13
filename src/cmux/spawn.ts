@@ -13,6 +13,7 @@
 
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { FORK_PAYLOAD_ENV_KEY } from "../session/fork-payload-file";
 
 const execFileAsync = promisify(execFile);
 
@@ -26,6 +27,11 @@ export interface SpawnPiForkOptions {
 	cwd: string;
 	/** Optional extra CLI args for the child pi process (e.g. --model, --thinking, --tools). */
 	piExtraArgs?: string[];
+	/**
+	 * Optional path to a V2 fork payload temp file.
+	 * When present, prefixed as PI_FORK_PAYLOAD_FILE='<path>' in the child command.
+	 */
+	payloadFile?: string;
 }
 
 export interface SpawnPiForkResult {
@@ -58,15 +64,20 @@ function shQuote(value: string): string {
 /**
  * Build the full command string to send to the new surface.
  * Prepends `cd -- <cwd>` so the child session starts in the correct directory.
+ * When payloadFile is provided, prefixes the env var assignment before pi.
  */
 function buildChildCommand(
 	sessionFile: string,
 	cwd: string,
 	extraArgs: string[] = [],
+	payloadFile?: string,
 ): string {
 	const argv = ["pi", "--fork", sessionFile, ...extraArgs];
 	const piCmd = argv.map(shQuote).join(" ");
-	return `cd -- ${shQuote(cwd)} && ${piCmd}`;
+	const envPrefix = payloadFile
+		? `${FORK_PAYLOAD_ENV_KEY}=${shQuote(payloadFile)} `
+		: "";
+	return `cd -- ${shQuote(cwd)} && ${envPrefix}${piCmd}`;
 }
 
 /**
@@ -193,6 +204,7 @@ export async function spawnPiForkInNewSurface(
 		opts.sessionFile,
 		opts.cwd,
 		opts.piExtraArgs,
+		opts.payloadFile,
 	);
 
 	// ── Step 4: send command text to surface ─────────────────────────────────

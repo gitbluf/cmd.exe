@@ -15,6 +15,12 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { isCmuxSession } from "../../cmux";
 import { spawnPiForkInNewSurface } from "../../cmux/spawn";
+import { getCurrentMode } from "../../modes";
+import {
+	buildForkPayloadV2,
+	deleteForkPayloadTemp,
+	writeForkPayloadTemp,
+} from "../../session";
 import { getIconRegistry } from "../../ui/icons";
 
 export async function handleAgentNew(
@@ -48,13 +54,13 @@ export async function handleAgentNew(
 	// ── Build capability parity args ─────────────────────────────────────────
 	const piExtraArgs: string[] = [];
 
-	// Model
-	if (ctx.model) {
-		const modelId = ctx.model.provider
+	// Model — resolve once, used for both piExtraArgs and payload
+	const modelId = ctx.model
+		? ctx.model.provider
 			? `${ctx.model.provider}/${ctx.model.id}`
-			: ctx.model.id;
-		piExtraArgs.push("--model", modelId);
-	}
+			: ctx.model.id
+		: undefined;
+	if (modelId) piExtraArgs.push("--model", modelId);
 
 	// Thinking level — always pass explicitly to prevent child default drift
 	const thinkingLevel = pi.getThinkingLevel();
@@ -68,6 +74,31 @@ export async function handleAgentNew(
 		piExtraArgs.push("--tools", tools.join(","));
 	}
 
+	// ── Build V2 fork payload (best-effort, V1 fallback on failure) ──────────
+	let payloadFile: string | undefined;
+	try {
+		const branch = ctx.sessionManager.getBranch();
+
+		const payload = buildForkPayloadV2({
+			branch,
+			parentSessionFile: sessionFile,
+			cwd: ctx.cwd,
+			mode: getCurrentMode(),
+			modelId,
+			thinking: thinkingLevel ?? undefined,
+			tools,
+		});
+
+		payloadFile = await writeForkPayloadTemp(payload);
+	} catch (err) {
+		const msg = (err as Error).message;
+		console.warn(`[agent:new] Payload build/write failed, continuing V1: ${msg}`);
+		ctx.ui.notify(
+			`${icons.warning} Fork context unavailable, spawning without payload`,
+			"warning",
+		);
+	}
+
 	// ── Notify intent ─────────────────────────────────────────────────────────
 	ctx.ui.notify(`${icons.pending} Spawning forked agent in new surface…`, "info");
 
@@ -76,7 +107,13 @@ export async function handleAgentNew(
 		sessionFile,
 		cwd: ctx.cwd,
 		piExtraArgs,
+		payloadFile,
 	});
+
+	// Clean up payload file if spawn failed (child will never read it)
+	if (!result.ok && payloadFile) {
+		await deleteForkPayloadTemp(payloadFile);
+	}
 
 	if (!result.ok) {
 		const stage = result.failedStage ?? "unknown";
