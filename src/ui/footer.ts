@@ -33,12 +33,20 @@ type Theme = any;
 // requiring a new setFooter() call on every model switch.
 
 let currentModelId: string | undefined = undefined;
+let currentThinkingLevel: string | undefined = undefined;
 
 /**
  * Update the model shown in the footer. Call on session_start and model_select.
  */
 export function setFooterModel(id: string | undefined): void {
 	currentModelId = id;
+}
+
+/**
+ * Update the thinking level shown in the footer. Call on session_start and thinking_level_select.
+ */
+export function setFooterThinkingLevel(level: string | undefined): void {
+	currentThinkingLevel = level;
 }
 
 // ── Reactive telemetry state ───────────────────────────────────────────────────
@@ -296,7 +304,7 @@ function buildFooterLine(
 		0,
 	);
 
-	// Right section: model [│ branch]
+	// Right section: model [thinking] [│ branch]
 	// Model ID is truncated to 24 chars to keep the footer compact.
 	const MODEL_MAX = 24;
 	const rawModel = currentModelId
@@ -305,19 +313,40 @@ function buildFooterLine(
 			: currentModelId
 		: undefined;
 	const modelStr = rawModel ? theme.fg("dim", rawModel) : "";
-	const modelVW = modelStr ? visibleWidth(modelStr) : 0;
+	const modelVW = rawModel ? rawModel.length : 0;
+
+	// Thinking level: abbreviated on narrow, full label on wide.
+	// Skip "off" entirely — no noise when thinking is disabled.
+	const thinkingStr = (() => {
+		if (!currentThinkingLevel || currentThinkingLevel === "off") return "";
+		const label = wide ? currentThinkingLevel : currentThinkingLevel[0];
+		return theme.fg("dim", label);
+	})();
+	const thinkingVW = thinkingStr ? visibleWidth(thinkingStr) : 0;
+
+	// Compose model+thinking as a single unit: "model t:level"
+	let modelThinkingStr = modelStr;
+	let modelThinkingVW = modelVW;
+	if (modelStr && thinkingStr) {
+		modelThinkingStr = modelStr + theme.fg("border", ":") + thinkingStr;
+		modelThinkingVW = modelVW + 1 + thinkingVW;
+	} else if (thinkingStr) {
+		modelThinkingStr = thinkingStr;
+		modelThinkingVW = thinkingVW;
+	}
+
 	const branchStr = branch ? theme.fg("dim", branch) : "";
 	const branchVW = branchStr ? visibleWidth(branchStr) : 0;
 
-	// Compose right side: "model │ branch", "model", "branch", or ""
+	// Compose right side: "model:thinking │ branch", "model:thinking", "branch", or ""
 	let rightStr = "";
 	let rightVW = 0;
-	if (modelStr && branchStr) {
-		rightStr = modelStr + inlineSep + branchStr;
-		rightVW = modelVW + SEP_VW + branchVW;
-	} else if (modelStr) {
-		rightStr = modelStr;
-		rightVW = modelVW;
+	if (modelThinkingStr && branchStr) {
+		rightStr = modelThinkingStr + inlineSep + branchStr;
+		rightVW = modelThinkingVW + SEP_VW + branchVW;
+	} else if (modelThinkingStr) {
+		rightStr = modelThinkingStr;
+		rightVW = modelThinkingVW;
 	} else if (branchStr) {
 		rightStr = branchStr;
 		rightVW = branchVW;
