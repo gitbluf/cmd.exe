@@ -20,7 +20,12 @@ import type {
 	AutocompleteProvider,
 	EditorComponent,
 } from "@earendil-works/pi-tui";
-import { addChatBadge, ChatEditor } from "./chat-editor";
+import { getCurrentMode } from "../modes";
+import {
+	addEditorStatusBadge,
+	applyCurvedEditorFrame,
+	ChatEditor,
+} from "./chat-editor";
 
 /**
  * Internal type for CustomEditor-specific fields that interactive-mode
@@ -37,16 +42,22 @@ type CustomEditorExtras = {
 };
 
 /**
- * Thin decorator that post-processes render() output to add the chat badge.
+ * Thin decorator that post-processes render() output to add curved corners
+ * and a mode:thinking status badge on the bottom border.
  * All other EditorComponent methods delegate to the inner editor unchanged.
  */
 class EditorDecorator implements EditorComponent {
-	constructor(private inner: EditorComponent) {}
+	constructor(
+		private inner: EditorComponent,
+		private getStatus: () => string,
+	) {}
 
 	// ── Visual decoration ─────────────────────────────────────────────────────
 
 	render(width: number): string[] {
-		return addChatBadge(this.inner.render(width), width);
+		const lines = this.inner.render(width);
+		applyCurvedEditorFrame(lines);
+		return addEditorStatusBadge(lines, width, this.getStatus);
 	}
 
 	// ── Required EditorComponent interface ────────────────────────────────────
@@ -195,15 +206,23 @@ export function installChatEditor(pi: ExtensionAPI): void {
 
 		const previous = ctx.ui.getEditorComponent();
 
+		// Status text read at render time so mode/thinking changes are always
+		// reflected without requiring a re-installation of the editor component.
+		const getStatus = (): string => {
+			const mode = getCurrentMode().toUpperCase();
+			const thinking = pi.getThinkingLevel();
+			return `${mode}:${thinking}`;
+		};
+
 		ctx.ui.setEditorComponent((tui, theme, keybindings) => {
 			// Use previous custom editor if present, otherwise fall back to ChatEditor.
 			const inner = previous
 				? previous(tui, theme, keybindings)
 				: new ChatEditor(tui, theme, keybindings);
 
-			// Always wrap in EditorDecorator so badge is applied once,
+			// Always wrap in EditorDecorator so decoration is applied once,
 			// regardless of which inner editor is active.
-			return new EditorDecorator(inner);
+			return new EditorDecorator(inner, getStatus);
 		});
 	});
 }
