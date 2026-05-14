@@ -49,8 +49,6 @@ import {
 	setFooterContext,
 	setFooterCostTotal,
 	setFooterCwd,
-	setFooterModel,
-	setFooterThinkingLevel,
 	setFooterTokensTotal,
 } from "../ui/footer";
 import { getIconRegistry } from "../ui/icons";
@@ -256,8 +254,6 @@ export function setupLifecycleHooks(
 			updatePlanStatus(ctx, null);
 			clearPlanWidgets(ctx);
 			installFooter(ctx, pi);
-			setFooterModel(ctx.model?.id);
-			setFooterThinkingLevel(pi.getThinkingLevel());
 			setFooterCwd(ctx.cwd);
 			const branchTelemetry = computeBranchTelemetry(ctx);
 			setFooterCostTotal(branchTelemetry.cost);
@@ -322,17 +318,14 @@ export function setupLifecycleHooks(
 		}
 	});
 
-	// Keep footer model chip in sync whenever the user switches models.
-	pi.on("model_select", (event, ctx) => {
-		setFooterModel(event.model.id);
-		// Reuse the mode setStatus call as a re-render trigger for the footer.
+	// Trigger footer re-render whenever the user switches models.
+	pi.on("model_select", (_event, ctx) => {
 		if (ctx.hasUI) {
 			ctx.ui.setStatus("mode", getModeStatusText(getCurrentMode()));
 		}
 	});
 
-	pi.on("thinking_level_select", (event, ctx) => {
-		setFooterThinkingLevel(event.level);
+	pi.on("thinking_level_select", (_event, ctx) => {
 		// Trigger footer re-render via the same mechanism as model_select.
 		if (ctx.hasUI) {
 			ctx.ui.setStatus("mode", getModeStatusText(getCurrentMode()));

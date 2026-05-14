@@ -20,12 +20,28 @@ import type {
 	AutocompleteProvider,
 	EditorComponent,
 } from "@earendil-works/pi-tui";
-import { getCurrentMode } from "../modes";
 import {
 	addEditorStatusBadge,
 	applyCurvedEditorFrame,
 	ChatEditor,
 } from "./chat-editor";
+
+// ── Reactive model state ───────────────────────────────────────────────────────
+// Kept module-level so getStatus() always reflects the latest model without
+// requiring a re-installation of the editor component on every model switch.
+
+let currentModelLabel = "";
+
+function updateModelLabel(modelId: string | undefined): void {
+	if (!modelId) {
+		currentModelLabel = "";
+		return;
+	}
+	// Use the last segment of the model ID (e.g. "claude-sonnet-4-5" from
+	// "github-copilot/claude-sonnet-4-5") to keep the badge compact.
+	const slash = modelId.lastIndexOf("/");
+	currentModelLabel = slash !== -1 ? modelId.slice(slash + 1) : modelId;
+}
 
 /**
  * Internal type for CustomEditor-specific fields that interactive-mode
@@ -204,14 +220,17 @@ export function installChatEditor(pi: ExtensionAPI): void {
 		// Non-interactive contexts (print, RPC) have no editor — skip.
 		if (!ctx.hasUI) return;
 
+		// Seed model label from current session model.
+		updateModelLabel(ctx.model?.id);
+
 		const previous = ctx.ui.getEditorComponent();
 
-		// Status text read at render time so mode/thinking changes are always
+		// Status text read at render time so model/thinking changes are always
 		// reflected without requiring a re-installation of the editor component.
 		const getStatus = (): string => {
-			const mode = getCurrentMode().toUpperCase();
+			const model = currentModelLabel || "?";
 			const thinking = pi.getThinkingLevel();
-			return `${mode}:${thinking}`;
+			return `${model}:${thinking}`;
 		};
 
 		ctx.ui.setEditorComponent((tui, theme, keybindings) => {
@@ -224,5 +243,10 @@ export function installChatEditor(pi: ExtensionAPI): void {
 			// regardless of which inner editor is active.
 			return new EditorDecorator(inner, getStatus);
 		});
+	});
+
+	// Keep model label in sync whenever the user switches models.
+	pi.on("model_select", (event) => {
+		updateModelLabel(event.model.id);
 	});
 }
