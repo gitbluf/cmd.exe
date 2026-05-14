@@ -20,7 +20,6 @@ import {
 	createReadTool,
 	createWriteTool,
 } from "@earendil-works/pi-coding-agent";
-import { registerToolWithDefaultRenderer } from "./register-with-default-renderer";
 import {
 	renderEditCall,
 	renderEditResult,
@@ -35,6 +34,7 @@ import {
 	renderWriteCall,
 	renderWriteResult,
 } from "../ui/tool-renderers";
+import { registerToolWithDefaultRenderer } from "./register-with-default-renderer";
 
 /**
  * Register all built-in tools (read / edit / write / grep / find / ls)

@@ -31,7 +31,6 @@ import { renderGenericCall, renderGenericResult } from "../ui/tool-renderers";
 
 // Structural interface to avoid Static<any> → unknown inference from
 // ToolDefinition<any, any, any> which makes renderCall args contravariant-unsafe.
-// biome-ignore lint/suspicious/noExplicitAny: intentional - accepts any tool shape
 interface AnyToolDef {
 	name: string;
 	label: string;

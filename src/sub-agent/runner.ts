@@ -17,8 +17,8 @@ import {
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth } from "@earendil-works/pi-tui";
-import { bottomBar, contentLine, topBar } from "../ui/style";
 import { getIconRegistry } from "../ui/icons";
+import { bottomBar, contentLine, topBar } from "../ui/style";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
 import { storeSubAgentOutput } from "./store";
 

@@ -2,7 +2,10 @@
  * Extension lifecycle hooks and event handlers
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+	ExtensionAPI,
+	ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import {
 	getCurrentMode,
 	getModeStatusText,
@@ -110,7 +113,13 @@ function computeBranchTelemetry(ctx: ExtensionContext): {
 		}
 	}
 
-	if (!hasAny) return { cost: undefined, cacheRead: undefined, cacheWrite: undefined, totalTokens: undefined };
+	if (!hasAny)
+		return {
+			cost: undefined,
+			cacheRead: undefined,
+			cacheWrite: undefined,
+			totalTokens: undefined,
+		};
 	return {
 		cost: cost > 0 ? cost : undefined,
 		cacheRead: cacheRead > 0 ? cacheRead : undefined,
@@ -252,7 +261,10 @@ export function setupLifecycleHooks(
 			setFooterCwd(ctx.cwd);
 			const branchTelemetry = computeBranchTelemetry(ctx);
 			setFooterCostTotal(branchTelemetry.cost);
-			setFooterCacheTotal(branchTelemetry.cacheRead, branchTelemetry.cacheWrite);
+			setFooterCacheTotal(
+				branchTelemetry.cacheRead,
+				branchTelemetry.cacheWrite,
+			);
 			setFooterTokensTotal(branchTelemetry.totalTokens);
 			setFooterContext(undefined);
 		}
@@ -349,19 +361,29 @@ export function setupLifecycleHooks(
 		const usage = ctx.getContextUsage();
 		if (usage) setFooterContext(usage.tokens, usage.percent);
 
-		// biome-ignore lint/suspicious/noExplicitAny: pi SDK message usage shape is opaque
-		const turnCost = (event.message as any)?.usage?.cost?.total;
+		// Typed shape for pi SDK message usage fields (opaque at compile time).
+		type MsgUsage = {
+			usage?: {
+				cost?: { total?: number };
+				cacheRead?: number;
+				cacheWrite?: number;
+				totalTokens?: number;
+			};
+		};
+		const msg = event.message as unknown as MsgUsage;
+
+		const turnCost = msg.usage?.cost?.total;
 		if (typeof turnCost === "number" && turnCost > 0) {
 			addFooterCostDelta(turnCost);
 		}
 
-		const cacheRead = (event.message as any)?.usage?.cacheRead;
-		const cacheWrite = (event.message as any)?.usage?.cacheWrite;
+		const cacheRead = msg.usage?.cacheRead;
+		const cacheWrite = msg.usage?.cacheWrite;
 		if (typeof cacheRead === "number" || typeof cacheWrite === "number") {
 			addFooterCacheDelta(cacheRead ?? 0, cacheWrite ?? 0);
 		}
 
-		const totalTokens = (event.message as any)?.usage?.totalTokens;
+		const totalTokens = msg.usage?.totalTokens;
 		if (typeof totalTokens === "number" && totalTokens > 0) {
 			addFooterTokensDelta(totalTokens);
 		}

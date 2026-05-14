@@ -123,10 +123,16 @@ export function flashStepComplete(
 		render: (width: number) => {
 			const borderFn = (s: string) => theme.fg("border", s);
 
-			const titleContent = theme.fg("success", `✅ Step ${step.number} complete`);
+			const titleContent = theme.fg(
+				"success",
+				`✅ Step ${step.number} complete`,
+			);
 
 			const bodyLeft = theme.fg("muted", step.description);
-			const bodyRight = theme.fg("accent", `[${stats.completed}/${stats.total}]`);
+			const bodyRight = theme.fg(
+				"accent",
+				`[${stats.completed}/${stats.total}]`,
+			);
 			// Right-align the progress badge within the inner width
 			const inner = Math.max(0, width - 4);
 			const leftVW = step.description.length;

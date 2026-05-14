@@ -17,11 +17,14 @@
  * token stats without touching the install/render wiring.
  */
 
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+	ExtensionAPI,
+	ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { getSandboxStats } from "../lifecycle/sandbox";
 import { getCurrentMode } from "../modes";
-import { getPlan, getCurrentStep, getPlanStats } from "../plan/state";
+import { getCurrentStep, getPlan, getPlanStats } from "../plan/state";
 import { getRtkEnabled } from "../rtk";
 import { UI_CHARS } from "./style";
 
@@ -32,8 +35,8 @@ type Theme = any;
 // Kept in-module so the footer renderer can read the latest model without
 // requiring a new setFooter() call on every model switch.
 
-let currentModelId: string | undefined = undefined;
-let currentThinkingLevel: string | undefined = undefined;
+let currentModelId: string | undefined;
+let currentThinkingLevel: string | undefined;
 
 /**
  * Update the model shown in the footer. Call on session_start and model_select.
@@ -53,10 +56,10 @@ export function setFooterThinkingLevel(level: string | undefined): void {
 // Updated after each completed turn so the second footer line always shows
 // current session stats without needing to query Pi internals from the render.
 
-let currentContextTokens: number | undefined = undefined;
-let currentContextPercent: number | undefined = undefined;
-let currentCostTotal: number | undefined = undefined;
-let currentCwd: string | undefined = undefined;
+let currentContextTokens: number | undefined;
+let currentContextPercent: number | undefined;
+let currentCostTotal: number | undefined;
+let currentCwd: string | undefined;
 
 export function setFooterContext(
 	tokens: number | null | undefined,
@@ -86,9 +89,9 @@ export function setFooterCwd(cwd: string): void {
 	currentCwd = cwd;
 }
 
-let currentCacheRead: number | undefined = undefined;
-let currentCacheWrite: number | undefined = undefined;
-let currentTotalTokens: number | undefined = undefined;
+let currentCacheRead: number | undefined;
+let currentCacheWrite: number | undefined;
+let currentTotalTokens: number | undefined;
 
 export function addFooterCacheDelta(read: number, write: number): void {
 	if (read > 0) currentCacheRead = (currentCacheRead ?? 0) + read;
@@ -169,7 +172,7 @@ function planChip(
 	if (!wide || !step || descMaxWidth < 6) return progressStr;
 
 	const desc = truncateToWidth(step.description, descMaxWidth);
-	return progressStr + " " + theme.fg("dim", `${UI_CHARS.dot} ${desc}`);
+	return `${progressStr} ${theme.fg("dim", `${UI_CHARS.dot} ${desc}`)}`;
 }
 
 // ── Telemetry formatters ──────────────────────────────────────────────────────
@@ -203,8 +206,8 @@ function formatCache(
 	const w = write !== undefined && write > 0;
 	if (!r && !w) return "";
 	const parts: string[] = [];
-	if (r) parts.push(`${formatTokens(read!)}↩`);
-	if (w) parts.push(`${formatTokens(write!)}↑`);
+	if (read !== undefined && read > 0) parts.push(`${formatTokens(read)}↩`);
+	if (write !== undefined && write > 0) parts.push(`${formatTokens(write)}↑`);
 	return parts.join("/");
 }
 
@@ -236,10 +239,11 @@ function buildTelemetryLine(
 			: "";
 	const cacheRaw = formatCache(currentCacheRead, currentCacheWrite);
 
-	if (!cwdRaw && !sessionName && !ctxRaw && !tokRaw && !costRaw && !cacheRaw) return null;
+	if (!cwdRaw && !sessionName && !ctxRaw && !tokRaw && !costRaw && !cacheRaw)
+		return null;
 
 	const SEP_VW = 3; // " │ "
-	const inlineSep = " " + theme.fg("border", UI_CHARS.sep) + " ";
+	const inlineSep = ` ${theme.fg("border", UI_CHARS.sep)} `;
 
 	// Left: cwd [│ session name]
 	const leftParts: string[] = [];
@@ -288,7 +292,7 @@ function buildFooterLine(
 	branch: string | null,
 ): string {
 	const wide = width >= 90;
-	const inlineSep = " " + theme.fg("border", UI_CHARS.sep) + " ";
+	const inlineSep = ` ${theme.fg("border", UI_CHARS.sep)} `;
 	const SEP_VW = 3;
 
 	// Left section: mode [│ rtk] [│ sbx]
