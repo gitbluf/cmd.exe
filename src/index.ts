@@ -20,6 +20,7 @@ import { createRtkSpawnHook } from "./rtk";
 import { getAskWidgetState, OutputViewerComponent } from "./sub-agent";
 import { createFindFilesTool, registerBuiltinToolRenderers } from "./tools";
 import { registerToolWithDefaultRenderer } from "./tools/register-with-default-renderer";
+import { installChatEditor } from "./ui/chat-editor-install";
 import { getIconRegistry, initIcons } from "./ui/icons";
 import { renderBashCall, renderBashResult } from "./ui/tool-renderers";
 import { getConfigPath, loadConfig } from "./utils/config";
@@ -168,6 +169,7 @@ export default function (pi: ExtensionAPI) {
 	// Register UI components and shortcuts
 	registerOutputRenderer(pi);
 	registerAskOutputShortcut(pi);
+	installChatEditor(pi);
 
 	// Register flags
 	pi.registerFlag("no-sandbox", {
