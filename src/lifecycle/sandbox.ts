@@ -177,8 +177,9 @@ export function getSandboxStats(): { domains: number; writes: number } | null {
 	if (!sandboxState.enabled || !sandboxState.initialized) return null;
 	return {
 		domains: sandboxConfig.network?.allowedDomains?.length ?? 0,
-		writes: (sandboxConfig.filesystem?.allowWrite as string[] | undefined)
-			?.length ?? 0,
+		writes:
+			(sandboxConfig.filesystem?.allowWrite as string[] | undefined)?.length ??
+			0,
 	};
 }
 

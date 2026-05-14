@@ -3,8 +3,12 @@
  * Uses shared ui/style.ts rounded panel tokens for visual consistency.
  */
 
-import { matchesKey, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { UI_CHARS, bottomBar, midBar, topBar } from "../ui/style";
+import {
+	matchesKey,
+	truncateToWidth,
+	visibleWidth,
+} from "@earendil-works/pi-tui";
+import { bottomBar, midBar, topBar, UI_CHARS } from "../ui/style";
 
 type ViewerThemeColor = "accent" | "border" | "dim" | "muted";
 
@@ -96,7 +100,9 @@ export class OutputViewerComponent {
 		}
 
 		// Footer
-		out.push(bottomBar(dim("↑↓ scroll   Home/End jump   q / esc close"), w, borderFn));
+		out.push(
+			bottomBar(dim("↑↓ scroll   Home/End jump   q / esc close"), w, borderFn),
+		);
 
 		return out;
 	}
