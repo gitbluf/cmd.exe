@@ -239,14 +239,22 @@ function buildTelemetryLine(
 	);
 
 	// Right: ctx [│ tok] [│ cost] [│ cache]
+	// Context segment uses warning/error color when usage is elevated.
+	const ctxColor =
+		currentContextPercent !== undefined && currentContextPercent >= 95
+			? "error"
+			: currentContextPercent !== undefined && currentContextPercent >= 80
+				? "warning"
+				: "dim";
+
 	const rightParts: string[] = [];
-	if (ctxRaw) rightParts.push(ctxRaw);
-	if (tokRaw) rightParts.push(tokRaw);
-	if (costRaw) rightParts.push(costRaw);
-	if (cacheRaw) rightParts.push(cacheRaw);
-	const rightStr = rightParts.map((r) => theme.fg("dim", r)).join(inlineSep);
+	if (ctxRaw) rightParts.push(theme.fg(ctxColor, ctxRaw));
+	if (tokRaw) rightParts.push(theme.fg("dim", tokRaw));
+	if (costRaw) rightParts.push(theme.fg("dim", costRaw));
+	if (cacheRaw) rightParts.push(theme.fg("dim", cacheRaw));
+	const rightStr = rightParts.join(inlineSep);
 	const rightVW = rightParts.reduce(
-		(acc, r, i) => acc + r.length + (i > 0 ? SEP_VW : 0),
+		(acc, r, i) => acc + visibleWidth(r) + (i > 0 ? SEP_VW : 0),
 		0,
 	);
 

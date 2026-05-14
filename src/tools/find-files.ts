@@ -108,19 +108,11 @@ export function createFindFilesTool(opts: {
 				thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
 			};
 			if (opts.assistantSlot && opts.modelRegistry) {
-				try {
-					resolution = resolveSlot(
-						opts.modelRegistry,
-						opts.assistantSlot,
-						opts.model,
-					);
-				} catch (_err) {
-					// Fall back to current model
-					resolution = {
-						model: opts.model,
-						modelId: opts.model?.id || "unknown",
-					};
-				}
+				resolution = resolveSlot(
+					opts.modelRegistry,
+					opts.assistantSlot,
+					opts.model,
+				);
 			} else {
 				resolution = {
 					model: opts.model,
