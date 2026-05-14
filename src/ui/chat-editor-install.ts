@@ -207,7 +207,9 @@ class EditorDecorator implements EditorComponent {
 	}
 
 	setPaddingX(padding: number): void {
-		this.inner.setPaddingX?.(padding);
+		// Enforce at least 1 char padding so the cursor doesn't sit against
+		// the curved border. The user can set more via /settings.
+		this.inner.setPaddingX?.(Math.max(1, padding));
 	}
 
 	setAutocompleteMaxVisible(maxVisible: number): void {
