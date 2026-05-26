@@ -37,7 +37,6 @@ export function loadConfig(configPath?: string): TemplateConfig {
 	let config: TemplateConfig = {
 		sandbox: defaultSandboxConfig,
 		slots: DEFAULT_SLOTS,
-		rtk_enabled: false,
 	};
 
 	if (configPath) {
@@ -100,7 +99,6 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				sandbox: mergedSandbox,
 				icons: userConfig.icons || config.icons,
 				slots: mergeSlots(slots),
-				rtk_enabled: userConfig.rtk_enabled ?? config.rtk_enabled,
 			};
 		} else {
 			console.log(`[dispatch] Config file not found, using defaults`);

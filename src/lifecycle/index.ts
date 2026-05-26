@@ -31,7 +31,7 @@ import {
 	flashStepComplete,
 	updatePlanStatus,
 } from "../plan/widget";
-import { getRtkStatusText, initializeRtk } from "../rtk";
+import { getRtkStatusText, initializeRtkObserver } from "../rtk";
 import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
 import {
 	deleteForkPayloadTemp,
@@ -296,6 +296,7 @@ export function setupLifecycleHooks(
 		if (ctx.hasUI) {
 			const switchMode = buildFlagEnabled ? "build" : "plan";
 			ctx.ui.setStatus("mode", getModeStatusText(switchMode));
+			initializeRtkObserver({ commands: pi.getCommands() });
 			ctx.ui.setStatus("rtk", getRtkStatusText());
 		}
 
@@ -544,27 +545,11 @@ export function setupLifecycleHooks(
 		};
 	});
 
-	// Setup RTK status on session start
+	// Setup RTK observer status on session start
 	pi.on("session_start", (_event, ctx) => {
-		const rtkFlagEnabled = pi.getFlag("rtk") as boolean;
-		const rtkState = initializeRtk({
-			configEnabled: config.rtk_enabled,
-			flagEnabled: rtkFlagEnabled,
-		});
-
+		initializeRtkObserver({ commands: pi.getCommands() });
 		if (!ctx.hasUI) return;
-
 		ctx.ui.setStatus("rtk", getRtkStatusText());
-
-		const icons = getIconRegistry();
-		if (rtkState.enabled) {
-			ctx.ui.notify(`${icons.spark} RTK enabled`, "info");
-		} else if (rtkState.requested && !rtkState.available) {
-			ctx.ui.notify(
-				`${icons.warning} RTK requested but not found in PATH. Falling back to normal bash execution.`,
-				"warning",
-			);
-		}
 	});
 
 	// Setup sandbox on session start

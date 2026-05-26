@@ -101,10 +101,6 @@ Save the current active plan to disk.
 - Checklist with ✅ (completed) or ⬜ (pending)
 - Timestamp for each completed step
 
-### /rtk
-
-Toggle RTK command prefixing for bash tool execution.
-
 ---
 
 ## Flags
@@ -113,14 +109,12 @@ Flags can be passed when launching pi with `-p` mode:
 
 ```bash
 pi -p --build        # Start in Build mode immediately
-pi -p --rtk          # Enable RTK bash prefixing
 pi -p --no-sandbox   # Disable OS-level sandboxing
 ```
 
 | Flag | Type | Default | Description |
 |------|------|---------|-------------|
 | `--build` | boolean | false | Start in Build mode (equivalent to `/apply --build` at startup) |
-| `--rtk` | boolean | false | Enable RTK command prefixing for bash commands |
 | `--no-sandbox` | boolean | false | Disable OS-level sandboxing |
 
 ---

@@ -15,7 +15,6 @@ This document describes the configuration that is actually used by the `cmd.exe`
 Only these top-level keys are relevant for the extension:
 
 - `slots`
-- `rtk_enabled`
 - `icons`
 - `sandbox`
 
@@ -99,36 +98,7 @@ Controls model/tool behavior for Plan mode, Build mode, and assistant sub-agents
 
 ---
 
-## 2) RTK toggle (`rtk_enabled`)
-
-Enables RTK bash command prefixing support.
-
-### Schema
-
-```ts
-{
-  "rtk_enabled"?: boolean
-}
-```
-
-### Behavior
-
-- Default: `false`
-- If `true` and `rtk` exists in PATH, supported bash commands are rewritten to `rtk <command>`.
-- If `true` but `rtk` is not in PATH, it falls back to normal bash execution.
-- Runtime toggle command: `/rtk`
-
-### Example
-
-```json
-{
-  "rtk_enabled": true
-}
-```
-
----
-
-## 3) Icons (`icons`)
+## 2) Icons (`icons`)
 
 Override UI icons used by the extension.
 
@@ -144,7 +114,7 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ---
 
-## 4) Sandbox (`sandbox`)
+## 3) Sandbox (`sandbox`)
 
 Controls sandbox strategy/policy used by extension workflows.
 
@@ -180,11 +150,18 @@ Controls sandbox strategy/policy used by extension workflows.
 
 ---
 
+## RTK Extension Detection
+
+cmd.exe automatically detects whether the official RTK pi extension (`rtk.ts`) is loaded in the session. When detected, an RTK status indicator appears in the footer.
+
+Command rewriting is handled entirely by the RTK extension — no configuration is required in `dispatch.json`.
+
+---
+
 ## Complete Example (Current)
 
 ```json
 {
-  "rtk_enabled": true,
   "slots": {
     "plan_mode": {
       "model": "github-copilot/claude-sonnet-4.5",

@@ -1,61 +1,43 @@
 /**
- * RTK runtime state.
+ * RTK observer state.
+ *
+ * This extension does NOT control RTK execution.
+ * RTK command rewriting is handled by the official RTK pi extension (rtk.ts).
+ *
+ * This module only tracks:
+ *   - present: whether the rtk binary is in PATH
+ *   - active:  whether the official RTK extension is loaded in this session
  */
 
-import type { RtkAvailability } from "./detection";
-
-export interface RtkState {
-	available: boolean;
-	enabled: boolean;
-	requested: boolean;
-	binaryPath?: string;
+export interface RtkObserverState {
+	/** RTK binary exists in PATH */
+	present: boolean;
+	/** Official RTK extension (rtk.ts) is loaded and active */
+	active: boolean;
 }
 
-const state: RtkState = {
-	available: false,
-	enabled: false,
-	requested: false,
-	binaryPath: undefined,
+const state: RtkObserverState = {
+	present: false,
+	active: false,
 };
 
-export function getRtkState(): Readonly<RtkState> {
+export function getRtkObserverState(): Readonly<RtkObserverState> {
 	return state;
 }
 
-export function getRtkAvailable(): boolean {
-	return state.available;
+export function getRtkActive(): boolean {
+	return state.active;
 }
 
-export function getRtkEnabled(): boolean {
-	return state.enabled;
+export function setRtkObserverState(present: boolean, active: boolean): void {
+	state.present = present;
+	state.active = active;
 }
 
+/**
+ * Returns the footer status text for RTK.
+ * Only non-empty when the official RTK extension is confirmed active.
+ */
 export function getRtkStatusText(): string {
-	return state.enabled ? "⚡ RTK" : "";
-}
-
-export function initializeRtkState(
-	availability: RtkAvailability,
-	requested: boolean,
-): Readonly<RtkState> {
-	state.available = availability.available;
-	state.binaryPath = availability.binaryPath;
-	state.requested = requested;
-	state.enabled = requested && availability.available;
-	return state;
-}
-
-export function enableRtk(): boolean {
-	if (!state.available) {
-		state.enabled = false;
-		return false;
-	}
-	state.enabled = true;
-	state.requested = true;
-	return true;
-}
-
-export function disableRtk(): void {
-	state.enabled = false;
-	state.requested = false;
+	return state.active ? "⚡ RTK" : "";
 }

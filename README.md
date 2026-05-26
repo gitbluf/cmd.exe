@@ -12,9 +12,6 @@
 # Create and save plans
 # In Plan mode: ask the LLM to create a plan, then save it
 /todos:save
-
-# Toggle RTK bash optimization (when installed + enabled in config)
-/rtk
 ```
 
 ## 📦 Installation
@@ -64,7 +61,7 @@ pi install /path/to/cmd.exe
 ```bash
 pi
 # You should see cmd.exe commands available:
-# /apply, /todos, /todos:save, /ask, /rtk
+# /apply, /todos, /todos:save, /ask
 ```
 
 ## ⚙️ Configuration
@@ -99,7 +96,6 @@ pi
 ### Supported Top-Level Keys
 
 - `slots`
-- `rtk_enabled`
 - `icons`
 - `sandbox`
 
@@ -129,11 +125,7 @@ Toggle with `/apply --build` command.
 
 ### ⚡ RTK Bash Optimization
 
-When `rtk_enabled` is set and `rtk` is available in your PATH, cmd.exe prefixes supported bash commands with `rtk`.
-
-- Reduces token-heavy shell output for supported commands
-- Safe fallback: if `rtk` is missing, normal bash execution is used
-- Runtime toggle: `/rtk`
+If you have the official RTK pi extension (`rtk.ts`) installed globally, cmd.exe automatically detects its presence and shows an RTK status indicator in the footer. Command rewriting is handled entirely by the RTK extension — no configuration needed here.
 
 ### 📋 Plan Tracking
 
@@ -255,7 +247,7 @@ What are the architectural trade-offs for adding real-time features?
 - ✅ Dual mode system (Plan/Build) with `/apply` one-turn elevation
 - ✅ Slot-based model configuration
 - ✅ Plan tracking with `/todos` and `/todos:save`
-- ✅ RTK bash optimization
+- ✅ RTK extension detection (observer mode)
 - ✅ Icon customization
 - ✅ Comprehensive documentation
 - 🔄 Advanced retry strategies (future)
