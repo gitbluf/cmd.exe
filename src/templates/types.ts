@@ -13,9 +13,6 @@ export interface TemplateConfig {
 	// Icons customization
 	icons?: Partial<IconSet>;
 
-	// RTK command prefixing (bash integration)
-	rtk_enabled?: boolean;
-
 	// Sandbox config
 	sandbox?: Partial<{
 		strategy: "none" | "sandboxExec" | "bwrap" | "custom";

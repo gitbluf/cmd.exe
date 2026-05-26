@@ -1,40 +1,52 @@
 /**
- * RTK integration package.
+ * RTK observer package.
  *
- * Public entry-point used by the extension runtime.
+ * Detects whether:
+ *   - the rtk binary is present in PATH
+ *   - the official RTK pi extension (rtk.ts) is loaded in the current session
+ *
+ * Command rewriting is NOT performed here.
+ * That responsibility belongs to the official RTK extension.
  */
 
 import { detectRtkInPath } from "./detection";
-import { createRtkSpawnHook } from "./hook";
 import {
-	disableRtk,
-	enableRtk,
-	getRtkAvailable,
-	getRtkEnabled,
-	getRtkState,
+	getRtkActive,
+	getRtkObserverState,
 	getRtkStatusText,
-	initializeRtkState,
+	setRtkObserverState,
 } from "./state";
 
-export interface InitializeRtkOptions {
-	configEnabled?: boolean;
-	flagEnabled?: boolean;
+export type { RtkObserverState } from "./state";
+
+/**
+ * Determine whether the official RTK extension is loaded.
+ * Looks for a loaded extension whose source path basename is "rtk.ts".
+ */
+function detectRtkExtensionActive(
+	commands: Array<{ sourceInfo: { path: string; scope?: string } }>,
+): boolean {
+	return commands.some((cmd) => {
+		const base = cmd.sourceInfo.path.split("/").pop() ?? "";
+		return base === "rtk.ts";
+	});
 }
 
-export function initializeRtk(
-	options: InitializeRtkOptions = {},
-): ReturnType<typeof getRtkState> {
-	const requested = Boolean(options.configEnabled || options.flagEnabled);
-	const availability = detectRtkInPath();
-	return initializeRtkState(availability, requested);
+export interface InitializeRtkObserverOptions {
+	commands: Array<{ sourceInfo: { path: string; scope?: string } }>;
 }
 
-export {
-	createRtkSpawnHook,
-	disableRtk,
-	enableRtk,
-	getRtkAvailable,
-	getRtkEnabled,
-	getRtkState,
-	getRtkStatusText,
-};
+/**
+ * Initialize RTK observer state from current session context.
+ * Call on session_start and session_before_switch.
+ */
+export function initializeRtkObserver(
+	options: InitializeRtkObserverOptions,
+): Readonly<import("./state").RtkObserverState> {
+	const { available: present } = detectRtkInPath();
+	const active = detectRtkExtensionActive(options.commands);
+	setRtkObserverState(present, active);
+	return getRtkObserverState();
+}
+
+export { getRtkActive, getRtkObserverState, getRtkStatusText };

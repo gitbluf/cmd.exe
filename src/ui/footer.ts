@@ -25,7 +25,7 @@ import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { getSandboxStats } from "../lifecycle/sandbox";
 import { getCurrentMode } from "../modes";
 import { getCurrentStep, getPlan, getPlanStats } from "../plan/state";
-import { getRtkEnabled } from "../rtk";
+import { getRtkActive } from "../rtk";
 import { UI_CHARS } from "./style";
 
 // biome-ignore lint/suspicious/noExplicitAny: theme type is not exported from pi-coding-agent
@@ -126,7 +126,7 @@ function modeChip(_theme: Theme, wide: boolean): string {
 }
 
 function rtkChip(theme: Theme, wide: boolean): string | null {
-	if (!getRtkEnabled()) return null;
+	if (!getRtkActive()) return null;
 	return theme.fg("accent", wide ? "RTK" : "R");
 }
 
