@@ -99,6 +99,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 				sandbox: mergedSandbox,
 				icons: userConfig.icons || config.icons,
 				slots: mergeSlots(slots),
+				web_search: userConfig.web_search,
 			};
 		} else {
 			console.log(`[dispatch] Config file not found, using defaults`);

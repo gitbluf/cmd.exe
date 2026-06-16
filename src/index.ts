@@ -16,7 +16,11 @@ import { registerAllCommands } from "./commands/register";
 import { sandboxState, setupLifecycleHooks } from "./lifecycle";
 import { createSandboxedBashOps } from "./lifecycle/sandbox";
 import { getAskWidgetState, OutputViewerComponent } from "./sub-agent";
-import { createFindFilesTool, registerBuiltinToolRenderers } from "./tools";
+import {
+	createFindFilesTool,
+	createWebSearchTool,
+	registerBuiltinToolRenderers,
+} from "./tools";
 import { registerToolWithDefaultRenderer } from "./tools/register-with-default-renderer";
 import { installChatEditor } from "./ui/chat-editor-install";
 import { getIconRegistry, initIcons } from "./ui/icons";
@@ -209,6 +213,36 @@ export default function (pi: ExtensionAPI) {
 			return tool.execute(toolCallId, params, signal, onUpdate, ctx);
 		},
 	});
+
+	// Register web_search tool only when dedicated configured tools exist
+	const webSearchConfig = config.web_search;
+	if (webSearchConfig?.tools?.length) {
+		const webSearchTemplate = createWebSearchTool({
+			cwd: process.cwd(),
+			modelRegistry: null as unknown as never,
+			model: null as unknown as never,
+			ui: undefined,
+			pi,
+			assistantSlot: config.slots?.assistant,
+			webSearch: webSearchConfig,
+		});
+
+		registerToolWithDefaultRenderer(pi, {
+			...webSearchTemplate,
+			async execute(toolCallId, params, signal, onUpdate, ctx) {
+				const tool = createWebSearchTool({
+					cwd: ctx.cwd,
+					modelRegistry: ctx.modelRegistry,
+					model: ctx.model,
+					ui: ctx.ui,
+					pi,
+					assistantSlot: config.slots?.assistant,
+					webSearch: webSearchConfig,
+				});
+				return tool.execute(toolCallId, params, signal, onUpdate, ctx);
+			},
+		});
+	}
 
 	// Register all slash commands
 	registerAllCommands(pi, config);

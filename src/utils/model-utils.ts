@@ -9,7 +9,9 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import type { ThinkingLevel } from "../config/slots";
 
-export function getModelId(model: { provider?: string; id: string } | undefined): string | undefined {
+export function getModelId(
+	model: { provider?: string; id: string } | undefined,
+): string | undefined {
 	if (!model) return undefined;
 	return model.provider ? `${model.provider}/${model.id}` : model.id;
 }
