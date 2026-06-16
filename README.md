@@ -96,6 +96,7 @@ pi
 ### Supported Top-Level Keys
 
 - `slots`
+- `web_search`
 - `icons`
 - `sandbox`
 
@@ -169,6 +170,27 @@ find_files({ query: "authentication middleware" })
 
 Available in both Plan and Build modes.
 
+### 🌐 Configurable Web Search
+
+The optional `web_search` tool delegates web research to an isolated sub-agent. Unlike `find_files`, its sub-agent only receives tool names configured in `web_search.tools`, which can be arbitrary MCP-provided search/fetch tools.
+
+```json
+{
+  "slots": {
+    "plan_mode": {
+      "tools": ["read", "find_files", "web_search"]
+    }
+  },
+  "web_search": {
+    "tools": ["brave_search", "fetch_url"],
+    "model": "github-copilot/gpt-4o-mini",
+    "thinking": "low"
+  }
+}
+```
+
+If `web_search.tools` is missing or empty, `web_search` is not registered. See [docs/CONFIGURATION.md](docs/CONFIGURATION.md#2-web-search-web_search) for details.
+
 ## 📁 Project Structure
 
 ```
@@ -179,7 +201,7 @@ cmd.exe/
 │   ├── sub-agent/        # Single-agent execution
 │   ├── modes/            # Plan/Build mode system
 │   ├── config/           # Slot-based configuration
-│   ├── tools/            # Custom tools (find_files)
+│   ├── tools/            # Custom tools (find_files, web_search)
 │   ├── ui/               # TUI components, dashboard
 │   ├── templates/        # Agent template management
 │   └── lifecycle/        # Hooks, initialization

@@ -15,6 +15,7 @@ This document describes the configuration that is actually used by the `cmd.exe`
 Only these top-level keys are relevant for the extension:
 
 - `slots`
+- `web_search`
 - `icons`
 - `sandbox`
 
@@ -94,11 +95,66 @@ Controls model/tool behavior for Plan mode, Build mode, and assistant sub-agents
 - `/plan` toggles between `plan_mode` and `build_mode`.
 - `/ask` uses the current mode slot.
 - `find_files` uses the `assistant` slot.
+- `web_search` must be added to a mode's `tools` list before the main agent can call it.
 - Model matching supports exact, provider/id, and suffix matching.
 
 ---
 
-## 2) Icons (`icons`)
+## 2) Web Search (`web_search`)
+
+Configures the optional `web_search` tool. When enabled, `web_search` spawns an isolated sub-agent like `find_files`, but the sub-agent receives only the tool names listed in `web_search.tools`. This is intended for arbitrary MCP-provided search/fetch tools.
+
+`web_search` is not registered when `web_search.tools` is missing or empty. To make the main agent able to call it, also include `"web_search"` in the desired `slots.plan_mode.tools` and/or `slots.build_mode.tools` list.
+
+### Schema
+
+```ts
+{
+  "web_search"?: {
+    "tools": string[],
+    "model"?: string,
+    "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh"
+  }
+}
+```
+
+### Example
+
+```json
+{
+  "slots": {
+    "plan_mode": {
+      "model": "github-copilot/claude-sonnet-4.5",
+      "tools": ["read", "find_files", "web_search"]
+    },
+    "build_mode": {
+      "model": "github-copilot/claude-sonnet-4.5",
+      "thinking": "high",
+      "tools": ["read", "write", "edit", "bash", "find_files", "web_search"]
+    },
+    "assistant": {
+      "model": "github-copilot/gpt-4o-mini"
+    }
+  },
+  "web_search": {
+    "tools": ["brave_search", "fetch_url"],
+    "model": "github-copilot/gpt-4o-mini",
+    "thinking": "low"
+  }
+}
+```
+
+### Notes
+
+- `web_search.tools` are passed directly to the sub-agent as allowed tools.
+- Tool names can be any registered tools, including MCP tools.
+- `web_search.model` and `web_search.thinking` override the `assistant` slot for this tool only.
+- If `web_search.model` is omitted, the tool uses the `assistant` slot model.
+- If `web_search.thinking` is omitted, the tool uses the `assistant` slot thinking level.
+
+---
+
+## 3) Icons (`icons`)
 
 Override UI icons used by the extension.
 
@@ -114,7 +170,7 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ---
 
-## 3) Sandbox (`sandbox`)
+## 4) Sandbox (`sandbox`)
 
 Controls sandbox strategy/policy used by extension workflows.
 
@@ -165,16 +221,21 @@ Command rewriting is handled entirely by the RTK extension — no configuration 
   "slots": {
     "plan_mode": {
       "model": "github-copilot/claude-sonnet-4.5",
-      "tools": ["read", "find_files"]
+      "tools": ["read", "find_files", "web_search"]
     },
     "build_mode": {
       "model": "github-copilot/claude-sonnet-4.5",
       "thinking": "high",
-      "tools": ["read", "write", "edit", "bash", "find_files"]
+      "tools": ["read", "write", "edit", "bash", "find_files", "web_search"]
     },
     "assistant": {
       "model": "github-copilot/gpt-4o-mini"
     }
+  },
+  "web_search": {
+    "tools": ["brave_search", "fetch_url"],
+    "model": "github-copilot/gpt-4o-mini",
+    "thinking": "low"
   },
   "icons": {
     "modePlan": "⚡",
