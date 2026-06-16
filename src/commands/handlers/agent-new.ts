@@ -22,6 +22,8 @@ import {
 	writeForkPayloadTemp,
 } from "../../session";
 import { getIconRegistry } from "../../ui/icons";
+import { getModelId } from "../../utils/model-utils";
+import { notifyError, notifyWarning } from "../utils";
 
 export async function handleAgentNew(
 	_args: string,
@@ -33,20 +35,17 @@ export async function handleAgentNew(
 	// ── Guard: must be in CMUX ───────────────────────────────────────────────
 	const detection = isCmuxSession();
 	if (!detection.ok) {
-		ctx.ui.notify(
-			`${icons.warning} /agent:new is available only inside CMUX sessions`,
-			"warning",
-		);
+		notifyWarning(ctx, "/agent:new is available only inside CMUX sessions");
 		return;
 	}
 
 	// ── Guard: must have a persisted session file ────────────────────────────
 	const sessionFile = ctx.sessionManager.getSessionFile();
 	if (!sessionFile) {
-		ctx.ui.notify(
-			`${icons.warning} Current session is ephemeral and cannot be forked. ` +
-				`Start or continue a persisted session first.`,
-			"warning",
+		notifyWarning(
+			ctx,
+			"Current session is ephemeral and cannot be forked. " +
+				"Start or continue a persisted session first.",
 		);
 		return;
 	}
@@ -55,11 +54,7 @@ export async function handleAgentNew(
 	const piExtraArgs: string[] = [];
 
 	// Model — resolve once, used for both piExtraArgs and payload
-	const modelId = ctx.model
-		? ctx.model.provider
-			? `${ctx.model.provider}/${ctx.model.id}`
-			: ctx.model.id
-		: undefined;
+	const modelId = getModelId(ctx.model);
 	if (modelId) piExtraArgs.push("--model", modelId);
 
 	// Thinking level — always pass explicitly to prevent child default drift
@@ -95,10 +90,7 @@ export async function handleAgentNew(
 		console.warn(
 			`[agent:new] Payload build/write failed, continuing V1: ${msg}`,
 		);
-		ctx.ui.notify(
-			`${icons.warning} Fork context unavailable, spawning without payload`,
-			"warning",
-		);
+		notifyWarning(ctx, "Fork context unavailable, spawning without payload");
 	}
 
 	// ── Notify intent ─────────────────────────────────────────────────────────
@@ -123,10 +115,7 @@ export async function handleAgentNew(
 	if (!result.ok) {
 		const stage = result.failedStage ?? "unknown";
 		const detail = result.error ?? "unknown error";
-		ctx.ui.notify(
-			`${icons.error} [${stage}] Failed to spawn agent: ${detail}`,
-			"error",
-		);
+		notifyError(ctx, `[${stage}] Failed to spawn agent`, detail);
 		return;
 	}
 

@@ -9,43 +9,13 @@ import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
-import type { ModeSlotConfig, SlotsConfig } from "../../config/slots";
-import {
-	getCurrentMode,
-	getModeStatusText,
-	type SessionMode,
-	setCurrentMode,
-} from "../../modes";
+import type { SlotsConfig } from "../../config/slots";
+import { getCurrentMode, getModeStatusText, type SessionMode } from "../../modes";
+import { applySessionMode } from "../../modes/apply";
 import { setApplyOnce } from "../../modes/apply-once";
 import { getIconRegistry } from "../../ui/icons";
-import { trySetModel } from "../../utils/model-utils";
-
-/**
- * Apply a mode permanently: set tools, model, thinking, and footer status.
- * Used by /apply --build.
- */
-async function applyMode(
-	mode: SessionMode,
-	pi: ExtensionAPI,
-	ctx: ExtensionCommandContext,
-	slots: SlotsConfig,
-): Promise<void> {
-	setCurrentMode(mode);
-	const slot: ModeSlotConfig =
-		mode === "plan" ? slots.plan_mode : slots.build_mode;
-
-	pi.setActiveTools([...(slot.tools || [])]);
-
-	const success = await trySetModel(pi, ctx, slot.model, slot.thinking);
-	if (!success) {
-		ctx.ui.notify(
-			`Model ${slot.model} not available, keeping current model`,
-			"warning",
-		);
-	}
-
-	ctx.ui.setStatus("mode", getModeStatusText(mode));
-}
+import { getModelId, trySetModel } from "../../utils/model-utils";
+import { notifyUsage } from "../utils";
 
 /**
  * /apply --build: toggle between Plan and Build mode.
@@ -59,7 +29,13 @@ async function handleApplyBuild(
 	const current = getCurrentMode();
 	const target: SessionMode = current === "build" ? "plan" : "build";
 
-	await applyMode(target, pi, ctx, slots);
+	const { modelApplied, slot } = await applySessionMode(target, pi, ctx, slots);
+	if (!modelApplied) {
+		ctx.ui.notify(
+			`Model ${slot.model} not available, keeping current model`,
+			"warning",
+		);
+	}
 
 	const icons = getIconRegistry();
 	const label =
@@ -87,11 +63,7 @@ async function handleApplyOnce(
 
 	// Capture current state for restore (before changing anything)
 	const currentMode = getCurrentMode();
-	const currentModelId = ctx.model
-		? ctx.model.provider
-			? `${ctx.model.provider}/${ctx.model.id}`
-			: ctx.model.id
-		: undefined;
+	const currentModelId = getModelId(ctx.model);
 	const currentThinking = pi.getThinkingLevel() as unknown as string;
 	const currentTools = pi.getActiveTools();
 
@@ -151,6 +123,5 @@ export async function handleApply(
 		return;
 	}
 
-	const icons = getIconRegistry();
-	ctx.ui.notify(`${icons.warning} Usage: /apply or /apply --build`, "warning");
+	notifyUsage(ctx, "/apply or /apply --build");
 }

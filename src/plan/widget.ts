@@ -9,9 +9,8 @@ import type {
 	ExtensionCommandContext,
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import { getIconRegistry } from "../ui/icons";
-import { bottomBar, contentLine, topBar } from "../ui/style";
+import { renderWidgetBox } from "../ui/widget-box";
 import { getCurrentStep, getPlanStats } from "./state";
 import type { PlanState, PlanStep } from "./types";
 
@@ -73,30 +72,26 @@ export function showExpandedPlan(ctx: UIContext, plan: PlanState): void {
 
 	ctx.ui.setWidget("plan-progress", (_tui, theme) => ({
 		render: (width: number) => {
-			const borderFn = (s: string) => theme.fg("border", s);
-
 			const titleContent =
 				theme.fg("accent", "📋 Plan Progress") +
 				theme.fg("dim", ` [${stats.completed}/${stats.total}]`);
-
 			const hintContent = theme.fg("dim", "auto-dismiss in 5s");
+			const lines = plan.steps.map((s) => {
+				const icon = s.completed ? icons.check : "⬜";
+				const labelColor = s.completed ? "dim" : "text";
+				return (
+					theme.fg(labelColor, `${icon} ${s.number}. ${s.description}`) +
+					(!s.completed && s === getCurrentStep(plan)
+						? theme.fg("dim", "  ← current")
+						: "")
+				);
+			});
 
-			const lines: string[] = [
-				topBar(titleContent, width, borderFn),
-				...plan.steps.map((s) => {
-					const icon = s.completed ? icons.check : "⬜";
-					const labelColor = s.completed ? "dim" : "text";
-					const inner =
-						theme.fg(labelColor, `${icon} ${s.number}. ${s.description}`) +
-						(!s.completed && s === getCurrentStep(plan)
-							? theme.fg("dim", "  ← current")
-							: "");
-					return contentLine(inner, width, borderFn);
-				}),
-				bottomBar(hintContent, width, borderFn),
-			];
-
-			return lines.map((l) => truncateToWidth(l, width));
+			return renderWidgetBox(width, theme, {
+				title: titleContent,
+				lines,
+				footer: hintContent,
+			});
 		},
 		invalidate: () => {},
 	}));
@@ -121,13 +116,10 @@ export function flashStepComplete(
 ): void {
 	ctx.ui.setWidget("plan-progress", (_tui, theme) => ({
 		render: (width: number) => {
-			const borderFn = (s: string) => theme.fg("border", s);
-
 			const titleContent = theme.fg(
 				"success",
 				`✅ Step ${step.number} complete`,
 			);
-
 			const bodyLeft = theme.fg("muted", step.description);
 			const bodyRight = theme.fg(
 				"accent",
@@ -140,11 +132,10 @@ export function flashStepComplete(
 			const gap = Math.max(1, inner - leftVW - rightVW);
 			const bodyContent = bodyLeft + " ".repeat(gap) + bodyRight;
 
-			return [
-				topBar(titleContent, width, borderFn),
-				contentLine(bodyContent, width, borderFn),
-				bottomBar("", width, borderFn),
-			].map((l) => truncateToWidth(l, width));
+			return renderWidgetBox(width, theme, {
+				title: titleContent,
+				lines: [bodyContent],
+			});
 		},
 		invalidate: () => {},
 	}));

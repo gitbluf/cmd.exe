@@ -5,8 +5,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
+import { generatePlanMarkdown } from "../../plan/markdown";
 import { getPlan } from "../../plan/state";
 import { getIconRegistry } from "../../ui/icons";
+import { notifyError, notifyWarning } from "../utils";
 
 /**
  * Handle /plan:save command - writes current active plan to .agents/plan-{timestamp}.md
@@ -20,10 +22,7 @@ export async function handleTodosSave(
 	const icons = getIconRegistry();
 
 	if (!planState || planState.steps.length === 0) {
-		ctx.ui.notify(
-			`${icons.warning} No active plan to save. Use /todos to check status.`,
-			"warning",
-		);
+		notifyWarning(ctx, "No active plan to save. Use /todos to check status.");
 		return;
 	}
 
@@ -59,58 +58,6 @@ export async function handleTodosSave(
 			"info",
 		);
 	} catch (error) {
-		const err = error as Error;
-		ctx.ui.notify(
-			`${icons.error} Failed to save plan: ${err.message}`,
-			"error",
-		);
+		notifyError(ctx, "Failed to save plan", error);
 	}
-}
-
-/**
- * Generate markdown content from plan state
- */
-function generatePlanMarkdown(planState: {
-	steps: Array<{
-		number: number;
-		description: string;
-		completed: boolean;
-		completedAt?: string;
-	}>;
-	createdAt: string;
-}): string {
-	const lines: string[] = [];
-
-	lines.push("# Implementation Plan");
-	lines.push("");
-	lines.push(`**Created:** ${new Date(planState.createdAt).toLocaleString()}`);
-	lines.push("");
-
-	// Add progress summary
-	const completedCount = planState.steps.filter((s) => s.completed).length;
-	const totalCount = planState.steps.length;
-	const percentage = Math.round((completedCount / totalCount) * 100);
-
-	lines.push("## Progress");
-	lines.push("");
-	lines.push(
-		`**Status:** ${completedCount}/${totalCount} steps (${percentage}%)`,
-	);
-	lines.push("");
-
-	// Add steps
-	lines.push("## Steps");
-	lines.push("");
-
-	for (const step of planState.steps) {
-		const checkbox = step.completed ? "✅" : "⬜";
-		const timestamp = step.completedAt
-			? ` — completed ${new Date(step.completedAt).toLocaleString()}`
-			: "";
-		lines.push(`${checkbox} ${step.number}. ${step.description}${timestamp}`);
-	}
-
-	lines.push("");
-
-	return lines.join("\n");
 }

@@ -16,11 +16,10 @@ import {
 	getAgentDir,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import { getIconRegistry } from "../ui/icons";
-import { bottomBar, contentLine, topBar } from "../ui/style";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
 import { storeSubAgentOutput } from "./store";
+import { clearSubAgentWidget, setSubAgentWidget } from "./widget";
 
 export interface RunSubAgentOptions {
 	systemPrompt: string;
@@ -115,68 +114,15 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 	let output = "";
 	let sawTextDeltaForCurrentAssistant = false;
-	const maxWidgetLines = 25;
-	const completedWidgetLines = 10;
-
 	// Helper to update widget with current output
 	const updateWidget = (status: "streaming" | "complete" = "streaming") => {
 		if (opts.widgetId && opts.ui) {
-			opts.ui.setWidget(opts.widgetId, (_tui, theme) => {
-				return {
-					render: (width: number) => {
-						const icons = getIconRegistry();
-						const borderFn = (s: string) => theme.fg("border", s);
-						const maxLines =
-							status === "complete" ? completedWidgetLines : maxWidgetLines;
-						const outputLines = output.split("\n");
-						const displayLines = outputLines.slice(-maxLines);
-						const truncated = outputLines.length > maxLines;
-
-						// Title bar content
-						const statusIcon =
-							status === "complete"
-								? theme.fg("success", `${icons.check} `)
-								: "";
-						const statusLabel =
-							status === "streaming"
-								? theme.fg("dim", "streaming…")
-								: theme.fg("dim", "complete — last output:");
-						const agentTitle = theme.fg(
-							"accent",
-							opts.widgetTitle || `${icons.agentDefault} Sub-Agent`,
-						);
-						const titleContent = `${statusIcon}${agentTitle} ${statusLabel}`;
-
-						// Bottom hint
-						const hintContent =
-							status === "complete"
-								? theme.fg("dim", "ctrl+shift+o to expand full output")
-								: "";
-
-						const raw = [
-							topBar(titleContent, width, borderFn),
-							...(truncated
-								? [
-										contentLine(
-											theme.fg(
-												"dim",
-												`[…${outputLines.length - maxLines} earlier lines]`,
-											),
-											width,
-											borderFn,
-										),
-									]
-								: []),
-							...displayLines.map((line: string) =>
-								contentLine(theme.fg("muted", `  ${line}`), width, borderFn),
-							),
-							bottomBar(hintContent, width, borderFn),
-						];
-
-						return raw.map((line) => truncateToWidth(line, width));
-					},
-					invalidate: () => {},
-				};
+			setSubAgentWidget({
+				ui: opts.ui,
+				widgetId: opts.widgetId,
+				widgetTitle: opts.widgetTitle,
+				output,
+				status,
 			});
 		}
 	};
@@ -324,7 +270,7 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 				updateWidget("complete");
 			} else {
 				// Clear the streaming widget
-				opts.ui.setWidget(opts.widgetId, undefined);
+				clearSubAgentWidget(opts.ui, opts.widgetId);
 			}
 		}
 

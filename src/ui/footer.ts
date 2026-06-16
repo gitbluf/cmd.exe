@@ -39,52 +39,55 @@ type Theme = any;
 // Updated after each completed turn so the second footer line always shows
 // current session stats without needing to query Pi internals from the render.
 
-let currentContextTokens: number | undefined;
-let currentContextPercent: number | undefined;
-let currentCostTotal: number | undefined;
-let currentCwd: string | undefined;
+interface FooterTelemetryState {
+	contextTokens?: number;
+	contextPercent?: number;
+	costTotal?: number;
+	cwd?: string;
+	cacheRead?: number;
+	cacheWrite?: number;
+	totalTokens?: number;
+}
+
+const telemetry: FooterTelemetryState = {};
 
 export function setFooterContext(
 	tokens: number | null | undefined,
 	percent?: number | null,
 ): void {
-	currentContextTokens = tokens ?? undefined;
-	currentContextPercent = percent != null ? percent : undefined;
+	telemetry.contextTokens = tokens ?? undefined;
+	telemetry.contextPercent = percent != null ? percent : undefined;
 }
 
 /** Accumulate per-turn LLM cost into the running session total. */
 export function addFooterCostDelta(delta: number): void {
 	if (delta <= 0) return;
-	currentCostTotal = (currentCostTotal ?? 0) + delta;
+	telemetry.costTotal = (telemetry.costTotal ?? 0) + delta;
 }
 
 /** Reset cost accumulator on session start. */
 export function resetFooterCost(): void {
-	currentCostTotal = undefined;
+	telemetry.costTotal = undefined;
 }
 
 /** Set cost directly (e.g. seeded from branch history on session start). */
 export function setFooterCostTotal(total: number | undefined): void {
-	currentCostTotal = total;
+	telemetry.costTotal = total;
 }
 
 export function setFooterCwd(cwd: string): void {
-	currentCwd = cwd;
+	telemetry.cwd = cwd;
 }
 
-let currentCacheRead: number | undefined;
-let currentCacheWrite: number | undefined;
-let currentTotalTokens: number | undefined;
-
 export function addFooterCacheDelta(read: number, write: number): void {
-	if (read > 0) currentCacheRead = (currentCacheRead ?? 0) + read;
-	if (write > 0) currentCacheWrite = (currentCacheWrite ?? 0) + write;
+	if (read > 0) telemetry.cacheRead = (telemetry.cacheRead ?? 0) + read;
+	if (write > 0) telemetry.cacheWrite = (telemetry.cacheWrite ?? 0) + write;
 }
 
 /** Reset cache accumulator on session start. */
 export function resetFooterCache(): void {
-	currentCacheRead = undefined;
-	currentCacheWrite = undefined;
+	telemetry.cacheRead = undefined;
+	telemetry.cacheWrite = undefined;
 }
 
 /** Set cache totals directly (e.g. seeded from branch history on session start). */
@@ -92,19 +95,19 @@ export function setFooterCacheTotal(
 	read: number | undefined,
 	write: number | undefined,
 ): void {
-	currentCacheRead = read;
-	currentCacheWrite = write;
+	telemetry.cacheRead = read;
+	telemetry.cacheWrite = write;
 }
 
 /** Accumulate per-turn total token usage into the running session total. */
 export function addFooterTokensDelta(delta: number): void {
 	if (delta <= 0) return;
-	currentTotalTokens = (currentTotalTokens ?? 0) + delta;
+	telemetry.totalTokens = (telemetry.totalTokens ?? 0) + delta;
 }
 
 /** Set total tokens directly (e.g. seeded from branch history on session start). */
 export function setFooterTokensTotal(total: number | undefined): void {
-	currentTotalTokens = total;
+	telemetry.totalTokens = total;
 }
 
 // ── Chip builders ─────────────────────────────────────────────────────────────
@@ -207,20 +210,20 @@ function buildTelemetryLine(
 	theme: Theme,
 	sessionName: string | undefined,
 ): string | null {
-	const cwdRaw = currentCwd ? formatCwd(currentCwd) : "";
+	const cwdRaw = telemetry.cwd ? formatCwd(telemetry.cwd) : "";
 	const ctxRaw =
-		currentContextTokens !== undefined
-			? `${formatTokens(currentContextTokens)} ctx${currentContextPercent !== undefined ? ` (${Math.round(currentContextPercent)}%)` : ""}`
+		telemetry.contextTokens !== undefined
+			? `${formatTokens(telemetry.contextTokens)} ctx${telemetry.contextPercent !== undefined ? ` (${Math.round(telemetry.contextPercent)}%)` : ""}`
 			: "";
 	const tokRaw =
-		currentTotalTokens !== undefined && currentTotalTokens > 0
-			? `${formatTokens(currentTotalTokens)} tok`
+		telemetry.totalTokens !== undefined && telemetry.totalTokens > 0
+			? `${formatTokens(telemetry.totalTokens)} tok`
 			: "";
 	const costRaw =
-		currentCostTotal !== undefined && currentCostTotal > 0
-			? formatCost(currentCostTotal)
+		telemetry.costTotal !== undefined && telemetry.costTotal > 0
+			? formatCost(telemetry.costTotal)
 			: "";
-	const cacheRaw = formatCache(currentCacheRead, currentCacheWrite);
+	const cacheRaw = formatCache(telemetry.cacheRead, telemetry.cacheWrite);
 
 	if (!cwdRaw && !sessionName && !ctxRaw && !tokRaw && !costRaw && !cacheRaw)
 		return null;
@@ -241,9 +244,9 @@ function buildTelemetryLine(
 	// Right: ctx [│ tok] [│ cost] [│ cache]
 	// Context segment uses warning/error color when usage is elevated.
 	const ctxColor =
-		currentContextPercent !== undefined && currentContextPercent >= 95
+		telemetry.contextPercent !== undefined && telemetry.contextPercent >= 95
 			? "error"
-			: currentContextPercent !== undefined && currentContextPercent >= 80
+			: telemetry.contextPercent !== undefined && telemetry.contextPercent >= 80
 				? "warning"
 				: "dim";
 
