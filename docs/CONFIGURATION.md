@@ -201,7 +201,8 @@ Controls sandbox strategy/policy used by extension workflows.
 
 ### Default policy
 
-- Network allowlist includes GitHub domains.
+- Network allowlist includes GitHub domains, including `api.github.com` for REST and GraphQL calls.
+- Network allowlist also includes common macOS/GitHub TLS certificate validation hosts such as DigiCert OCSP/CRL endpoints and Apple trust validation endpoints. These are required by tools like `gh` when verifying `https://api.github.com/graphql` certificates inside the sandbox.
 - Sensitive paths like `~/.ssh`, `~/.aws`, `~/.gnupg` are denied for reads.
 
 ---
@@ -244,7 +245,16 @@ Command rewriting is handled entirely by the RTK extension — no configuration 
   "sandbox": {
     "policy": {
       "network": {
-        "allowedDomains": ["github.com", "api.github.com"]
+        "allowedDomains": [
+          "github.com",
+          "api.github.com",
+          "ocsp.digicert.com",
+          "crl3.digicert.com",
+          "crl4.digicert.com",
+          "cacerts.digicert.com",
+          "ocsp.apple.com",
+          "valid.apple.com"
+        ]
       }
     }
   }

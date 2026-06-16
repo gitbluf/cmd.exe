@@ -83,6 +83,13 @@ export const DEFAULT_SANDBOX_POLICY: SandboxPolicy = {
 			"*.github.com",
 			"api.github.com",
 			"raw.githubusercontent.com",
+			// macOS certificate trust/revocation checks required by GitHub TLS.
+			"ocsp.digicert.com",
+			"crl3.digicert.com",
+			"crl4.digicert.com",
+			"cacerts.digicert.com",
+			"ocsp.apple.com",
+			"valid.apple.com",
 		],
 		deniedDomains: [],
 	},
