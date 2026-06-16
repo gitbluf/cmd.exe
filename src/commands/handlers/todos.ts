@@ -5,7 +5,7 @@
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { getPlan } from "../../plan/state";
 import { showExpandedPlan } from "../../plan/widget";
-import { getIconRegistry } from "../../ui/icons";
+import { notifyWarning } from "../utils";
 
 export async function handleTodos(
 	_args: string,
@@ -14,8 +14,7 @@ export async function handleTodos(
 	const plan = getPlan();
 
 	if (!plan) {
-		const icons = getIconRegistry();
-		ctx.ui.notify(`${icons.warning} No active plan`, "warning");
+		notifyWarning(ctx, "No active plan");
 		return;
 	}
 

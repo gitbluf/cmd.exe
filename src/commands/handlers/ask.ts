@@ -12,6 +12,7 @@ import { getCurrentMode } from "../../modes";
 import { runSubAgent } from "../../sub-agent";
 import type { TemplateConfig } from "../../templates/types";
 import { getIconRegistry } from "../../ui/icons";
+import { notifyError, notifyUsage } from "../utils";
 
 export async function handleAsk(
 	args: string,
@@ -20,8 +21,7 @@ export async function handleAsk(
 ): Promise<void> {
 	const question = args?.trim();
 	if (!question) {
-		const icons = getIconRegistry();
-		ctx.ui.notify(`${icons.warning} Usage: /ask <question>`, "warning");
+		notifyUsage(ctx, "/ask <question>");
 		return;
 	}
 
@@ -37,8 +37,7 @@ export async function handleAsk(
 	try {
 		resolution = resolveSlot(ctx.modelRegistry, slot, ctx.model);
 	} catch (e) {
-		const err = e as Error;
-		ctx.ui.notify(`${icons.error} ${err.message}`, "error");
+		notifyError(ctx, "", e);
 		return;
 	}
 
@@ -68,7 +67,6 @@ export async function handleAsk(
 
 		ctx.ui.notify(`${icons.success} Done`, "info");
 	} catch (e) {
-		const err = e as Error;
-		ctx.ui.notify(`${icons.error} Ask failed: ${err.message}`, "error");
+		notifyError(ctx, "Ask failed", e);
 	}
 }
