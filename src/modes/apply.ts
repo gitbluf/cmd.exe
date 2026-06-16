@@ -21,8 +21,13 @@ const DEFAULT_MODE_TOOLS: Record<SessionMode, string[]> = {
 	build: ["read", "write", "edit", "bash", "find_files"],
 };
 
-function getModeSlot(mode: SessionMode, slots: ModeSlotsConfig): ModeSlotConfig {
-	return mode === "plan" ? slots.plan_mode ?? { model: "" } : slots.build_mode ?? { model: "" };
+function getModeSlot(
+	mode: SessionMode,
+	slots: ModeSlotsConfig,
+): ModeSlotConfig {
+	return mode === "plan"
+		? (slots.plan_mode ?? { model: "" })
+		: (slots.build_mode ?? { model: "" });
 }
 
 /**

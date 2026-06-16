@@ -1,10 +1,7 @@
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { getIconRegistry } from "../ui/icons";
 
-export function notifyUsage(
-	ctx: ExtensionCommandContext,
-	usage: string,
-): void {
+export function notifyUsage(ctx: ExtensionCommandContext, usage: string): void {
 	const icons = getIconRegistry();
 	ctx.ui.notify(`${icons.warning} Usage: ${usage}`, "warning");
 }
@@ -25,7 +22,9 @@ export function notifyError(
 	const icons = getIconRegistry();
 	const message = error instanceof Error ? error.message : String(error);
 	ctx.ui.notify(
-		prefix ? `${icons.error} ${prefix}: ${message}` : `${icons.error} ${message}`,
+		prefix
+			? `${icons.error} ${prefix}: ${message}`
+			: `${icons.error} ${message}`,
 		"error",
 	);
 }

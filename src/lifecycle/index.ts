@@ -267,7 +267,10 @@ function processPlanUpdatesFromContent(
 					if (isPlanComplete(updatedPlan)) {
 						clearPlan(root);
 						const icons = getIconRegistry();
-						ctx.ui.notify(`${icons.success} Plan completed and cleared.`, "info");
+						ctx.ui.notify(
+							`${icons.success} Plan completed and cleared.`,
+							"info",
+						);
 						updatePlanStatus(ctx, null);
 						clearPlanWidgets(ctx);
 					}

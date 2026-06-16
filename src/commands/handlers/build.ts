@@ -10,7 +10,11 @@ import type {
 	ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
 import type { SlotsConfig } from "../../config/slots";
-import { getCurrentMode, getModeStatusText, type SessionMode } from "../../modes";
+import {
+	getCurrentMode,
+	getModeStatusText,
+	type SessionMode,
+} from "../../modes";
 import { applySessionMode } from "../../modes/apply";
 import { setApplyOnce } from "../../modes/apply-once";
 import { getIconRegistry } from "../../ui/icons";
