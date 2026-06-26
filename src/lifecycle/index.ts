@@ -183,16 +183,41 @@ async function applyConfiguredModel(
 	thinking: Parameters<typeof trySetModel>[3],
 	label: "Startup" | "Switch mode",
 ): Promise<void> {
-	const success = await trySetModel(pi, ctx, model, thinking);
-	if (success || !ctx.hasUI) return;
-
+	const result = await trySetModel(pi, ctx, model, thinking);
 	const icons = getIconRegistry();
-	console.warn(`[lifecycle] ${label} model not available: ${model}`);
-	const message =
-		label === "Startup"
-			? `${icons.warning} Startup model "${model}" not available, keeping current model`
-			: `${icons.warning} Model "${model}" not available, keeping current model`;
-	ctx.ui.notify(message, "warning");
+
+	if (!result.modelApplied) {
+		console.warn(`[lifecycle] ${label} model not available: ${model}`);
+		const message =
+			label === "Startup"
+				? `${icons.warning} Startup model "${model}" not available, keeping current model`
+				: `${icons.warning} Model "${model}" not available, keeping current model`;
+		if (ctx.hasUI) {
+			ctx.ui.notify(message, "warning");
+		} else {
+			console.warn(`[lifecycle] ${message}`);
+		}
+	}
+
+	if (result.thinkingRequested && result.thinkingUnsupported) {
+		const message =
+			`${label} thinking level "${thinking}" is not supported for ${model}` +
+			(result.thinkingError ? `: ${result.thinkingError}` : "");
+		if (ctx.hasUI) {
+			ctx.ui.notify(`${icons.warning} ${message}`, "warning");
+		} else {
+			console.warn(`[lifecycle] ${message}`);
+		}
+	} else if (result.thinkingRequested && result.thinkingFailed) {
+		const message =
+			`${label} failed to apply thinking level "${thinking}" for ${model}` +
+			(result.thinkingError ? `: ${result.thinkingError}` : "");
+		if (ctx.hasUI) {
+			ctx.ui.notify(`${icons.warning} ${message}`, "warning");
+		} else {
+			console.warn(`[lifecycle] ${message}`);
+		}
+	}
 }
 
 function getFlagMode(pi: ExtensionAPI): "plan" | "build" {
@@ -322,7 +347,7 @@ async function restoreApplyOnceIfActive(
 			restore.modelId,
 			restore.thinking as Parameters<typeof trySetModel>[3],
 		);
-		if (!restored) {
+		if (!restored.modelApplied) {
 			console.warn(
 				`[lifecycle] apply-once: failed to restore model "${restore.modelId}"`,
 			);
@@ -332,6 +357,27 @@ async function restoreApplyOnceIfActive(
 					`${icons.warning} Could not restore previous model after apply`,
 					"warning",
 				);
+			}
+		}
+		if (restored.thinkingRequested && restored.thinkingUnsupported) {
+			const icons = getIconRegistry();
+			const message =
+				`Thinking level "${restore.thinking}" is not supported for ${restore.modelId}` +
+				(restored.thinkingError ? `: ${restored.thinkingError}` : "");
+			if (ctx.hasUI) {
+				ctx.ui.notify(`${icons.warning} ${message}`, "warning");
+			} else {
+				console.warn(`[lifecycle] apply-once restore: ${message}`);
+			}
+		} else if (restored.thinkingRequested && restored.thinkingFailed) {
+			const icons = getIconRegistry();
+			const message =
+				`Failed to apply thinking level "${restore.thinking}" for ${restore.modelId}` +
+				(restored.thinkingError ? `: ${restored.thinkingError}` : "");
+			if (ctx.hasUI) {
+				ctx.ui.notify(`${icons.warning} ${message}`, "warning");
+			} else {
+				console.warn(`[lifecycle] apply-once restore: ${message}`);
 			}
 		}
 	} else if (restore.thinking) {

@@ -13,6 +13,11 @@ export interface ModeSlotsConfig {
 
 export interface ApplySessionModeResult {
 	modelApplied: boolean;
+	thinkingRequested: boolean;
+	thinkingApplied: boolean;
+	thinkingUnsupported: boolean;
+	thinkingFailed: boolean;
+	thinkingError?: string;
 	slot: ModeSlotConfig;
 }
 
@@ -48,8 +53,8 @@ export async function applySessionMode(
 	const tools = slot.tools ?? DEFAULT_MODE_TOOLS[mode];
 	pi.setActiveTools([...tools]);
 
-	const modelApplied = await trySetModel(pi, ctx, slot.model, slot.thinking);
+	const result = await trySetModel(pi, ctx, slot.model, slot.thinking);
 	ctx.ui.setStatus("mode", getModeStatusText(mode));
 
-	return { modelApplied, slot };
+	return { ...result, slot };
 }

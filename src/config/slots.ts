@@ -43,7 +43,7 @@ export const DEFAULT_SLOTS: SlotsConfig = {
 	},
 	build_mode: {
 		model: "github-copilot/claude-sonnet-4.5",
-		thinking: "high",
+		thinking: "low",
 		tools: ["read", "write", "edit", "bash", "find_files"],
 	},
 	assistant: {

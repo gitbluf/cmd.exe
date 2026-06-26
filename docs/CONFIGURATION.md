@@ -97,6 +97,8 @@ Controls model/tool behavior for Plan mode, Build mode, and assistant sub-agents
 - `find_files` uses the `assistant` slot.
 - `web_search` must be added to a mode's `tools` list before the main agent can call it.
 - Model matching supports exact, provider/id, and suffix matching.
+- If a slot omits `thinking`, cmd.exe falls back to that slot's default thinking behavior.
+- If a provider does not support the requested thinking level, or applying it fails, cmd.exe warns instead of failing silently.
 
 ---
 

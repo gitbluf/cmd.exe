@@ -21,6 +21,17 @@ import { getIconRegistry } from "../../ui/icons";
 import { getModelId, trySetModel } from "../../utils/model-utils";
 import { notifyUsage } from "../utils";
 
+function warnThinkingIssue(
+	ctx: ExtensionCommandContext,
+	message: string,
+): void {
+	if (ctx.hasUI) {
+		ctx.ui.notify(message, "warning");
+	} else {
+		console.warn(`[apply] ${message}`);
+	}
+}
+
 /**
  * /apply --build: toggle between Plan and Build mode.
  * Identical behavior to the old /plan command.
@@ -33,11 +44,29 @@ async function handleApplyBuild(
 	const current = getCurrentMode();
 	const target: SessionMode = current === "build" ? "plan" : "build";
 
-	const { modelApplied, slot } = await applySessionMode(target, pi, ctx, slots);
+	const {
+		modelApplied,
+		slot,
+		thinkingRequested,
+		thinkingUnsupported,
+		thinkingFailed,
+		thinkingError,
+	} = await applySessionMode(target, pi, ctx, slots);
 	if (!modelApplied) {
 		ctx.ui.notify(
 			`Model ${slot.model} not available, keeping current model`,
 			"warning",
+		);
+	}
+	if (thinkingRequested && thinkingUnsupported) {
+		warnThinkingIssue(
+			ctx,
+			`Thinking level "${slot.thinking}" is not supported for ${slot.model}${thinkingError ? `: ${thinkingError}` : ""}`,
+		);
+	} else if (thinkingRequested && thinkingFailed) {
+		warnThinkingIssue(
+			ctx,
+			`Failed to apply thinking level "${slot.thinking}" for ${slot.model}${thinkingError ? `: ${thinkingError}` : ""}`,
 		);
 	}
 
@@ -83,16 +112,28 @@ async function handleApplyOnce(
 	const buildSlot = slots.build_mode;
 	pi.setActiveTools([...(buildSlot.tools || [])]);
 
-	const success = await trySetModel(
-		pi,
-		ctx,
-		buildSlot.model,
-		buildSlot.thinking,
-	);
-	if (!success && ctx.hasUI) {
+	const {
+		modelApplied,
+		thinkingRequested,
+		thinkingUnsupported,
+		thinkingFailed,
+		thinkingError,
+	} = await trySetModel(pi, ctx, buildSlot.model, buildSlot.thinking);
+	if (!modelApplied && ctx.hasUI) {
 		ctx.ui.notify(
 			`${icons.warning} Build model not available, using current model`,
 			"warning",
+		);
+	}
+	if (thinkingRequested && thinkingUnsupported) {
+		warnThinkingIssue(
+			ctx,
+			`${icons.warning} Thinking level "${buildSlot.thinking}" is not supported for ${buildSlot.model}${thinkingError ? `: ${thinkingError}` : ""}`,
+		);
+	} else if (thinkingRequested && thinkingFailed) {
+		warnThinkingIssue(
+			ctx,
+			`${icons.warning} Failed to apply thinking level "${buildSlot.thinking}" for ${buildSlot.model}${thinkingError ? `: ${thinkingError}` : ""}`,
 		);
 	}
 

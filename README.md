@@ -93,6 +93,8 @@ pi
 }
 ```
 
+If a slot omits `thinking`, cmd.exe falls back to that slot's default thinking behavior. If a provider does not support the requested thinking level, or applying it fails, cmd.exe warns instead of failing silently.
+
 ### Supported Top-Level Keys
 
 - `slots`
