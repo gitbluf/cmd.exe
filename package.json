@@ -24,10 +24,10 @@
 		"fix:unsafe": "bun x biome check --write --unsafe ."
 	},
 	"dependencies": {
-		"@anthropic-ai/sandbox-runtime": "0.0.54",
-		"@earendil-works/pi-ai": "0.79.3",
-		"@earendil-works/pi-coding-agent": "0.79.3",
-		"@earendil-works/pi-tui": "0.79.3",
+		"@anthropic-ai/sandbox-runtime": "0.0.61",
+		"@earendil-works/pi-ai": "0.80.2",
+		"@earendil-works/pi-coding-agent": "0.80.2",
+		"@earendil-works/pi-tui": "0.80.2",
 		"@sinclair/typebox": "0.34.49"
 	},
 	"devDependencies": {
