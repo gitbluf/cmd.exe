@@ -22,11 +22,6 @@ export interface AgentDefinition {
 	canExecuteShell: boolean; // Can run shell commands
 	readOnlyBash?: boolean; // If true, bash is filtered through read-only allowlist
 
-	// Sandbox configuration
-	sandbox?: {
-		strategy?: "none" | "sandboxExec" | "bwrap" | "custom";
-		profile?: string;
-		args?: string[];
-		template?: string;
-	};
+	// Sandbox configuration is inherited from the session Gondolin VM.
+	sandbox?: never;
 }

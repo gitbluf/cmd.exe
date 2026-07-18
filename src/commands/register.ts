@@ -8,6 +8,7 @@ import type {
 	ExtensionCommandContext,
 } from "@earendil-works/pi-coding-agent";
 import { isCmuxSession } from "../cmux";
+import { handleSandboxInit } from "../lifecycle/sandbox";
 import type { TemplateConfig } from "../templates/types";
 import { getWorkspaceRoot } from "../utils/config";
 import {
@@ -53,6 +54,22 @@ export function registerAllCommands(
 		description: "Save active plan to .agents/plan-{timestamp}.md",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
 			await handleTodosSave(args, ctx, getRoot(ctx));
+		},
+	});
+
+	pi.registerCommand("init", {
+		description:
+			"Build/verify the workspace Gondolin sandbox or control its VM",
+		handler: async (args: string, ctx: ExtensionCommandContext) => {
+			try {
+				const message = await handleSandboxInit(args, ctx.cwd);
+				ctx.ui.notify(message, "info");
+			} catch (error) {
+				ctx.ui.notify(
+					error instanceof Error ? error.message : String(error),
+					"error",
+				);
+			}
 		},
 	});
 

@@ -12,15 +12,29 @@
 		"sandbox": {
 			"type": "object",
 			"properties": {
-				"enabled": { "type": "boolean", "default": false },
-				"adapter": {
-					"type": "string",
-					"enum": ["none", "sandboxExec", "bwrap", "custom"],
-					"default": "none"
+				"enabled": { "type": "boolean", "default": true },
+				"allowedHosts": { "type": "array", "items": { "type": "string" } },
+				"secrets": {
+					"type": "object",
+					"additionalProperties": {
+						"type": "object",
+						"required": ["env", "hosts"],
+						"properties": {
+							"env": { "type": "string" },
+							"hosts": { "type": "array", "items": { "type": "string" } }
+						}
+					}
 				},
-				"profile": { "type": "string" },
-				"template": { "type": "string" },
-				"args": { "type": "array", "items": { "type": "string" } }
+				"filesystem": {
+					"type": "object",
+					"properties": {
+						"denyRead": { "type": "array", "items": { "type": "string" } },
+						"readOnly": { "type": "array", "items": { "type": "string" } },
+						"denyWrite": { "type": "array", "items": { "type": "string" } }
+					}
+				},
+				"memory": { "type": "string" },
+				"cpus": { "type": "integer", "minimum": 1 }
 			}
 		}
 	}

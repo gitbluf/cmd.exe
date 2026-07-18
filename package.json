@@ -4,6 +4,9 @@
 	"type": "module",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
+	"engines": {
+		"node": ">=23.6.0"
+	},
 	"pi": {
 		"extensions": [
 			"./src"
@@ -24,7 +27,7 @@
 		"fix:unsafe": "bun x biome check --write --unsafe ."
 	},
 	"dependencies": {
-		"@anthropic-ai/sandbox-runtime": "0.0.65",
+		"@earendil-works/gondolin": "0.12.0",
 		"@earendil-works/pi-ai": "0.80.6",
 		"@earendil-works/pi-coding-agent": "0.80.6",
 		"@earendil-works/pi-tui": "0.80.6",

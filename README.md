@@ -262,7 +262,7 @@ What are the architectural trade-offs for adding real-time features?
 
 - **[@earendil-works/pi-coding-agent](https://github.com/earendil-works/pi)** - Agent session management
 - **[@earendil-works/pi-tui](https://github.com/earendil-works/pi)** - Terminal UI components
-- **[@anthropic-ai/sandbox-runtime](https://github.com/anthropics/anthropic-sdk-typescript)** - Sandboxed execution
+- **[@earendil-works/gondolin](https://github.com/earendil-works/gondolin)** - VM-backed sandboxed execution
 - **TypeScript** - Type-safe implementation
 - **Bun** - Fast runtime and package management
 

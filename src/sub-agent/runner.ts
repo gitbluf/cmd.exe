@@ -12,10 +12,19 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import {
 	createAgentSession,
+	createBashToolDefinition,
+	createEditToolDefinition,
+	createFindToolDefinition,
+	createGrepToolDefinition,
+	createLsToolDefinition,
+	createReadToolDefinition,
+	createWriteToolDefinition,
 	DefaultResourceLoader,
 	getAgentDir,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
+import { createSandboxedBashOps, sandboxState } from "../lifecycle/sandbox";
+import { sandboxToolOptions } from "../tools/wrappers";
 import { getIconRegistry } from "../ui/icons";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
 import { storeSubAgentOutput } from "./store";
@@ -97,6 +106,38 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 			cwd: opts.cwd,
 			model: selectedModel,
 			tools,
+			...(!sandboxState.hostOptOut
+				? {
+						customTools: [
+							createBashToolDefinition(opts.cwd, {
+								operations: createSandboxedBashOps(),
+							}),
+							createEditToolDefinition(
+								opts.cwd,
+								sandboxToolOptions(opts.cwd).edit,
+							),
+							createWriteToolDefinition(
+								opts.cwd,
+								sandboxToolOptions(opts.cwd).write,
+							),
+							createReadToolDefinition(
+								opts.cwd,
+								sandboxToolOptions(opts.cwd).read,
+							),
+							createLsToolDefinition(opts.cwd, sandboxToolOptions(opts.cwd).ls),
+							createFindToolDefinition(
+								opts.cwd,
+								sandboxToolOptions(opts.cwd).find,
+							),
+							createGrepToolDefinition(
+								opts.cwd,
+								sandboxToolOptions(opts.cwd).grep,
+							),
+						] as unknown as NonNullable<
+							CreateAgentSessionOptions["customTools"]
+						>,
+					}
+				: {}),
 			resourceLoader: loader,
 			sessionManager: SessionManager.inMemory(),
 			modelRegistry: opts.modelRegistry,

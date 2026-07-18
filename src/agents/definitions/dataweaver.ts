@@ -5,7 +5,6 @@
  * Performs non-intrusive exploration and analysis
  */
 
-import { getPlatformSandboxStrategy } from "../../sandbox";
 import type { AgentDefinition } from "./types";
 
 export const DATAWEAVER: AgentDefinition = {
@@ -54,8 +53,4 @@ You do not ask any questions.
 	canWrite: false,
 	canExecuteShell: true,
 	readOnlyBash: true,
-
-	sandbox: {
-		strategy: getPlatformSandboxStrategy(),
-	},
 };

@@ -174,38 +174,30 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ## 4) Sandbox (`sandbox`)
 
-Controls sandbox strategy/policy used by extension workflows.
+The sandbox uses one lazy Gondolin VM per Pi session. Run `/init` once in the workspace before using sandboxed tools; assets are built and verified under `.agents/sandbox/`.
 
 ### Schema
 
 ```ts
 {
   "sandbox"?: {
-    "strategy"?: "none" | "sandboxExec" | "bwrap" | "custom",
-    "profile"?: string,
-    "args"?: string[],
-    "template"?: string,
-    "policy"?: {
-      "enabled"?: boolean,
-      "network"?: {
-        "allowedDomains"?: string[],
-        "deniedDomains"?: string[]
-      },
-      "filesystem"?: {
-        "allowWrite"?: string[],
-        "denyRead"?: string[],
-        "denyWrite"?: string[]
-      }
-    }
+    "enabled"?: boolean,
+    "allowedHosts"?: string[],
+    "secrets"?: Record<string, { "env": string, "hosts": string[] }>,
+    "filesystem"?: {
+      "denyRead"?: string[],
+      "readOnly"?: string[],
+      "denyWrite"?: string[]
+    },
+    "memory"?: string,
+    "cpus"?: number
   }
 }
 ```
 
-### Default policy
+The workspace is mounted read/write at `/workspace`, including hidden files by default. Paths outside the workspace are rejected. Network access is mediated by Gondolin with internal-range blocking enabled. Secret values stay on the host and are exposed to the guest only as placeholders.
 
-- Network allowlist includes GitHub domains, including `api.github.com` for REST and GraphQL calls.
-- Network allowlist also includes common macOS/GitHub TLS certificate validation hosts such as DigiCert OCSP/CRL endpoints and Apple trust validation endpoints. These are required by tools like `gh` when verifying `https://api.github.com/graphql` certificates inside the sandbox.
-- Sensitive paths like `~/.ssh`, `~/.aws`, `~/.gnupg` are denied for reads.
+`/init --shutdown` stops the current VM. `/init --destroy` deletes the current VM state. Neither command deletes workspace assets. `--no-sandbox` is the only direct-host execution path.
 
 ---
 
