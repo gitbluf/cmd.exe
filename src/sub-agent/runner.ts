@@ -141,17 +141,31 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 	let output = "";
 	let sawTextDeltaForCurrentAssistant = false;
-	// Helper to update widget with current output
+	let widgetUpdateTimer: ReturnType<typeof setTimeout> | undefined;
+	const renderWidget = (status: "streaming" | "complete") => {
+		if (!opts.widgetId || !opts.ui) return;
+		setSubAgentWidget({
+			ui: opts.ui,
+			widgetId: opts.widgetId,
+			widgetTitle: opts.widgetTitle,
+			output,
+			status,
+		});
+	};
+	// Token events can arrive many times per frame. Coalesce redraws to keep
+	// streaming output responsive without repeatedly splitting the full buffer.
 	const updateWidget = (status: "streaming" | "complete" = "streaming") => {
-		if (opts.widgetId && opts.ui) {
-			setSubAgentWidget({
-				ui: opts.ui,
-				widgetId: opts.widgetId,
-				widgetTitle: opts.widgetTitle,
-				output,
-				status,
-			});
+		if (status === "complete") {
+			if (widgetUpdateTimer) clearTimeout(widgetUpdateTimer);
+			widgetUpdateTimer = undefined;
+			renderWidget(status);
+			return;
 		}
+		if (widgetUpdateTimer || !opts.widgetId || !opts.ui) return;
+		widgetUpdateTimer = setTimeout(() => {
+			widgetUpdateTimer = undefined;
+			renderWidget("streaming");
+		}, 75);
 	};
 
 	// Initialize widget

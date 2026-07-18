@@ -112,7 +112,7 @@ export function setFooterTokensTotal(total: number | undefined): void {
 
 // ── Chip builders ─────────────────────────────────────────────────────────────
 
-function modeChip(_theme: Theme, wide: boolean): string {
+function modeChip(theme: Theme, wide: boolean): string {
 	const mode = getCurrentMode();
 	const label = wide
 		? mode === "build"
@@ -121,11 +121,8 @@ function modeChip(_theme: Theme, wide: boolean): string {
 		: mode === "build"
 			? "B"
 			: "P";
-	// PLAN = fire red #FF4500, BUILD = NVIDIA green #76B900
-	if (mode === "plan") {
-		return `\x1b[38;2;255;69;0m${label}\x1b[0m`;
-	}
-	return `\x1b[38;2;118;185;0m${label}\x1b[0m`;
+	// Use semantic theme colors so the HUD respects user themes and terminals.
+	return theme.fg(mode === "plan" ? "error" : "success", label);
 }
 
 function rtkChip(theme: Theme, wide: boolean): string | null {

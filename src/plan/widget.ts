@@ -9,6 +9,7 @@ import type {
 	ExtensionCommandContext,
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
+import { visibleWidth } from "@earendil-works/pi-tui";
 import { getIconRegistry } from "../ui/icons";
 import { renderWidgetBox } from "../ui/widget-box";
 import { getCurrentStep, getPlanStats } from "./state";
@@ -17,11 +18,14 @@ import type { PlanState, PlanStep } from "./types";
 // Helper type for contexts that have UI
 type UIContext = ExtensionCommandContext | ExtensionContext;
 
+// Prevent an older auto-dismiss timer from clearing a newer widget.
+let widgetGeneration = 0;
+
 /**
  * Render a mini progress bar
  */
 function renderMiniBar(done: number, total: number, width: number): string {
-	const filled = Math.round((done / total) * width);
+	const filled = total > 0 ? Math.round((done / total) * width) : 0;
 	const empty = width - filled;
 	return "━".repeat(filled) + "░".repeat(empty);
 }
@@ -29,9 +33,10 @@ function renderMiniBar(done: number, total: number, width: number): string {
 /**
  * Truncate text with ellipsis
  */
-function truncate(text: string, maxLength: number): string {
-	if (text.length <= maxLength) return text;
-	return `${text.substring(0, maxLength - 1)}…`;
+function truncate(text: string, maxWidth: number): string {
+	return visibleWidth(text) <= maxWidth
+		? text
+		: `${text.slice(0, Math.max(0, maxWidth - 1))}…`;
 }
 
 /**
@@ -67,6 +72,7 @@ export function updatePlanStatus(ctx: UIContext, plan: PlanState | null): void {
  * ╰─ ↑↓ scroll • esc dismiss ────────────────────────────────────────────╯
  */
 export function showExpandedPlan(ctx: UIContext, plan: PlanState): void {
+	const generation = ++widgetGeneration;
 	const stats = getPlanStats(plan);
 	const icons = getIconRegistry();
 
@@ -96,9 +102,10 @@ export function showExpandedPlan(ctx: UIContext, plan: PlanState): void {
 		invalidate: () => {},
 	}));
 
-	// Auto-dismiss after 5 seconds
+	// Auto-dismiss after 5 seconds, but do not clear a newer widget.
 	setTimeout(() => {
-		ctx.ui.setWidget("plan-progress", undefined);
+		if (generation === widgetGeneration)
+			ctx.ui.setWidget("plan-progress", undefined);
 	}, 5000);
 }
 
@@ -114,6 +121,7 @@ export function flashStepComplete(
 	step: PlanStep,
 	stats: { completed: number; total: number },
 ): void {
+	const generation = ++widgetGeneration;
 	ctx.ui.setWidget("plan-progress", (_tui, theme) => ({
 		render: (width: number) => {
 			const titleContent = theme.fg(
@@ -127,8 +135,8 @@ export function flashStepComplete(
 			);
 			// Right-align the progress badge within the inner width
 			const inner = Math.max(0, width - 4);
-			const leftVW = step.description.length;
-			const rightVW = `[${stats.completed}/${stats.total}]`.length;
+			const leftVW = visibleWidth(step.description);
+			const rightVW = visibleWidth(`[${stats.completed}/${stats.total}]`);
 			const gap = Math.max(1, inner - leftVW - rightVW);
 			const bodyContent = bodyLeft + " ".repeat(gap) + bodyRight;
 
@@ -140,9 +148,10 @@ export function flashStepComplete(
 		invalidate: () => {},
 	}));
 
-	// Auto-dismiss after 2 seconds
+	// Auto-dismiss after 2 seconds.
 	setTimeout(() => {
-		ctx.ui.setWidget("plan-progress", undefined);
+		if (generation === widgetGeneration)
+			ctx.ui.setWidget("plan-progress", undefined);
 	}, 2000);
 }
 
@@ -150,6 +159,7 @@ export function flashStepComplete(
  * Clear all plan widgets and the footer status
  */
 export function clearPlanWidgets(ctx: UIContext): void {
+	widgetGeneration++;
 	ctx.ui.setWidget("plan-progress", undefined);
 	ctx.ui.setStatus("plan", "");
 }
