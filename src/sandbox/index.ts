@@ -8,5 +8,7 @@ export type {
 export {
 	DEFAULT_SANDBOX_CONFIG,
 	getDefaultSandboxConfig,
+	globMatches,
+	globToRegex,
 	mergeSandboxConfig,
 } from "./tools";

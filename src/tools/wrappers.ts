@@ -22,6 +22,7 @@ import {
 	sandboxState,
 	toSandboxPath,
 } from "../lifecycle/sandbox";
+import { globMatches } from "../sandbox";
 import {
 	renderEditCall,
 	renderEditResult,
@@ -42,27 +43,8 @@ function guestPath(value: string, cwd: string): string {
 	return toSandboxPath(value, cwd);
 }
 
-function globToRegex(glob: string): string {
-	let result = "";
-	for (let i = 0; i < glob.length; i++) {
-		const char = glob[i];
-		if (char === "*" && glob[i + 1] === "*") {
-			if (glob[i + 2] === "/") {
-				result += "(?:.*/)?";
-				i += 2;
-			} else {
-				result += ".*";
-				i++;
-			}
-		} else if (char === "*") result += "[^/]*";
-		else if (char === "?") result += "[^/]";
-		else result += char.replace(/[.+^${}()|[\\]\\\\]/g, "\\$&");
-	}
-	return result;
-}
-
 function globMatch(value: string, pattern: string): boolean {
-	return new RegExp(`^${globToRegex(pattern)}$`).test(value);
+	return globMatches(value, pattern);
 }
 
 function ignoreMatch(relativePath: string, pattern: string): boolean {

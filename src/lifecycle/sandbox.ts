@@ -8,8 +8,11 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { createHttpHooks, RealFSProvider, VM } from "@earendil-works/gondolin";
 import type { BashOperations } from "@earendil-works/pi-coding-agent";
-import type { SandboxConfig } from "../sandbox";
-import { DEFAULT_SANDBOX_CONFIG } from "../sandbox";
+import {
+	DEFAULT_SANDBOX_CONFIG,
+	globToRegex,
+	type SandboxConfig,
+} from "../sandbox";
 import { getIconRegistry } from "../ui/icons";
 
 const GUEST_WORKSPACE = "/workspace";
@@ -43,6 +46,15 @@ interface QueueItem<T> {
 class VmCommandScheduler {
 	private queue: QueueItem<unknown>[] = [];
 	private running = false;
+
+	get depth(): number {
+		return this.queue.length;
+	}
+
+	rejectQueued(error: Error): void {
+		const pending = this.queue.splice(0);
+		for (const item of pending) item.reject(error);
+	}
 
 	run<T>(run: () => Promise<T>): Promise<T> {
 		return new Promise<T>((resolve, reject) => {
@@ -167,25 +179,6 @@ function toGuestCwd(cwd: string): string {
 	return relative
 		? path.posix.join(GUEST_WORKSPACE, relative)
 		: GUEST_WORKSPACE;
-}
-
-function globToRegex(glob: string): string {
-	let result = "";
-	for (let i = 0; i < glob.length; i++) {
-		const char = glob[i];
-		if (char === "*" && glob[i + 1] === "*") {
-			if (glob[i + 2] === "/") {
-				result += "(?:.*/)?";
-				i += 2;
-			} else {
-				result += ".*";
-				i++;
-			}
-		} else if (char === "*") result += "[^/]*";
-		else if (char === "?") result += "[^/]";
-		else result += char.replace(/[.+^${}()|[\\]\\\\]/g, "\\$&");
-	}
-	return result;
 }
 
 function protectedPath(guestPath: string, rules: string[]): boolean {
@@ -401,6 +394,9 @@ export function getSandboxStats(): { domains: number; writes: number } | null {
 }
 
 export async function shutdownSandbox(): Promise<void> {
+	scheduler.rejectQueued(
+		new Error("Sandbox VM shut down before command execution"),
+	);
 	const active = vm;
 	vm = undefined;
 	vmStarting = undefined;

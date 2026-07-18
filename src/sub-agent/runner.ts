@@ -102,6 +102,7 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 	let session: Awaited<ReturnType<typeof createAgentSession>>["session"];
 	try {
+		const toolOptions = sandboxToolOptions(opts.cwd);
 		const result = await createAgentSession({
 			cwd: opts.cwd,
 			model: selectedModel,
@@ -112,27 +113,12 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 							createBashToolDefinition(opts.cwd, {
 								operations: createSandboxedBashOps(),
 							}),
-							createEditToolDefinition(
-								opts.cwd,
-								sandboxToolOptions(opts.cwd).edit,
-							),
-							createWriteToolDefinition(
-								opts.cwd,
-								sandboxToolOptions(opts.cwd).write,
-							),
-							createReadToolDefinition(
-								opts.cwd,
-								sandboxToolOptions(opts.cwd).read,
-							),
-							createLsToolDefinition(opts.cwd, sandboxToolOptions(opts.cwd).ls),
-							createFindToolDefinition(
-								opts.cwd,
-								sandboxToolOptions(opts.cwd).find,
-							),
-							createGrepToolDefinition(
-								opts.cwd,
-								sandboxToolOptions(opts.cwd).grep,
-							),
+							createEditToolDefinition(opts.cwd, toolOptions.edit),
+							createWriteToolDefinition(opts.cwd, toolOptions.write),
+							createReadToolDefinition(opts.cwd, toolOptions.read),
+							createLsToolDefinition(opts.cwd, toolOptions.ls),
+							createFindToolDefinition(opts.cwd, toolOptions.find),
+							createGrepToolDefinition(opts.cwd, toolOptions.grep),
 						] as unknown as NonNullable<
 							CreateAgentSessionOptions["customTools"]
 						>,
