@@ -220,7 +220,7 @@ Create `agent-vm.json` at the workspace root with both the Gondolin build defini
 }
 ```
 
-Run `/init --rebuild` from inside Pi. The extension builds and verifies the image on the host, atomically replaces the old assets, and starts a new VM. Custom image files are runtime assets and are not generated or copied by TypeScript compilation.
+The current Gondolin SDK consumes the generated assets but does not expose an image-builder API. Build the assets with the Gondolin tooling outside the extension, then `/init` starts a VM using the configured `runtime.imagePath`. `/init --rebuild` reports this limitation rather than invoking a CLI. Custom image files are runtime assets and are not generated or copied by TypeScript compilation.
 
 `/init` starts the current VM on demand. `/init --rebuild` rebuilds from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. `--no-sandbox` is the only direct-host execution path.
 

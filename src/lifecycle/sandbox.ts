@@ -1,8 +1,6 @@
 /** Per-session Gondolin sandbox lifecycle and queued command execution. */
 
-import { spawn } from "node:child_process";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHttpHooks, RealFSProvider, VM } from "@earendil-works/gondolin";
@@ -45,9 +43,13 @@ function readAgentVmFile(root: string): AgentVmFile | undefined {
 	const value = parsed as Record<string, unknown>;
 	if (
 		(value.build !== undefined &&
-			(!value.build || typeof value.build !== "object" || Array.isArray(value.build))) ||
+			(!value.build ||
+				typeof value.build !== "object" ||
+				Array.isArray(value.build))) ||
 		(value.runtime !== undefined &&
-			(!value.runtime || typeof value.runtime !== "object" || Array.isArray(value.runtime)))
+			(!value.runtime ||
+				typeof value.runtime !== "object" ||
+				Array.isArray(value.runtime)))
 	) {
 		throw new Error(`Invalid agent VM configuration sections: ${configPath}`);
 	}
@@ -67,10 +69,13 @@ function loadAgentVmConfig(root: string): Partial<SandboxConfig> | undefined {
 			: {}),
 	};
 	if (
-		(runtime.imagePath !== undefined && typeof runtime.imagePath !== "string") ||
+		(runtime.imagePath !== undefined &&
+			typeof runtime.imagePath !== "string") ||
 		(runtime.memory !== undefined && typeof runtime.memory !== "string") ||
 		(runtime.cpus !== undefined &&
-			(typeof runtime.cpus !== "number" || !Number.isInteger(runtime.cpus) || runtime.cpus < 1))
+			(typeof runtime.cpus !== "number" ||
+				!Number.isInteger(runtime.cpus) ||
+				runtime.cpus < 1))
 	) {
 		throw new Error(
 			`Invalid agent VM runtime values in ${path.join(root, "agent-vm.json")}; expected imagePath:string, memory:string, cpus:positive integer`,
@@ -78,7 +83,6 @@ function loadAgentVmConfig(root: string): Partial<SandboxConfig> | undefined {
 	}
 	return runtime;
 }
-
 
 /**
  * Resolve custom Gondolin assets without depending on the caller's cwd.
@@ -450,78 +454,15 @@ export async function resetSandbox(): Promise<void> {
 	await shutdownSandbox();
 }
 
-function runHostCommand(command: string, args: string[]): Promise<void> {
-	return new Promise((resolve, reject) => {
-		const child = spawn(command, args, { stdio: "inherit" });
-		child.once("error", reject);
-		child.once("exit", (code, signal) => {
-			if (code === 0) resolve();
-			else reject(new Error(`${command} failed (${signal ?? `exit ${code}`})`));
-		});
-	});
-}
-
-async function rebuildSandbox(root: string): Promise<string> {
-	const agentVm = readAgentVmFile(root);
-	if (!agentVm?.build) {
-		throw new Error("agent-vm.json must contain a build section for --rebuild");
-	}
-
-	const runtime = agentVm.runtime ?? {};
-	const outputPath = path.resolve(
-		root,
-		runtime.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
-	);
-	const parent = path.dirname(outputPath);
-	fs.mkdirSync(parent, { recursive: true });
-	const tempOutput = fs.mkdtempSync(`${outputPath}.tmp-`);
-	const tempConfigDir = fs.mkdtempSync(path.join(os.tmpdir(), "cmd-exe-vm-"));
-	const tempConfig = path.join(tempConfigDir, "agent-vm-build.json");
-	fs.writeFileSync(tempConfig, `${JSON.stringify(agentVm.build, null, 2)}\n`);
-	const gondolin = fs.existsSync(path.join(root, "node_modules/.bin/gondolin"))
-		? path.join(root, "node_modules/.bin/gondolin")
-		: "gondolin";
-
-	try {
-		await runHostCommand(gondolin, [
-			"build",
-			"--config",
-			tempConfig,
-			"--output",
-			tempOutput,
-		]);
-		await runHostCommand(gondolin, ["build", "--verify", tempOutput]);
-
-		await shutdownSandbox();
-		const backup = `${outputPath}.previous`;
-		if (fs.existsSync(backup)) fs.rmSync(backup, { recursive: true, force: true });
-		if (fs.existsSync(outputPath)) fs.renameSync(outputPath, backup);
-		try {
-			fs.renameSync(tempOutput, outputPath);
-		} catch (error) {
-			if (fs.existsSync(backup)) fs.renameSync(backup, outputPath);
-			throw error;
-		}
-		if (fs.existsSync(backup)) fs.rmSync(backup, { recursive: true, force: true });
-		sandboxConfig = { ...sandboxConfig, imagePath: outputPath };
-		return outputPath;
-	} catch (error) {
-		fs.rmSync(tempOutput, { recursive: true, force: true });
-		throw error;
-	} finally {
-		fs.rmSync(tempConfigDir, { recursive: true, force: true });
-	}
-}
-
 export async function handleSandboxInit(
 	args: string,
-	root: string,
+	_root: string,
 ): Promise<string> {
 	const value = args.trim();
 	if (value === "--rebuild") {
-		const outputPath = await rebuildSandbox(path.resolve(root));
-		const active = await ensureVm();
-		return `Gondolin VM rebuilt at ${outputPath} (${active.id})`;
+		throw new Error(
+			"/init --rebuild is unavailable: the Gondolin SDK does not expose an image builder. Build assets externally, then set runtime.imagePath in agent-vm.json.",
+		);
 	}
 	if (value === "--shutdown") {
 		await shutdownSandbox();
