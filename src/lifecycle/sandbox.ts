@@ -473,14 +473,15 @@ async function provisionSandboxPackages(): Promise<number> {
 		["/bin/sh", "-lc", `apk add --no-cache ${names.map(quote).join(" ")}`],
 		{ cwd: GUEST_WORKSPACE, stdout: "pipe", stderr: "pipe" },
 	);
-	for await (const _chunk of proc.output()) {
-		// Consume output so the guest process can make progress.
-	}
+	const output: string[] = [];
+	for await (const chunk of proc.output()) output.push(chunk.data);
 	const result = await proc;
-	if (result.exitCode !== 0)
+	if (result.exitCode !== 0) {
+		const details = output.join("").trim();
 		throw new Error(
-			`Guest package provisioning failed (exit ${result.exitCode})`,
+			`Guest package provisioning failed (exit ${result.exitCode})${details ? `: ${details}` : ""}`,
 		);
+	}
 	return names.length;
 }
 
