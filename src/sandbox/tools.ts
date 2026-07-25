@@ -124,6 +124,8 @@ export const DEFAULT_DEVELOPER_ALLOWED_HOSTS = [
 	"cacerts.digicert.com",
 	"ocsp.apple.com",
 	"valid.apple.com",
+	"dl-cdn.alpinelinux.org",
+	"*.alpinelinux.org",
 ] as const;
 
 export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {

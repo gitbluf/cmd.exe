@@ -95,12 +95,13 @@ export function resolveSandboxImagePath(
 ): string | undefined {
 	if (config.imagePath) {
 		const configuredPath = path.resolve(workspaceRoot, config.imagePath);
-		if (!hasGuestAssets(configuredPath)) {
-			throw new Error(
-				`Sandbox imagePath is not a valid Gondolin asset directory: ${configuredPath}`,
-			);
-		}
-		return configuredPath;
+		if (hasGuestAssets(configuredPath)) return configuredPath;
+		const agentVm = readAgentVmFile(workspaceRoot);
+		if (agentVm?.build && agentVm.runtime?.imagePath === config.imagePath)
+			return undefined;
+		throw new Error(
+			`Sandbox imagePath is not a valid Gondolin asset directory: ${configuredPath}`,
+		);
 	}
 
 	return hasGuestAssets(BUNDLED_ASSETS_PATH) ? BUNDLED_ASSETS_PATH : undefined;
@@ -454,15 +455,43 @@ export async function resetSandbox(): Promise<void> {
 	await shutdownSandbox();
 }
 
+async function provisionSandboxPackages(): Promise<number> {
+	const agentVm = readAgentVmFile(workspaceRoot);
+	const packages = agentVm?.build?.alpine;
+	if (!packages || typeof packages !== "object" || Array.isArray(packages))
+		throw new Error("agent-vm.json must contain build.alpine.rootfsPackages");
+	const configured = packages as { rootfsPackages?: unknown };
+	if (!Array.isArray(configured.rootfsPackages))
+		throw new Error("agent-vm.json must contain build.alpine.rootfsPackages");
+	const names = configured.rootfsPackages.filter(
+		(name): name is string => typeof name === "string" && name !== "linux-virt",
+	);
+	if (names.length === 0) return 0;
+	const quote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+	const active = await ensureVm();
+	const proc = active.exec(
+		["/bin/sh", "-lc", `apk add --no-cache ${names.map(quote).join(" ")}`],
+		{ cwd: GUEST_WORKSPACE, stdout: "pipe", stderr: "pipe" },
+	);
+	for await (const _chunk of proc.output()) {
+		// Consume output so the guest process can make progress.
+	}
+	const result = await proc;
+	if (result.exitCode !== 0)
+		throw new Error(
+			`Guest package provisioning failed (exit ${result.exitCode})`,
+		);
+	return names.length;
+}
+
 export async function handleSandboxInit(
 	args: string,
 	_root: string,
 ): Promise<string> {
 	const value = args.trim();
 	if (value === "--rebuild") {
-		throw new Error(
-			"/init --rebuild is unavailable: the Gondolin SDK does not expose an image builder. Build assets externally, then set runtime.imagePath in agent-vm.json.",
-		);
+		const count = await provisionSandboxPackages();
+		return `Gondolin VM provisioned ${count} packages for this session`;
 	}
 	if (value === "--shutdown") {
 		await shutdownSandbox();
