@@ -15,6 +15,8 @@ export interface SandboxFilesystemConfig {
 }
 
 export interface SandboxConfig {
+	/** Optional Gondolin asset directory containing manifest.json and guest images. */
+	imagePath?: string;
 	enabled: boolean;
 	allowedHosts: string[];
 	secrets: Record<string, SandboxSecretConfig>;

@@ -1,0 +1,40 @@
+{
+  "build": {
+    "arch": "aarch64",
+    "distro": "alpine",
+    "alpine": {
+      "version": "3.23.0",
+      "kernelPackage": "linux-virt",
+      "kernelImage": "vmlinuz-virt",
+      "rootfsPackages": [
+        "linux-virt",
+        "bash",
+        "ca-certificates",
+        "curl",
+        "git",
+        "openssh-client",
+        "build-base",
+        "nodejs",
+        "npm",
+        "bun",
+        "python3",
+        "py3-pip",
+        "ripgrep",
+        "jq"
+      ],
+      "initramfsPackages": []
+    },
+    "rootfs": {
+      "label": "cmd-exe-agent",
+      "sizeMb": 4096
+    },
+    "runtimeDefaults": {
+      "rootfsMode": "cow"
+    }
+  },
+  "runtime": {
+    "imagePath": ".agents/sandbox-vm/agent-vm-assets",
+    "memory": "4G",
+    "cpus": 4
+  }
+}

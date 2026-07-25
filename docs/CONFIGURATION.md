@@ -174,7 +174,7 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ## 4) Sandbox (`sandbox`)
 
-The sandbox uses one lazy Gondolin VM per Pi session. Gondolin provisions its default guest image through the SDK when the VM starts; no workspace image assets or build configuration are required.
+The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets are present, cmd.exe loads them automatically; otherwise Gondolin provisions its default guest image through the SDK when the VM starts.
 
 ### Schema
 
@@ -190,14 +190,39 @@ The sandbox uses one lazy Gondolin VM per Pi session. Gondolin provisions its de
       "denyWrite"?: string[]
     },
     "memory"?: string,
-    "cpus"?: number
+    "cpus"?: number,
+    "imagePath"?: string
   }
 }
 ```
 
 The workspace is mounted read/write at `/workspace`, including hidden files by default. Paths outside the workspace are rejected. Network access is mediated by Gondolin with internal-range blocking enabled. Secret values stay on the host and are exposed to the guest only as placeholders.
 
-`/init` starts the current VM on demand. `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. `--no-sandbox` is the only direct-host execution path.
+If `sandbox.imagePath` is omitted, cmd.exe first loads the optional `agent-vm.json` from the workspace root. Its `runtime.imagePath`, `runtime.memory`, and `runtime.cpus` values are used automatically; explicit `sandbox` settings in `dispatch.json` take precedence. If neither specifies an image, packaged assets in `src/sandbox/assets/` or `dist/sandbox/assets/` are detected when present. Invalid explicit paths fail during VM startup instead of silently using the default image.
+
+Create `agent-vm.json` at the workspace root with both the Gondolin build definition and SDK runtime settings:
+
+```json
+{
+  "build": {
+    "arch": "aarch64",
+    "distro": "alpine",
+    "alpine": {
+      "rootfsPackages": ["linux-virt", "bash", "git", "nodejs", "npm", "bun"]
+    },
+    "rootfs": { "sizeMb": 4096 }
+  },
+  "runtime": {
+    "imagePath": ".agents/sandbox-vm/agent-vm-assets",
+    "memory": "4G",
+    "cpus": 4
+  }
+}
+```
+
+Run `/init --rebuild` from inside Pi. The extension builds and verifies the image on the host, atomically replaces the old assets, and starts a new VM. Custom image files are runtime assets and are not generated or copied by TypeScript compilation.
+
+`/init` starts the current VM on demand. `/init --rebuild` rebuilds from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. `--no-sandbox` is the only direct-host execution path.
 
 ---
 

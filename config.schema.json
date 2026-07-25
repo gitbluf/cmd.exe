@@ -34,7 +34,11 @@
 					}
 				},
 				"memory": { "type": "string" },
-				"cpus": { "type": "integer", "minimum": 1 }
+				"cpus": { "type": "integer", "minimum": 1 },
+				"imagePath": {
+					"type": "string",
+					"description": "Path to a user-built Gondolin asset directory"
+				}
 			}
 		}
 	}
