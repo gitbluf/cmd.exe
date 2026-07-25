@@ -440,7 +440,7 @@ export async function initializeWorkspaceSandbox(root: string): Promise<void> {
 	const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
 	await writeFile(
 		configPath,
-		`${JSON.stringify({ arch, distro: "alpine", alpine: { rootfsPackages: ["linux-virt", "bash", "ca-certificates", "e2fsprogs"] }, runtimeDefaults: { rootfsMode: "cow" } }, null, 2)}\n`,
+		`${JSON.stringify({ arch, distro: "alpine", alpine: { rootfsPackages: ["linux-virt", "bash", "ca-certificates", "e2fsprogs"] } }, null, 2)}\n`,
 	);
 	await runGondolinBuild(configPath, dir);
 	validateSandboxAssets(root);

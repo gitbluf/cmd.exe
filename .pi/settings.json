@@ -1,4 +1,3 @@
 {
-	"extensions": ["src/index.ts"],
-	"theme": "pk10-inspired"
+	"extensions": ["src/index.ts"]
 }
