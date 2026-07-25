@@ -174,7 +174,7 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ## 4) Sandbox (`sandbox`)
 
-The sandbox uses one lazy Gondolin VM per Pi session. Run `/init` once in the workspace before using sandboxed tools; assets are built and verified under `.agents/sandbox/`.
+The sandbox uses one lazy Gondolin VM per Pi session. Gondolin provisions its default guest image through the SDK when the VM starts; no workspace image assets or build configuration are required.
 
 ### Schema
 
@@ -197,7 +197,7 @@ The sandbox uses one lazy Gondolin VM per Pi session. Run `/init` once in the wo
 
 The workspace is mounted read/write at `/workspace`, including hidden files by default. Paths outside the workspace are rejected. Network access is mediated by Gondolin with internal-range blocking enabled. Secret values stay on the host and are exposed to the guest only as placeholders.
 
-`/init --shutdown` stops the current VM. `/init --destroy` deletes the current VM state. Neither command deletes workspace assets. `--no-sandbox` is the only direct-host execution path.
+`/init` starts the current VM on demand. `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. `--no-sandbox` is the only direct-host execution path.
 
 ---
 

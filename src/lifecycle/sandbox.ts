@@ -1,10 +1,5 @@
 /** Per-session Gondolin sandbox lifecycle and queued command execution. */
 
-import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
-import { createRequire } from "node:module";
 import path from "node:path";
 import { createHttpHooks, RealFSProvider, VM } from "@earendil-works/gondolin";
 import type { BashOperations } from "@earendil-works/pi-coding-agent";
@@ -16,7 +11,6 @@ import {
 import { getIconRegistry } from "../ui/icons";
 
 const GUEST_WORKSPACE = "/workspace";
-const require = createRequire(import.meta.url);
 
 export interface SandboxState {
 	enabled: boolean;
@@ -88,52 +82,6 @@ class VmCommandScheduler {
 
 const scheduler = new VmCommandScheduler();
 
-function assetsDir(): string {
-	return path.join(workspaceRoot, ".agents", "sandbox");
-}
-
-export function sandboxSetupInstructions(): string {
-	return "Sandbox assets are missing or invalid. Run /init in this workspace, then retry.";
-}
-
-export function validateSandboxAssets(root = workspaceRoot): void {
-	const dir = path.join(root, ".agents", "sandbox");
-	const required = [
-		"manifest.json",
-		"vmlinuz-virt",
-		"initramfs.cpio.lz4",
-		"rootfs.ext4",
-	];
-	if (!existsSync(dir)) throw new Error(sandboxSetupInstructions());
-	for (const file of required) {
-		if (!existsSync(path.join(dir, file))) {
-			throw new Error(`${sandboxSetupInstructions()} Missing ${file}.`);
-		}
-	}
-	try {
-		const manifest = JSON.parse(
-			readFileSync(path.join(dir, "manifest.json"), "utf8"),
-		) as {
-			buildId?: string;
-			checksums?: Record<string, string>;
-		};
-		if (!manifest.buildId) throw new Error("manifest has no buildId");
-		for (const [file, expected] of Object.entries(manifest.checksums ?? {})) {
-			const filePath = path.join(dir, file);
-			if (!existsSync(filePath))
-				throw new Error(`missing checksum file ${file}`);
-			const actual = createHash("sha256")
-				.update(readFileSync(filePath))
-				.digest("hex");
-			if (actual !== expected) throw new Error(`checksum mismatch for ${file}`);
-		}
-	} catch (error) {
-		throw new Error(
-			`${sandboxSetupInstructions()} Invalid manifest: ${String(error)}`,
-		);
-	}
-}
-
 function isInsideWorkspace(candidate: string): boolean {
 	const relative = path.relative(workspaceRoot, candidate);
 	return (
@@ -192,7 +140,6 @@ function protectedPath(guestPath: string, rules: string[]): boolean {
 }
 
 async function startVm(): Promise<VM> {
-	validateSandboxAssets();
 	const secretDefinitions: Record<string, { value: string; hosts: string[] }> =
 		{};
 	for (const [name, definition] of Object.entries(sandboxConfig.secrets)) {
@@ -207,7 +154,6 @@ async function startVm(): Promise<VM> {
 	});
 	const created = await VM.create({
 		sessionLabel: `cmd.exe ${path.basename(workspaceRoot)}`,
-		sandbox: { imagePath: assetsDir(), maxQueuedExecs: 64 },
 		vfs: {
 			mounts: { [GUEST_WORKSPACE]: new RealFSProvider(workspaceRoot) },
 			hooks: {
@@ -417,7 +363,7 @@ export async function resetSandbox(): Promise<void> {
 
 export async function handleSandboxInit(
 	args: string,
-	root: string,
+	_root: string,
 ): Promise<string> {
 	const value = args.trim();
 	if (value === "--shutdown") {
@@ -429,56 +375,15 @@ export async function handleSandboxInit(
 		return "Gondolin VM destroyed (transient session state removed)";
 	}
 	if (value) throw new Error("Usage: /init [--shutdown|--destroy]");
-	await initializeWorkspaceSandbox(root);
-	return `Gondolin sandbox initialized in ${path.join(root, ".agents", "sandbox")}`;
+	const active = await ensureVm();
+	return `Gondolin VM initialized (${active.id})`;
 }
 
-export async function initializeWorkspaceSandbox(root: string): Promise<void> {
-	const dir = path.join(root, ".agents", "sandbox");
-	await mkdir(dir, { recursive: true });
-	const configPath = path.join(dir, "build-config.json");
-	const arch = process.arch === "arm64" ? "aarch64" : "x86_64";
-	await writeFile(
-		configPath,
-		`${JSON.stringify({ arch, distro: "alpine", alpine: { rootfsPackages: ["linux-virt", "bash", "ca-certificates", "e2fsprogs"] } }, null, 2)}\n`,
-	);
-	await runGondolinBuild(configPath, dir);
-	validateSandboxAssets(root);
-}
-
-async function runGondolinBuild(
-	configPath: string,
-	outputDir: string,
-): Promise<void> {
-	await new Promise<void>((resolve, reject) => {
-		const packageJson = require.resolve(
-			"@earendil-works/gondolin/package.json",
-		);
-		const cli = path.join(
-			path.dirname(packageJson),
-			"dist",
-			"bin",
-			"gondolin.js",
-		);
-		const child = spawn(
-			process.execPath,
-			[cli, "build", "--config", configPath, "--output", outputDir],
-			{ cwd: workspaceRoot, stdio: ["ignore", "pipe", "pipe"] },
-		);
-		let output = "";
-		child.stdout.on("data", (chunk) => {
-			output += chunk;
-		});
-		child.stderr.on("data", (chunk) => {
-			output += chunk;
-		});
-		child.on("error", (error) =>
-			reject(new Error(`Unable to run Gondolin build: ${error.message}`)),
-		);
-		child.on("close", (code) =>
-			code === 0
-				? resolve()
-				: reject(new Error(`Gondolin build failed (${code}): ${output}`)),
-		);
-	});
+/**
+ * Initialize the SDK-managed VM. Gondolin provisions its default guest image
+ * through VM.create(); no CLI build configuration or workspace assets are
+ * required.
+ */
+export async function initializeWorkspaceSandbox(_root: string): Promise<void> {
+	await ensureVm();
 }
