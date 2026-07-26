@@ -485,11 +485,30 @@ async function provisionSandboxPackages(): Promise<number> {
 	return names.length;
 }
 
+function deleteSandboxAssets(root: string): string {
+	const runtime = readAgentVmFile(root)?.runtime;
+	const configuredPath = path.resolve(
+		root,
+		runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
+	);
+	const relative = path.relative(root, configuredPath);
+	if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+		throw new Error(
+			`Refusing to delete sandbox assets outside the workspace: ${configuredPath}`,
+		);
+	}
+	if (fs.existsSync(configuredPath))
+		fs.rmSync(configuredPath, { recursive: true, force: true });
+	return configuredPath;
+}
+
 export async function handleSandboxInit(
 	args: string,
-	_root: string,
+	root: string,
 ): Promise<string> {
-	const value = args.trim();
+	const values = args.trim().split(/\s+/).filter(Boolean);
+	const value = values[0] ?? "";
+	const deleteAssets = values.includes("--assets");
 	if (value === "--rebuild") {
 		const count = await provisionSandboxPackages();
 		return `Gondolin VM provisioned ${count} packages for this session`;
@@ -500,9 +519,14 @@ export async function handleSandboxInit(
 	}
 	if (value === "--destroy") {
 		await destroySandbox();
+		if (deleteAssets) {
+			const deletedPath = deleteSandboxAssets(path.resolve(root));
+			return `Gondolin VM destroyed and assets deleted: ${deletedPath}`;
+		}
 		return "Gondolin VM destroyed (transient session state removed)";
 	}
-	if (value) throw new Error("Usage: /init [--rebuild|--shutdown|--destroy]");
+	if (value || deleteAssets)
+		throw new Error("Usage: /init [--rebuild|--shutdown|--destroy [--assets]]");
 	const active = await ensureVm();
 	return `Gondolin VM initialized (${active.id})`;
 }

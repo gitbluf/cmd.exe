@@ -222,7 +222,7 @@ Create `agent-vm.json` at the workspace root with both the Gondolin build defini
 
 The current Gondolin SDK consumes generated assets but does not expose an image-builder API. `/init --rebuild` instead installs `build.alpine.rootfsPackages` into the active VM using `VM.exec()` and `apk`; these changes persist only for the current COW session. Persistent custom image files must be built separately and referenced by `runtime.imagePath`.
 
-`/init` starts the current VM on demand. `/init --rebuild` provisions packages from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. `--no-sandbox` is the only direct-host execution path.
+`/init` starts the current VM on demand. `/init --rebuild` provisions packages from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
 
 ---
 
