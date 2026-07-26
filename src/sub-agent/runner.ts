@@ -23,6 +23,7 @@ import {
 	getAgentDir,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
+import type { ThinkingLevel } from "../config/slots";
 import { createSandboxedBashOps, sandboxState } from "../lifecycle/sandbox";
 import { sandboxToolOptions } from "../tools/wrappers";
 import { getIconRegistry } from "../ui/icons";
@@ -42,7 +43,7 @@ export interface RunSubAgentOptions {
 	ui?: ExtensionContext["ui"];
 	pi?: ExtensionAPI;
 	/** Thinking level for models that support reasoning */
-	thinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+	thinkingLevel?: ThinkingLevel;
 	/** Keep widget visible after completion instead of clearing it */
 	keepWidget?: boolean;
 }

@@ -22,7 +22,7 @@ import {
 	sandboxState,
 	toSandboxPath,
 } from "../lifecycle/sandbox";
-import { globMatches } from "../sandbox";
+import { globToRegex } from "../sandbox";
 import {
 	renderEditCall,
 	renderEditResult,
@@ -43,14 +43,16 @@ function guestPath(value: string, cwd: string): string {
 	return toSandboxPath(value, cwd);
 }
 
-function globMatch(value: string, pattern: string): boolean {
-	return globMatches(value, pattern);
-}
+const IMAGE_MIME_TYPES: Record<string, string> = {
+	png: "image/png",
+	jpg: "image/jpeg",
+	jpeg: "image/jpeg",
+	gif: "image/gif",
+	webp: "image/webp",
+};
 
-function ignoreMatch(relativePath: string, pattern: string): boolean {
-	return pattern.includes("/")
-		? globMatch(relativePath, pattern)
-		: globMatch(path.posix.basename(relativePath), pattern);
+function compileGlob(pattern: string): RegExp {
+	return new RegExp(`^${globToRegex(pattern)}$`);
 }
 
 function isNotFound(error: unknown): boolean {
@@ -62,29 +64,31 @@ function isNotFound(error: unknown): boolean {
 	);
 }
 
+async function exists(
+	vm: Awaited<ReturnType<typeof getSandboxVm>>,
+	value: string,
+	cwd: string,
+): Promise<boolean> {
+	try {
+		await vm.fs.access(guestPath(value, cwd));
+		return true;
+	} catch (error) {
+		if (isNotFound(error)) return false;
+		throw error;
+	}
+}
+
 function readOps(cwd: string): ReadOperations {
 	return {
 		readFile: async (value) =>
-			Buffer.from(
-				(await (
-					await getSandboxVm()
-				).fs.readFile(guestPath(value, cwd))) as Buffer,
-			),
+			(await (
+				await getSandboxVm()
+			).fs.readFile(guestPath(value, cwd))) as Buffer,
 		access: async (value) =>
 			(await getSandboxVm()).fs.access(guestPath(value, cwd)),
 		detectImageMimeType: async (value) => {
 			const ext = value.toLowerCase().split(".").pop();
-			return (
-				(
-					{
-						png: "image/png",
-						jpg: "image/jpeg",
-						jpeg: "image/jpeg",
-						gif: "image/gif",
-						webp: "image/webp",
-					} as Record<string, string>
-				)[ext ?? ""] ?? null
-			);
+			return IMAGE_MIME_TYPES[ext ?? ""] ?? null;
 		},
 	};
 }
@@ -112,15 +116,7 @@ function editOps(cwd: string): EditOperations {
 
 function lsOps(cwd: string): LsOperations {
 	return {
-		exists: async (value) => {
-			try {
-				await (await getSandboxVm()).fs.access(guestPath(value, cwd));
-				return true;
-			} catch (error) {
-				if (isNotFound(error)) return false;
-				throw error;
-			}
-		},
+		exists: async (value) => exists(await getSandboxVm(), value, cwd),
 		stat: async (value) =>
 			(await getSandboxVm()).fs.stat(guestPath(value, cwd)),
 		readdir: async (value) =>
@@ -130,42 +126,48 @@ function lsOps(cwd: string): LsOperations {
 
 function findOps(cwd: string): FindOperations {
 	return {
-		exists: async (value) => {
-			try {
-				await (await getSandboxVm()).fs.access(guestPath(value, cwd));
-				return true;
-			} catch (error) {
-				if (isNotFound(error)) return false;
-				throw error;
-			}
-		},
+		exists: async (value) => exists(await getSandboxVm(), value, cwd),
 		glob: async (pattern, value, options) => {
 			const vm = await getSandboxVm();
 			const root = guestPath(value, cwd);
+			const match = compileGlob(pattern);
+			const ignores = options.ignore.map((ignore) => ({
+				match: compileGlob(ignore),
+				slashless: !ignore.includes("/"),
+			}));
 			const result: string[] = [];
-			const walk = async (dir: string, relativeDir = ""): Promise<void> => {
-				if (result.length >= options.limit) return;
-				if (
-					relativeDir &&
-					options.ignore.some((ignore) => ignoreMatch(relativeDir, ignore))
-				)
-					return;
-				const stat = await vm.fs.stat(dir);
-				if (!stat.isDirectory()) {
-					const relative = dir.slice(root.length).replace(/^\//, "");
-					if (globMatch(relative, pattern) || globMatch(dir, pattern))
-						result.push(dir);
-					return;
-				}
-				for (const entry of await vm.fs.listDir(dir)) {
-					await walk(
-						`${dir}/${entry}`,
-						relativeDir ? `${relativeDir}/${entry}` : entry,
+			const pending = [{ dir: root, relativeDir: "" }];
+			while (pending.length && result.length < options.limit) {
+				const current = pending.pop();
+				if (!current) break;
+				const ignored =
+					current.relativeDir &&
+					ignores.some(({ match: rule, slashless }) =>
+						rule.test(
+							slashless
+								? path.posix.basename(current.relativeDir)
+								: current.relativeDir,
+						),
 					);
-					if (result.length >= options.limit) return;
+				if (ignored) continue;
+				const stat = await vm.fs.stat(current.dir);
+				if (!stat.isDirectory()) {
+					const relative = current.dir.slice(root.length).replace(/^\//, "");
+					if (match.test(relative) || match.test(current.dir))
+						result.push(current.dir);
+					continue;
 				}
-			};
-			await walk(root);
+				const entries = await vm.fs.listDir(current.dir);
+				for (let i = entries.length - 1; i >= 0; i--) {
+					const entry = entries[i];
+					pending.push({
+						dir: `${current.dir}/${entry}`,
+						relativeDir: current.relativeDir
+							? `${current.relativeDir}/${entry}`
+							: entry,
+					});
+				}
+			}
 			return result;
 		},
 	};

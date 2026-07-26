@@ -115,6 +115,7 @@ export const sandboxState: SandboxState = {
 
 let workspaceRoot = process.cwd();
 let sandboxConfig: SandboxConfig = DEFAULT_SANDBOX_CONFIG;
+let filesystemRules = compileFilesystemRules(DEFAULT_SANDBOX_CONFIG.filesystem);
 let vm: VM | undefined;
 let vmStarting: Promise<VM> | undefined;
 
@@ -217,14 +218,30 @@ function toGuestCwd(cwd: string): string {
 		: GUEST_WORKSPACE;
 }
 
-function protectedPath(guestPath: string, rules: string[]): boolean {
+interface CompiledFilesystemRules {
+	denyRead: RegExp[];
+	readOnly: RegExp[];
+	denyWrite: RegExp[];
+}
+
+function compileFilesystemRules(
+	filesystem: SandboxConfig["filesystem"],
+): CompiledFilesystemRules {
+	const compile = (rules: string[]) =>
+		rules.map((rule) => {
+			const normalized = rule.replace(/^\.\//, "").replace(/\\/g, "/");
+			return new RegExp(`^(?:${globToRegex(normalized)})(?:/.*)?$`);
+		});
+	return {
+		denyRead: compile(filesystem.denyRead),
+		readOnly: compile(filesystem.readOnly),
+		denyWrite: compile(filesystem.denyWrite),
+	};
+}
+
+function protectedPath(guestPath: string, rules: RegExp[]): boolean {
 	const relative = path.posix.relative(GUEST_WORKSPACE, guestPath);
-	return rules.some((rule) => {
-		const normalized = rule.replace(/^\.\//, "").replace(/\\/g, "/");
-		return new RegExp(`^(?:${globToRegex(normalized)})(?:/.*)?$`).test(
-			relative,
-		);
-	});
+	return rules.some((rule) => rule.test(relative));
 }
 
 async function startVm(): Promise<VM> {
@@ -256,18 +273,14 @@ async function startVm(): Promise<VM> {
 					const paths = [context.path, context.oldPath, context.newPath].filter(
 						Boolean,
 					) as string[];
-					if (
-						paths.some((p) =>
-							protectedPath(p, sandboxConfig.filesystem.denyRead),
-						)
-					) {
+					if (paths.some((p) => protectedPath(p, filesystemRules.denyRead))) {
 						throw new Error("Sandbox filesystem read denied by policy");
 					}
 					if (
 						paths.some(
 							(p) =>
-								protectedPath(p, sandboxConfig.filesystem.readOnly) ||
-								protectedPath(p, sandboxConfig.filesystem.denyWrite),
+								protectedPath(p, filesystemRules.readOnly) ||
+								protectedPath(p, filesystemRules.denyWrite),
 						)
 					) {
 						if (
@@ -325,6 +338,7 @@ export function configureSandbox(
 		config,
 	);
 	sandboxConfig = mergedConfig;
+	filesystemRules = compileFilesystemRules(sandboxConfig.filesystem);
 }
 
 export async function getSandboxVm(): Promise<VM> {

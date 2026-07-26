@@ -15,7 +15,8 @@ export type ThinkingLevel =
 	| "low"
 	| "medium"
 	| "high"
-	| "xhigh";
+	| "xhigh"
+	| "max";
 
 /** Base slot: model + optional thinking level */
 export interface SlotConfig {

@@ -14,7 +14,11 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
 import { DATAWEAVER } from "../agents/definitions";
-import { resolveSlot, type SlotConfig } from "../config/slots";
+import {
+	resolveSlot,
+	type SlotConfig,
+	type ThinkingLevel,
+} from "../config/slots";
 import { runSubAgent } from "../sub-agent";
 import { getIconRegistry } from "../ui/icons";
 import {
@@ -105,7 +109,7 @@ export function createFindFilesTool(opts: {
 			let resolution: {
 				model: Model<Api> | undefined;
 				modelId: string;
-				thinking?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+				thinking?: ThinkingLevel;
 			};
 			if (opts.assistantSlot && opts.modelRegistry) {
 				resolution = resolveSlot(
