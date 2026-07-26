@@ -1,5 +1,6 @@
 /** Per-session Gondolin sandbox lifecycle and queued command execution. */
 
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -19,7 +20,6 @@ const BUNDLED_ASSETS_PATH = path.resolve(
 	"../sandbox/assets",
 );
 const DEFAULT_AGENT_VM_ASSETS = ".agents/sandbox-vm/agent-vm-assets";
-let allowMissingConfiguredAssets = false;
 
 interface AgentVmFile {
 	build?: Record<string, unknown>;
@@ -92,7 +92,6 @@ export function resolveSandboxImagePath(
 	if (config.imagePath) {
 		const configuredPath = path.resolve(workspaceRoot, config.imagePath);
 		if (hasGuestAssets(configuredPath)) return configuredPath;
-		if (allowMissingConfiguredAssets) return undefined;
 		throw new Error(
 			`Sandbox imagePath is not a valid Gondolin asset directory: ${configuredPath}`,
 		);
@@ -449,40 +448,94 @@ export async function resetSandbox(): Promise<void> {
 	await shutdownSandbox();
 }
 
-async function provisionSandboxPackages(): Promise<number> {
-	const agentVm = readAgentVmFile(workspaceRoot);
-	const packages = agentVm?.build?.alpine;
-	if (!packages || typeof packages !== "object" || Array.isArray(packages))
-		throw new Error("agent-vm.json must contain build.alpine.rootfsPackages");
-	const configured = packages as { rootfsPackages?: unknown };
-	if (!Array.isArray(configured.rootfsPackages))
-		throw new Error("agent-vm.json must contain build.alpine.rootfsPackages");
-	const names = configured.rootfsPackages.filter(
-		(name): name is string => typeof name === "string" && name !== "linux-virt",
+function resolveGondolinCli(root: string): string {
+	const localCli = path.join(root, "node_modules", ".bin", "gondolin");
+	return fs.existsSync(localCli) ? localCli : "gondolin";
+}
+
+function runGondolinCli(command: string, args: string[]): Promise<void> {
+	return new Promise((resolve, reject) => {
+		const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
+		const output: string[] = [];
+		const append = (chunk: Buffer) => {
+			output.push(chunk.toString("utf8"));
+			while (output.join("").length > 8_000) output.shift();
+		};
+		child.stdout?.on("data", append);
+		child.stderr?.on("data", append);
+		child.once("error", (error) => {
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+				reject(
+					new Error(
+						"Gondolin CLI is required for /init --rebuild. Install it with one of: npm install -g @earendil-works/gondolin; bun add -g @earendil-works/gondolin; deno install -g -A --name gondolin npm:@earendil-works/gondolin",
+					),
+				);
+				return;
+			}
+			reject(error);
+		});
+		child.once("close", (code, signal) => {
+			if (code === 0) {
+				resolve();
+				return;
+			}
+			const details = output.join("").trim();
+			reject(
+				new Error(
+					`Gondolin build failed (${signal ?? `exit ${code}`})${details ? `: ${details}` : ""}`,
+				),
+			);
+		});
+	});
+}
+
+async function rebuildSandboxAssets(root: string): Promise<string> {
+	const agentVm = readAgentVmFile(root);
+	if (!agentVm?.build)
+		throw new Error("agent-vm.json must contain a build section for --rebuild");
+
+	const outputPath = path.resolve(
+		root,
+		agentVm.runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
 	);
-	if (names.length === 0) return 0;
-	const quote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
-	allowMissingConfiguredAssets = true;
-	let active: VM;
+	const outputParent = path.dirname(outputPath);
+	fs.mkdirSync(outputParent, { recursive: true });
+	const temporaryOutput = fs.mkdtempSync(`${outputPath}.tmp-`);
+	const temporaryConfig = path.join(
+		root,
+		`.agent-vm-build-${process.pid}-${Date.now()}.json`,
+	);
+	fs.writeFileSync(temporaryConfig, `${JSON.stringify(agentVm.build, null, 2)}\n`);
+
 	try {
-		active = await ensureVm();
+		const gondolin = resolveGondolinCli(root);
+		await runGondolinCli(gondolin, [
+			"build",
+			"--config",
+			temporaryConfig,
+			"--output",
+			temporaryOutput,
+		]);
+		await runGondolinCli(gondolin, ["build", "--verify", temporaryOutput]);
+
+		await shutdownSandbox();
+		const backupPath = `${outputPath}.previous`;
+		fs.rmSync(backupPath, { recursive: true, force: true });
+		if (fs.existsSync(outputPath)) fs.renameSync(outputPath, backupPath);
+		try {
+			fs.renameSync(temporaryOutput, outputPath);
+		} catch (error) {
+			if (fs.existsSync(backupPath)) fs.renameSync(backupPath, outputPath);
+			throw error;
+		}
+		fs.rmSync(backupPath, { recursive: true, force: true });
+		return outputPath;
+	} catch (error) {
+		fs.rmSync(temporaryOutput, { recursive: true, force: true });
+		throw error;
 	} finally {
-		allowMissingConfiguredAssets = false;
+		fs.rmSync(temporaryConfig, { force: true });
 	}
-	const proc = active.exec(
-		["/bin/sh", "-lc", `apk add --no-cache ${names.map(quote).join(" ")}`],
-		{ cwd: GUEST_WORKSPACE, stdout: "pipe", stderr: "pipe" },
-	);
-	const output: string[] = [];
-	for await (const chunk of proc.output()) output.push(chunk.text);
-	const result = await proc;
-	if (result.exitCode !== 0) {
-		const details = output.join("").trim();
-		throw new Error(
-			`Guest package provisioning failed (exit ${result.exitCode})${details ? `: ${details}` : ""}`,
-		);
-	}
-	return names.length;
 }
 
 function deleteSandboxAssets(root: string): string {
@@ -510,8 +563,9 @@ export async function handleSandboxInit(
 	const value = values[0] ?? "";
 	const deleteAssets = values.includes("--assets");
 	if (value === "--rebuild") {
-		const count = await provisionSandboxPackages();
-		return `Gondolin VM provisioned ${count} packages for this session`;
+		const assetsPath = await rebuildSandboxAssets(path.resolve(root));
+		const active = await ensureVm();
+		return `Gondolin VM rebuilt at ${assetsPath} (${active.id})`;
 	}
 	if (value === "--shutdown") {
 		await shutdownSandbox();
