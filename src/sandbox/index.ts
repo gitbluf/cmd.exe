@@ -3,7 +3,10 @@
 export type {
 	SandboxConfig,
 	SandboxFilesystemConfig,
+	SandboxCargoPackage,
 	SandboxSecretConfig,
+	SandboxToolPackage,
+	SandboxToolsConfig,
 } from "./tools";
 export {
 	DEFAULT_SANDBOX_CONFIG,

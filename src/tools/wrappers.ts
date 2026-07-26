@@ -136,10 +136,14 @@ function findOps(cwd: string): FindOperations {
 				slashless: !ignore.includes("/"),
 			}));
 			const result: string[] = [];
-			const pending = [{ dir: root, relativeDir: "" }];
+			const pending = [{
+				dir: root,
+				relativeDir: "",
+				entries: undefined as string[] | undefined,
+				index: -1,
+			}];
 			while (pending.length && result.length < options.limit) {
-				const current = pending.pop();
-				if (!current) break;
+				const current = pending[pending.length - 1];
 				const ignored =
 					current.relativeDir &&
 					ignores.some(({ match: rule, slashless }) =>
@@ -149,24 +153,35 @@ function findOps(cwd: string): FindOperations {
 								: current.relativeDir,
 						),
 					);
-				if (ignored) continue;
-				const stat = await vm.fs.stat(current.dir);
-				if (!stat.isDirectory()) {
-					const relative = current.dir.slice(root.length).replace(/^\//, "");
-					if (match.test(relative) || match.test(current.dir))
-						result.push(current.dir);
+				if (ignored) {
+					pending.pop();
 					continue;
 				}
-				const entries = await vm.fs.listDir(current.dir);
-				for (let i = entries.length - 1; i >= 0; i--) {
-					const entry = entries[i];
-					pending.push({
-						dir: `${current.dir}/${entry}`,
-						relativeDir: current.relativeDir
-							? `${current.relativeDir}/${entry}`
-							: entry,
-					});
+				if (current.entries === undefined) {
+					const stat = await vm.fs.stat(current.dir);
+					if (!stat.isDirectory()) {
+						const relative = current.dir.slice(root.length).replace(/^\//, "");
+						if (match.test(relative) || match.test(current.dir))
+							result.push(current.dir);
+						pending.pop();
+						continue;
+					}
+					current.entries = await vm.fs.listDir(current.dir);
+					current.index = current.entries.length - 1;
 				}
+				if (current.index < 0) {
+					pending.pop();
+					continue;
+				}
+				const entry = current.entries[current.index--];
+			pending.push({
+					dir: `${current.dir}/${entry}`,
+				relativeDir: current.relativeDir
+						? `${current.relativeDir}/${entry}`
+						: entry,
+				entries: undefined,
+				index: -1,
+			});
 			}
 			return result;
 		},

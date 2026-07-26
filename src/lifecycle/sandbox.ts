@@ -11,7 +11,14 @@ import {
 	globToRegex,
 	mergeSandboxConfig,
 	type SandboxConfig,
+	type SandboxToolsConfig,
 } from "../sandbox";
+import {
+	createToolEnvironment,
+	installCargoTools,
+	installNpmTools,
+	resolveGuestToolPath,
+} from "../sandbox/workspace-tools";
 import { getIconRegistry } from "../ui/icons";
 
 const GUEST_WORKSPACE = "/workspace";
@@ -24,6 +31,7 @@ const DEFAULT_AGENT_VM_ASSETS = ".agents/sandbox-vm/agent-vm-assets";
 interface AgentVmFile {
 	build?: Record<string, unknown>;
 	runtime?: Partial<SandboxConfig>;
+	tools?: SandboxToolsConfig;
 }
 
 function hasGuestAssets(assetPath: string): boolean {
@@ -50,13 +58,16 @@ function readAgentVmFile(root: string): AgentVmFile | undefined {
 		(value.runtime !== undefined &&
 			(!value.runtime ||
 				typeof value.runtime !== "object" ||
-				Array.isArray(value.runtime)))
+				Array.isArray(value.runtime))) ||
+		(value.tools !== undefined &&
+			(!value.tools || typeof value.tools !== "object" || Array.isArray(value.tools)))
 	) {
 		throw new Error(`Invalid agent VM configuration sections: ${configPath}`);
 	}
 	return {
 		build: value.build as Record<string, unknown> | undefined,
 		runtime: value.runtime as Partial<SandboxConfig> | undefined,
+		tools: value.tools as SandboxToolsConfig | undefined,
 	};
 }
 
@@ -67,6 +78,7 @@ function loadAgentVmConfig(root: string): Partial<SandboxConfig> | undefined {
 	if (
 		(runtime.imagePath !== undefined &&
 			typeof runtime.imagePath !== "string") ||
+		(runtime.toolPath !== undefined && typeof runtime.toolPath !== "string") ||
 		(runtime.memory !== undefined && typeof runtime.memory !== "string") ||
 		(runtime.cpus !== undefined &&
 			(typeof runtime.cpus !== "number" ||
@@ -116,6 +128,8 @@ export const sandboxState: SandboxState = {
 let workspaceRoot = process.cwd();
 let sandboxConfig: SandboxConfig = DEFAULT_SANDBOX_CONFIG;
 let filesystemRules = compileFilesystemRules(DEFAULT_SANDBOX_CONFIG.filesystem);
+let guestToolRoot = resolveGuestToolPath();
+let sandboxEnvironment: Record<string, string> = {};
 let vm: VM | undefined;
 let vmStarting: Promise<VM> | undefined;
 
@@ -257,6 +271,7 @@ async function startVm(): Promise<VM> {
 		blockInternalRanges: true,
 		secrets: secretDefinitions,
 	});
+	sandboxEnvironment = createToolEnvironment(guestToolRoot, hooks.env);
 	const imagePath = resolveSandboxImagePath(sandboxConfig);
 	const created = await VM.create({
 		sessionLabel: `cmd.exe ${path.basename(workspaceRoot)}`,
@@ -296,7 +311,7 @@ async function startVm(): Promise<VM> {
 			},
 		},
 		httpHooks: hooks.httpHooks,
-		env: hooks.env,
+		env: sandboxEnvironment,
 		memory: sandboxConfig.memory,
 		cpus: sandboxConfig.cpus,
 	});
@@ -339,6 +354,8 @@ export function configureSandbox(
 	);
 	sandboxConfig = mergedConfig;
 	filesystemRules = compileFilesystemRules(sandboxConfig.filesystem);
+	guestToolRoot = resolveGuestToolPath(sandboxConfig.toolPath);
+	sandboxEnvironment = createToolEnvironment(guestToolRoot);
 }
 
 export async function getSandboxVm(): Promise<VM> {
@@ -367,7 +384,7 @@ export function createSandboxedBashOps(): BashOperations {
 				try {
 					const proc = activeVm.exec(["/bin/sh", "-lc", command], {
 						cwd: guestCwd,
-						env,
+						env: { ...sandboxEnvironment, ...env, PATH: sandboxEnvironment.PATH },
 						signal: controller.signal,
 						stdout: "pipe",
 						stderr: "pipe",
@@ -555,6 +572,22 @@ async function rebuildSandboxAssets(root: string): Promise<string> {
 	}
 }
 
+async function installConfiguredTools(): Promise<number> {
+	const tools = readAgentVmFile(workspaceRoot)?.tools;
+	const npm = tools?.npm ?? [];
+	const cargo = tools?.cargo ?? [];
+	if (!Array.isArray(npm) || !Array.isArray(cargo))
+		throw new Error("agent-vm.json tools.npm and tools.cargo must be arrays");
+	const vm = await ensureVm();
+	const npmCount = await installNpmTools(vm, guestToolRoot, npm);
+	const cargoCount = await installCargoTools(vm, guestToolRoot, cargo);
+	await vm.fs.writeFile(
+		path.posix.join(guestToolRoot, "manifest.json"),
+		`${JSON.stringify({ npm, cargo, installedAt: new Date().toISOString() }, null, 2)}\n`,
+	);
+	return npmCount + cargoCount;
+}
+
 function deleteSandboxAssets(root: string): string {
 	const runtime = readAgentVmFile(root)?.runtime;
 	const configuredPath = path.resolve(
@@ -584,6 +617,10 @@ export async function handleSandboxInit(
 		const active = await ensureVm();
 		return `Gondolin VM rebuilt at ${assetsPath} (${active.id})`;
 	}
+	if (value === "--install-tools") {
+		const count = await scheduler.run(installConfiguredTools);
+		return `Gondolin VM installed ${count} workspace-local tools`;
+	}
 	if (value === "--shutdown") {
 		await shutdownSandbox();
 		return "Gondolin VM shut down";
@@ -597,7 +634,9 @@ export async function handleSandboxInit(
 		return "Gondolin VM destroyed (transient session state removed)";
 	}
 	if (value || deleteAssets)
-		throw new Error("Usage: /init [--rebuild|--shutdown|--destroy [--assets]]");
+		throw new Error(
+			"Usage: /init [--rebuild|--install-tools|--shutdown|--destroy [--assets]]",
+		);
 	const active = await ensureVm();
 	return `Gondolin VM initialized (${active.id})`;
 }

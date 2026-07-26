@@ -191,7 +191,8 @@ The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets a
     },
     "memory"?: string,
     "cpus"?: number,
-    "imagePath"?: string
+    "imagePath"?: string,
+    "toolPath"?: string
   }
 }
 ```
@@ -222,7 +223,33 @@ Create `agent-vm.json` at the workspace root with the custom-image build definit
 
 The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` is the explicit exception: it invokes the Gondolin CLI on the host to build and verify `build` into `runtime.imagePath`, then starts a new VM from those assets. If the CLI is unavailable, it reports npm, Bun, and Deno installation commands.
 
-`/init` starts the current VM on demand. `/init --rebuild` builds assets from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
+`/init` starts the current VM on demand. `/init --rebuild` builds assets from `agent-vm.json`, `/init --install-tools` installs configured workspace-local npm tools, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
+
+### Workspace-local tools
+
+Use `runtime.toolPath` and `tools.npm` in the workspace-root `agent-vm.json` to install Linux guest tools without modifying `/` or the host `node_modules`:
+
+```json
+{
+  "runtime": {
+    "toolPath": ".agents/sandbox-vm/tools"
+  },
+  "tools": {
+    "npm": [
+      { "name": "example-cli", "version": "1.2.3" }
+    ],
+    "cargo": [
+      {
+        "name": "rtk",
+        "version": "0.44.0",
+        "git": "https://github.com/rtk-ai/rtk.git"
+      }
+    ]
+  }
+}
+```
+
+Run `/init --install-tools` explicitly. Tool executables are installed under the workspace mount and their npm `.bin` directory is prepended to the sandbox command `PATH`.
 
 ---
 

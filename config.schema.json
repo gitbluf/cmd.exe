@@ -38,6 +38,10 @@
 				"imagePath": {
 					"type": "string",
 					"description": "Path to a user-built Gondolin asset directory"
+				},
+				"toolPath": {
+					"type": "string",
+					"description": "Workspace-relative directory for guest-installed tools"
 				}
 			}
 		}

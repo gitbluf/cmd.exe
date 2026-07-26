@@ -18,6 +18,8 @@
 				"npm",
 				"python3",
 				"py3-pip",
+				"rust",
+				"cargo",
 				"ripgrep",
 				"jq"
 			],
@@ -34,6 +36,17 @@
 	"runtime": {
 		"imagePath": ".agents/sandbox-vm/agent-vm-assets",
 		"memory": "4G",
-		"cpus": 4
+		"cpus": 4,
+		"toolPath": ".agents/sandbox-vm/tools"
+	},
+	"tools": {
+		"npm": [],
+		"cargo": [
+			{
+				"name": "rtk",
+				"version": "0.44.0",
+				"git": "https://github.com/rtk-ai/rtk.git"
+			}
+		]
 	}
 }
