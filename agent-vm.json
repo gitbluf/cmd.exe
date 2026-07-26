@@ -16,7 +16,6 @@
 				"build-base",
 				"nodejs",
 				"npm",
-				"bun",
 				"python3",
 				"py3-pip",
 				"ripgrep",
