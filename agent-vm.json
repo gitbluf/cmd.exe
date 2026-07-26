@@ -32,7 +32,6 @@
 		}
 	},
 	"runtime": {
-		"imagePath": ".agents/sandbox-vm/agent-vm-assets",
 		"memory": "4G",
 		"cpus": 4
 	}

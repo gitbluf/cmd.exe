@@ -200,7 +200,7 @@ The workspace is mounted read/write at `/workspace`, including hidden files by d
 
 If `sandbox.imagePath` is omitted, cmd.exe first loads the optional `agent-vm.json` from the workspace root. Its `runtime.imagePath`, `runtime.memory`, and `runtime.cpus` values are used automatically; explicit `sandbox` settings in `dispatch.json` take precedence. If neither specifies an image, packaged assets in `src/sandbox/assets/` or `dist/sandbox/assets/` are detected when present. Invalid explicit paths fail during VM startup instead of silently using the default image.
 
-Create `agent-vm.json` at the workspace root with both the Gondolin build definition and SDK runtime settings:
+Create `agent-vm.json` at the workspace root with packages to provision and SDK runtime settings. The `build.rootfs` fields are retained for a separately built custom image; they do not resize the SDK default VM:
 
 ```json
 {
@@ -220,7 +220,7 @@ Create `agent-vm.json` at the workspace root with both the Gondolin build defini
 }
 ```
 
-The current Gondolin SDK consumes generated assets but does not expose an image-builder API. `/init --rebuild` instead installs `build.alpine.rootfsPackages` into the active VM using `VM.exec()` and `apk`; these changes persist only for the current COW session. Persistent custom image files must be built separately and referenced by `runtime.imagePath`.
+The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` intentionally starts the default VM only to install `build.alpine.rootfsPackages` using `VM.exec()` and `apk`; these changes persist only for that COW session. Persistent custom image files must be built separately and referenced by a valid `runtime.imagePath`.
 
 `/init` starts the current VM on demand. `/init --rebuild` provisions packages from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
 

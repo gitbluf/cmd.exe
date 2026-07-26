@@ -19,6 +19,7 @@ const BUNDLED_ASSETS_PATH = path.resolve(
 	"../sandbox/assets",
 );
 const DEFAULT_AGENT_VM_ASSETS = ".agents/sandbox-vm/agent-vm-assets";
+let allowMissingConfiguredAssets = false;
 
 interface AgentVmFile {
 	build?: Record<string, unknown>;
@@ -62,12 +63,7 @@ function readAgentVmFile(root: string): AgentVmFile | undefined {
 function loadAgentVmConfig(root: string): Partial<SandboxConfig> | undefined {
 	const file = readAgentVmFile(root);
 	if (!file) return undefined;
-	const runtime = {
-		...(file.runtime ?? {}),
-		...(file.build && file.runtime?.imagePath === undefined
-			? { imagePath: DEFAULT_AGENT_VM_ASSETS }
-			: {}),
-	};
+	const runtime = { ...(file.runtime ?? {}) };
 	if (
 		(runtime.imagePath !== undefined &&
 			typeof runtime.imagePath !== "string") ||
@@ -96,9 +92,7 @@ export function resolveSandboxImagePath(
 	if (config.imagePath) {
 		const configuredPath = path.resolve(workspaceRoot, config.imagePath);
 		if (hasGuestAssets(configuredPath)) return configuredPath;
-		const agentVm = readAgentVmFile(workspaceRoot);
-		if (agentVm?.build && agentVm.runtime?.imagePath === config.imagePath)
-			return undefined;
+		if (allowMissingConfiguredAssets) return undefined;
 		throw new Error(
 			`Sandbox imagePath is not a valid Gondolin asset directory: ${configuredPath}`,
 		);
@@ -358,7 +352,7 @@ export function createSandboxedBashOps(): BashOperations {
 							}, timeout * 1000)
 						: undefined;
 				try {
-					const proc = activeVm.exec([command], {
+					const proc = activeVm.exec(["/bin/sh", "-lc", command], {
 						cwd: guestCwd,
 						env,
 						signal: controller.signal,
@@ -366,7 +360,7 @@ export function createSandboxedBashOps(): BashOperations {
 						stderr: "pipe",
 					});
 					for await (const chunk of proc.output())
-						onData(Buffer.from(chunk.data));
+						onData(Buffer.from(chunk.text));
 					const result = await proc;
 					if (signal?.aborted) throw new Error("aborted");
 					if (timedOut) throw new Error(`timeout:${timeout}`);
@@ -468,13 +462,19 @@ async function provisionSandboxPackages(): Promise<number> {
 	);
 	if (names.length === 0) return 0;
 	const quote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
-	const active = await ensureVm();
+	allowMissingConfiguredAssets = true;
+	let active: VM;
+	try {
+		active = await ensureVm();
+	} finally {
+		allowMissingConfiguredAssets = false;
+	}
 	const proc = active.exec(
 		["/bin/sh", "-lc", `apk add --no-cache ${names.map(quote).join(" ")}`],
 		{ cwd: GUEST_WORKSPACE, stdout: "pipe", stderr: "pipe" },
 	);
 	const output: string[] = [];
-	for await (const chunk of proc.output()) output.push(chunk.data);
+	for await (const chunk of proc.output()) output.push(chunk.text);
 	const result = await proc;
 	if (result.exitCode !== 0) {
 		const details = output.join("").trim();
