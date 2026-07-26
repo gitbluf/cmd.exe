@@ -505,7 +505,10 @@ async function rebuildSandboxAssets(root: string): Promise<string> {
 		root,
 		`.agent-vm-build-${process.pid}-${Date.now()}.json`,
 	);
-	fs.writeFileSync(temporaryConfig, `${JSON.stringify(agentVm.build, null, 2)}\n`);
+	fs.writeFileSync(
+		temporaryConfig,
+		`${JSON.stringify(agentVm.build, null, 2)}\n`,
+	);
 
 	try {
 		const gondolin = resolveGondolinCli(root);
