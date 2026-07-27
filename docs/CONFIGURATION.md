@@ -220,12 +220,11 @@ Install guest tools during the Gondolin image build with native `postBuild` comm
 ```json
 {
   "alpine": {
-    "rootfsPackages": ["build-base", "rust", "rustc", "rust-std", "cargo", "git", "ca-certificates"]
+    "rootfsPackages": ["curl", "ca-certificates"]
   },
   "postBuild": {
     "commands": [
-      "set -eux; command -v cargo; command -v rustc; ls -l /usr/bin/rustc; /usr/bin/rustc -vV",
-      "cargo install --git https://github.com/rtk-ai/rtk"
+      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh"
     ]
   }
 }

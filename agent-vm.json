@@ -2,7 +2,7 @@
   "arch": "aarch64",
   "distro": "alpine",
   "env": {
-    "PATH": "/root/.cargo/bin:/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    "PATH": "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
   },
   "alpine": {
     "version": "3.23.0",
@@ -13,13 +13,9 @@
       "bash",
       "ca-certificates",
       "curl",
+      "gcompat",
       "git",
       "openssh-client",
-      "build-base",
-      "rust",
-      "rustc",
-      "rust-std",
-      "cargo",
       "nodejs",
       "npm",
       "python3",
@@ -38,8 +34,9 @@
   },
   "postBuild": {
     "commands": [
-      "set -eux; command -v cargo; command -v rustc; ls -l /usr/bin/rustc; /usr/bin/rustc -vV",
-      "cargo install --git https://github.com/rtk-ai/rtk"
+      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh",
+      "test -x /root/.local/bin/rtk",
+      "install -m 0755 /root/.local/bin/rtk /usr/local/bin/rtk"
     ]
   },
   "cmdExe": {

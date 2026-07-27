@@ -20,6 +20,7 @@ import {
 import { getIconRegistry } from "../ui/icons";
 
 const GUEST_WORKSPACE = "/workspace";
+const DEFAULT_GUEST_PATH = "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 const BUNDLED_ASSETS_PATH = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"../sandbox/assets",
@@ -270,7 +271,10 @@ async function startVm(): Promise<VM> {
 		blockInternalRanges: true,
 		secrets: secretDefinitions,
 	});
-	sandboxEnvironment = { ...hooks.env };
+	sandboxEnvironment = {
+		...hooks.env,
+		PATH: hooks.env.PATH ?? DEFAULT_GUEST_PATH,
+	};
 	const imagePath = resolveSandboxImagePath(sandboxConfig);
 	const created = await VM.create({
 		sessionLabel: `cmd.exe ${path.basename(workspaceRoot)}`,
@@ -353,7 +357,7 @@ export function configureSandbox(
 	);
 	sandboxConfig = mergedConfig;
 	filesystemRules = compileFilesystemRules(sandboxConfig.filesystem);
-	sandboxEnvironment = {};
+	sandboxEnvironment = { PATH: DEFAULT_GUEST_PATH };
 }
 
 export async function getSandboxVm(): Promise<VM> {
