@@ -26,16 +26,17 @@ All icons are defined in `src/ui/icons.ts` with sensible defaults. Users can ove
   modeBuild: "🚀",
 
   // Agent indicators
-  agentBlackice: "👁️",
   agentGhost: "👻",
   agentPlanner: "🧠",
   agentDataweaver: "🕸️",
   agentDefault: "⚙️",
 
+  // Mode toggles
+  rtk: "🏷️",
+
   // Feature indicators
   sandbox: "🔒",
   tool: "🔧",
-  swarm: "🐝",
   dispatch: "⚡",
   jack: "🔌",
   net: "📡",
@@ -110,22 +111,21 @@ Used for task/operation status indicators:
 
 ### Mode Icons
 Used for Plan/Build mode indicators:
-- `modePlan` - Footer indicator for Plan mode
-- `modeBuild` - Footer indicator for Build mode
+- `modePlan` - Footer indicator for Plan mode (🧠 by default)
+- `modeBuild` - Footer indicator for Build mode (🚀 by default)
 
 ### Agent Icons
 Used for agent identification:
-- `agentBlackice` - BLACKICE orchestrator
 - `agentGhost` - GHOST implementation agent
 - `agentPlanner` - Plan agent indicator
 - `agentDataweaver` - DATAWEAVER reconnaissance agent
+- `rtk` - RTK status indicator
 - `agentDefault` - Generic sub-agent fallback
 
 ### Feature Icons
 Used for system features:
 - `sandbox` - Sandbox status in footer
 - `tool` - Tool execution markers
-- `swarm` - Swarm operations
 - `dispatch` - Dispatch dashboard
 
 ### Dashboard Icons

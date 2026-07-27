@@ -128,7 +128,7 @@ Toggle with `/apply --build` command.
 
 ### ⚡ RTK Bash Optimization
 
-If you have the official RTK pi extension (`rtk.ts`) installed globally, cmd.exe automatically detects its presence and shows an RTK status indicator in the footer. Command rewriting is handled entirely by the RTK extension — no configuration needed here.
+If you have the official RTK pi extension (`rtk.ts`) installed globally, cmd.exe automatically detects its presence and shows an RTK status indicator in the footer. Command rewriting is handled entirely by the RTK extension — no configuration needed here. The host RTK executable and guest VM RTK installation are separate; installing RTK in `agent-vm.json` does not install it for the host pi process.
 
 ### 📋 Plan Tracking
 
@@ -153,6 +153,10 @@ The main session in Plan mode can create implementation plans:
 
 # LLM marks steps complete with [DONE:1], [DONE:2], etc.
 ```
+
+### 🔒 Gondolin VM Sandbox
+
+Sandboxed commands run in a Gondolin VM with mediated networking, secret placeholders, and workspace filesystem policy. Configure session policy in `dispatch.json`; configure a workspace image in root `agent-vm.json` using Gondolin's native build fields plus cmd.exe runtime settings under `cmdExe`. Normal VM control uses the SDK. Use `/init --rebuild` after changing native image packages or `postBuild` commands; custom image builds may require Docker or Podman on macOS. See [docs/CONFIGURATION.md](docs/CONFIGURATION.md#4-sandbox-sandbox) for precedence, lifecycle commands, and image configuration.
 
 ### 🔍 Smart File Discovery
 
@@ -206,7 +210,8 @@ cmd.exe/
 │   ├── tools/            # Custom tools (find_files, web_search)
 │   ├── ui/               # TUI components, dashboard
 │   ├── templates/        # Agent template management
-│   └── lifecycle/        # Hooks, initialization
+│   ├── lifecycle/        # Hooks, initialization, Gondolin VM lifecycle
+│   └── sandbox/          # Gondolin policy and image configuration
 ├── docs/
 │   ├── CONFIGURATION.md  # Complete config reference
 │   └── ICONS.md          # Icon customization
@@ -241,7 +246,7 @@ What are the architectural trade-offs for adding real-time features?
 ## 🛠️ Requirements
 
 - **pi coding agent** v0.55.0+
-- **Node.js** 18+ or Bun
+- **Node.js** 23.6.0+ or Bun compatible with the project dependencies
 - **LLM API access** (OpenAI, Anthropic, GitHub Copilot)
 
 ## 📚 Documentation

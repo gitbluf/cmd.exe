@@ -31,10 +31,10 @@ Only these top-level keys are relevant for the extension:
     },
     "build_mode": {
       "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": "high"
+      "thinking": "low"
     },
     "assistant": {
-      "model": "github-copilot/gpt-4o-mini"
+      "model": "github-copilot/gpt-5.4-mini"
     }
   }
 }
@@ -53,17 +53,17 @@ Controls model/tool behavior for Plan mode, Build mode, and assistant sub-agents
   "slots": {
     "plan_mode": {
       "model": string,
-      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh",
+      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max",
       "tools"?: string[]
     },
     "build_mode": {
       "model": string,
-      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh",
+      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max",
       "tools"?: string[]
     },
     "assistant": {
       "model": string,
-      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh"
+      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
     }
   }
 }
@@ -84,22 +84,11 @@ Controls model/tool behavior for Plan mode, Build mode, and assistant sub-agents
       "tools": ["read", "write", "edit", "bash", "find_files"]
     },
     "assistant": {
-      "model": "github-copilot/gpt-4o-mini"
+      "model": "github-copilot/gpt-5.4-mini"
     }
   }
 }
 ```
-
-### Notes
-
-- `/plan` toggles between `plan_mode` and `build_mode`.
-- `/ask` uses the current mode slot.
-- `find_files` uses the `assistant` slot.
-- `web_search` must be added to a mode's `tools` list before the main agent can call it.
-- Model matching supports exact, provider/id, and suffix matching.
-- If a slot omits `thinking`, cmd.exe falls back to that slot's default thinking behavior.
-- If a provider does not support the requested thinking level, or applying it fails, cmd.exe warns instead of failing silently.
-
 ---
 
 ## 2) Web Search (`web_search`)
@@ -232,26 +221,17 @@ Install guest tools during the Gondolin image build with native `postBuild` comm
 ```json
 {
   "alpine": {
-    "rootfsPackages": ["cargo", "git", "build-base", "ca-certificates"]
+    "rootfsPackages": ["curl", "ca-certificates"]
   },
   "postBuild": {
     "commands": [
-      "cargo install --git https://github.com/rtk-ai/rtk --tag v0.44.0 --locked --root /usr/local",
-      "rm -rf /root/.cargo/registry /root/.cargo/git /root/.cargo/target"
+      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh"
     ]
   }
 }
 ```
 
-Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`.
-
----
-
-## RTK Extension Detection
-
-cmd.exe automatically detects whether the official RTK pi extension (`rtk.ts`) is loaded in the session. When detected, an RTK status indicator appears in the footer.
-
-Command rewriting is handled entirely by the RTK extension — no configuration is required in `dispatch.json`.
+Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`. `/init --install-tools` remains a legacy compatibility command for workspace-local `cmdExe.tools` configurations, but new images should prefer native `postBuild`.
 
 ---
 
@@ -283,19 +263,11 @@ Command rewriting is handled entirely by the RTK extension — no configuration 
     "modeBuild": "🚀"
   },
   "sandbox": {
-    "policy": {
-      "network": {
-        "allowedDomains": [
-          "github.com",
-          "api.github.com",
-          "ocsp.digicert.com",
-          "crl3.digicert.com",
-          "crl4.digicert.com",
-          "cacerts.digicert.com",
-          "ocsp.apple.com",
-          "valid.apple.com"
-        ]
-      }
+    "enabled": true,
+    "allowedHosts": ["github.com", "api.github.com"],
+    "filesystem": {
+      "denyRead": [".ssh", ".aws", ".gnupg"],
+      "denyWrite": [".env", ".env.*", "*.pem", "*.key"]
     }
   }
 }

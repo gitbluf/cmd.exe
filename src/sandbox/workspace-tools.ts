@@ -38,7 +38,13 @@ export function createToolEnvironment(
 	const bin = path.posix.join(toolRoot, "bin");
 	return {
 		...env,
-		PATH: [bin, npmBin, cargoBin, env?.PATH ?? "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"].join(":"),
+		PATH: [
+			bin,
+			npmBin,
+			cargoBin,
+			"/root/.local/bin",
+			env?.PATH ?? "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+		].join(":"),
 		npm_config_cache: path.posix.join(toolRoot, "npm-cache"),
 		CARGO_HOME: path.posix.join(toolRoot, "cargo-home"),
 		CARGO_TARGET_DIR: path.posix.join(toolRoot, "cargo-target"),

@@ -1,6 +1,9 @@
 {
   "arch": "aarch64",
   "distro": "alpine",
+  "env": {
+    "PATH": "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  },
   "alpine": {
     "version": "3.23.0",
     "kernelPackage": "linux-virt",
@@ -30,7 +33,9 @@
   },
   "postBuild": {
     "commands": [
-      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh"
+      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh",
+      "install -m 0755 /root/.local/bin/rtk /usr/local/bin/rtk",
+      "echo 'export PATH=\"$HOME/.local/bin:$PATH\"' >> /root/.bashrc"
     ]
   },
   "cmdExe": {
