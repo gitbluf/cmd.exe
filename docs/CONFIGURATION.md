@@ -223,35 +223,27 @@ Create `agent-vm.json` at the workspace root using Gondolin's native build schem
 
 The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `cmdExe.runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` is the explicit exception: it validates the native build fields, invokes the Gondolin CLI on a temporary native config, and atomically replaces `cmdExe.runtime.imagePath`. If the CLI is unavailable, it reports npm, Bun, and Deno installation commands.
 
-`/init` starts the current VM on demand. `/init --rebuild` builds assets from `agent-vm.json`, `/init --install-tools` installs configured workspace-local tools from `cmdExe.tools`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
+`/init` starts the current VM on demand. `/init --rebuild` builds assets from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
 
-### Workspace-local tools
+### Image tools
 
-Use `cmdExe.runtime.toolPath` and `cmdExe.tools` in the workspace-root `agent-vm.json` to install Linux guest tools without modifying `/` or the host `node_modules`:
+Install guest tools during the Gondolin image build with native `postBuild` commands. This keeps the image reproducible and avoids consuming the small runtime rootfs:
 
 ```json
 {
-  "cmdExe": {
-    "runtime": {
-      "toolPath": ".agents/sandbox-vm/tools"
-    },
-    "tools": {
-      "npm": [
-        { "name": "example-cli", "version": "1.2.3" }
-      ],
-      "cargo": [
-        {
-          "name": "rtk",
-          "version": "0.44.0",
-          "git": "https://github.com/rtk-ai/rtk.git"
-        }
-      ]
-    }
+  "alpine": {
+    "rootfsPackages": ["cargo", "git", "build-base", "ca-certificates"]
+  },
+  "postBuild": {
+    "commands": [
+      "cargo install --git https://github.com/rtk-ai/rtk --tag v0.44.0 --locked --root /usr/local",
+      "rm -rf /root/.cargo/registry /root/.cargo/git /root/.cargo/target"
+    ]
   }
 }
 ```
 
-Run `/init --install-tools` explicitly. Tool executables are installed under the workspace mount and their npm `.bin` directory is prepended to the sandbox command `PATH`.
+Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`.
 
 ---
 

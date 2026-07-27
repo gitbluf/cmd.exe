@@ -31,22 +31,17 @@
   "runtimeDefaults": {
     "rootfsMode": "cow"
   },
+  "postBuild": {
+    "commands": [
+      "cargo install --git https://github.com/rtk-ai/rtk --tag v0.44.0 --locked --root /usr/local",
+      "rm -rf /root/.cargo/registry /root/.cargo/git /root/.cargo/target"
+    ]
+  },
   "cmdExe": {
     "runtime": {
       "imagePath": ".agents/sandbox-vm/agent-vm-assets",
       "memory": "4G",
-      "cpus": 4,
-      "toolPath": ".agents/sandbox-vm/tools"
-    },
-    "tools": {
-      "npm": [],
-      "cargo": [
-        {
-          "name": "rtk",
-          "version": "0.44.0",
-          "git": "https://github.com/rtk-ai/rtk.git"
-        }
-      ]
+      "cpus": 4
     }
   }
 }

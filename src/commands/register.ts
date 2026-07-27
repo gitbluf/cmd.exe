@@ -58,7 +58,7 @@ export function registerAllCommands(
 	});
 
 	pi.registerCommand("init", {
-		description: "Build, install workspace tools, or control the Gondolin sandbox VM",
+		description: "Rebuild or control the Gondolin sandbox VM",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
 			try {
 				const message = await handleSandboxInit(args, ctx.cwd);
