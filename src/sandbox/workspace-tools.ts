@@ -42,6 +42,7 @@ export function createToolEnvironment(
 			bin,
 			npmBin,
 			cargoBin,
+			"/root/.cargo/bin",
 			"/root/.local/bin",
 			env?.PATH ?? "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		].join(":"),

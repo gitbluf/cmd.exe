@@ -180,8 +180,7 @@ The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets a
     },
     "memory"?: string,
     "cpus"?: number,
-    "imagePath"?: string,
-    "toolPath"?: string
+    "imagePath"?: string
   }
 }
 ```
@@ -190,7 +189,7 @@ The workspace is mounted read/write at `/workspace`, including hidden files by d
 
 If `sandbox.imagePath` is omitted, cmd.exe first loads the optional `agent-vm.json` from the workspace root. Its `cmdExe.runtime.imagePath`, `cmdExe.runtime.memory`, and `cmdExe.runtime.cpus` values are used automatically; explicit `sandbox` settings in `dispatch.json` take precedence. If neither specifies an image, packaged assets in `src/sandbox/assets/` or `dist/sandbox/assets/` are detected when present. Invalid explicit paths fail during VM startup instead of silently using the default image.
 
-Create `agent-vm.json` at the workspace root using Gondolin's native build schema. cmd.exe-specific runtime and tool policy lives under `cmdExe`:
+Create `agent-vm.json` at the workspace root using Gondolin's native build schema. cmd.exe-specific runtime policy lives under `cmdExe`:
 
 ```json
 {
@@ -221,17 +220,18 @@ Install guest tools during the Gondolin image build with native `postBuild` comm
 ```json
 {
   "alpine": {
-    "rootfsPackages": ["curl", "ca-certificates"]
+    "rootfsPackages": ["build-base", "rust", "rustc", "rust-std", "cargo", "git", "ca-certificates"]
   },
   "postBuild": {
     "commands": [
-      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh"
+      "set -eux; command -v cargo; command -v rustc; ls -l /usr/bin/rustc; /usr/bin/rustc -vV",
+      "cargo install --git https://github.com/rtk-ai/rtk"
     ]
   }
 }
 ```
 
-Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`. `/init --install-tools` remains a legacy compatibility command for workspace-local `cmdExe.tools` configurations, but new images should prefer native `postBuild`.
+Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`.
 
 ---
 

@@ -14,27 +14,9 @@ export interface SandboxFilesystemConfig {
 	denyWrite: string[];
 }
 
-export interface SandboxToolPackage {
-	name: string;
-	version: string;
-}
-
-export interface SandboxCargoPackage {
-	name: string;
-	version: string;
-	git: string;
-}
-
-export interface SandboxToolsConfig {
-	npm?: SandboxToolPackage[];
-	cargo?: SandboxCargoPackage[];
-}
-
 export interface SandboxConfig {
 	/** Optional Gondolin asset directory containing manifest.json and guest images. */
 	imagePath?: string;
-	/** Workspace-relative directory for installed guest tools. */
-	toolPath?: string;
 	enabled: boolean;
 	allowedHosts: string[];
 	secrets: Record<string, SandboxSecretConfig>;
