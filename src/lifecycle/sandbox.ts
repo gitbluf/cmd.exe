@@ -4,7 +4,12 @@ import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createHttpHooks, RealFSProvider, VM } from "@earendil-works/gondolin";
+import {
+	createHttpHooks,
+	RealFSProvider,
+	validateBuildConfig,
+	VM,
+} from "@earendil-works/gondolin";
 import type { BashOperations } from "@earendil-works/pi-coding-agent";
 import {
 	DEFAULT_SANDBOX_CONFIG,
@@ -28,10 +33,14 @@ const BUNDLED_ASSETS_PATH = path.resolve(
 );
 const DEFAULT_AGENT_VM_ASSETS = ".agents/sandbox-vm/agent-vm-assets";
 
-interface AgentVmFile {
-	build?: Record<string, unknown>;
+interface CmdExeConfig {
 	runtime?: Partial<SandboxConfig>;
 	tools?: SandboxToolsConfig;
+}
+
+interface AgentVmFile {
+	build: Record<string, unknown>;
+	cmdExe?: CmdExeConfig;
 }
 
 function hasGuestAssets(assetPath: string): boolean {
@@ -49,32 +58,38 @@ function readAgentVmFile(root: string): AgentVmFile | undefined {
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
 		throw new Error(`Invalid agent VM configuration: ${configPath}`);
 	}
-	const value = parsed as Record<string, unknown>;
+	const { cmdExe, ...build } = parsed as Record<string, unknown>;
+	if (!validateBuildConfig(build))
+		throw new Error(`Invalid Gondolin build configuration: ${configPath}`);
 	if (
-		(value.build !== undefined &&
-			(!value.build ||
-				typeof value.build !== "object" ||
-				Array.isArray(value.build))) ||
-		(value.runtime !== undefined &&
-			(!value.runtime ||
-				typeof value.runtime !== "object" ||
-				Array.isArray(value.runtime))) ||
-		(value.tools !== undefined &&
-			(!value.tools || typeof value.tools !== "object" || Array.isArray(value.tools)))
+		cmdExe !== undefined &&
+		(!cmdExe || typeof cmdExe !== "object" || Array.isArray(cmdExe))
 	) {
-		throw new Error(`Invalid agent VM configuration sections: ${configPath}`);
+		throw new Error(`Invalid cmdExe configuration: ${configPath}`);
+	}
+	const policy = cmdExe as Record<string, unknown> | undefined;
+	if (
+		policy?.runtime !== undefined &&
+		(!policy.runtime || typeof policy.runtime !== "object" || Array.isArray(policy.runtime))
+	) {
+		throw new Error(`Invalid cmdExe.runtime configuration: ${configPath}`);
+	}
+	if (
+		policy?.tools !== undefined &&
+		(!policy.tools || typeof policy.tools !== "object" || Array.isArray(policy.tools))
+	) {
+		throw new Error(`Invalid cmdExe.tools configuration: ${configPath}`);
 	}
 	return {
-		build: value.build as Record<string, unknown> | undefined,
-		runtime: value.runtime as Partial<SandboxConfig> | undefined,
-		tools: value.tools as SandboxToolsConfig | undefined,
+		build,
+		cmdExe: policy as CmdExeConfig | undefined,
 	};
 }
 
 function loadAgentVmConfig(root: string): Partial<SandboxConfig> | undefined {
 	const file = readAgentVmFile(root);
 	if (!file) return undefined;
-	const runtime = { ...(file.runtime ?? {}) };
+	const runtime = { ...(file.cmdExe?.runtime ?? {}) };
 	if (
 		(runtime.imagePath !== undefined &&
 			typeof runtime.imagePath !== "string") ||
@@ -523,11 +538,11 @@ function runGondolinCli(command: string, args: string[]): Promise<void> {
 async function rebuildSandboxAssets(root: string): Promise<string> {
 	const agentVm = readAgentVmFile(root);
 	if (!agentVm?.build)
-		throw new Error("agent-vm.json must contain a build section for --rebuild");
+		throw new Error("agent-vm.json must contain a valid Gondolin build configuration");
 
 	const outputPath = path.resolve(
 		root,
-		agentVm.runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
+		agentVm.cmdExe?.runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
 	);
 	const outputParent = path.dirname(outputPath);
 	fs.mkdirSync(outputParent, { recursive: true });
@@ -536,6 +551,8 @@ async function rebuildSandboxAssets(root: string): Promise<string> {
 		root,
 		`.agent-vm-build-${process.pid}-${Date.now()}.json`,
 	);
+	// Keep the temporary native config beside agent-vm.json so Gondolin
+	// resolves postBuild.copy.src relative to the original config directory.
 	fs.writeFileSync(
 		temporaryConfig,
 		`${JSON.stringify(agentVm.build, null, 2)}\n`,
@@ -573,7 +590,7 @@ async function rebuildSandboxAssets(root: string): Promise<string> {
 }
 
 async function installConfiguredTools(): Promise<number> {
-	const tools = readAgentVmFile(workspaceRoot)?.tools;
+	const tools = readAgentVmFile(workspaceRoot)?.cmdExe?.tools;
 	const npm = tools?.npm ?? [];
 	const cargo = tools?.cargo ?? [];
 	if (!Array.isArray(npm) || !Array.isArray(cargo))
@@ -589,7 +606,7 @@ async function installConfiguredTools(): Promise<number> {
 }
 
 function deleteSandboxAssets(root: string): string {
-	const runtime = readAgentVmFile(root)?.runtime;
+	const runtime = readAgentVmFile(root)?.cmdExe?.runtime;
 	const configuredPath = path.resolve(
 		root,
 		runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,

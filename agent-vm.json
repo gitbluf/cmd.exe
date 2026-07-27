@@ -1,52 +1,52 @@
 {
-	"build": {
-		"arch": "aarch64",
-		"distro": "alpine",
-		"alpine": {
-			"version": "3.23.0",
-			"kernelPackage": "linux-virt",
-			"kernelImage": "vmlinuz-virt",
-			"rootfsPackages": [
-				"linux-virt",
-				"bash",
-				"ca-certificates",
-				"curl",
-				"git",
-				"openssh-client",
-				"build-base",
-				"nodejs",
-				"npm",
-				"python3",
-				"py3-pip",
-				"rust",
-				"cargo",
-				"ripgrep",
-				"jq"
-			],
-			"initramfsPackages": []
-		},
-		"rootfs": {
-			"label": "cmd-exe-agent",
-			"sizeMb": 4096
-		},
-		"runtimeDefaults": {
-			"rootfsMode": "cow"
-		}
-	},
-	"runtime": {
-		"imagePath": ".agents/sandbox-vm/agent-vm-assets",
-		"memory": "4G",
-		"cpus": 4,
-		"toolPath": ".agents/sandbox-vm/tools"
-	},
-	"tools": {
-		"npm": [],
-		"cargo": [
-			{
-				"name": "rtk",
-				"version": "0.44.0",
-				"git": "https://github.com/rtk-ai/rtk.git"
-			}
-		]
-	}
+  "arch": "aarch64",
+  "distro": "alpine",
+  "alpine": {
+    "version": "3.23.0",
+    "kernelPackage": "linux-virt",
+    "kernelImage": "vmlinuz-virt",
+    "rootfsPackages": [
+      "linux-virt",
+      "bash",
+      "ca-certificates",
+      "curl",
+      "git",
+      "openssh-client",
+      "build-base",
+      "nodejs",
+      "npm",
+      "python3",
+      "py3-pip",
+      "rust",
+      "cargo",
+      "ripgrep",
+      "jq"
+    ],
+    "initramfsPackages": []
+  },
+  "rootfs": {
+    "label": "cmd-exe-agent",
+    "sizeMb": 4096
+  },
+  "runtimeDefaults": {
+    "rootfsMode": "cow"
+  },
+  "cmdExe": {
+    "runtime": {
+      "imagePath": ".agents/sandbox-vm/agent-vm-assets",
+      "memory": "4G",
+      "cpus": 4,
+      "toolPath": ".agents/sandbox-vm/tools"
+    },
+    "tools": {
+      "npm": [],
+      "cargo": [
+        {
+          "name": "rtk",
+          "version": "0.44.0",
+          "git": "https://github.com/rtk-ai/rtk.git"
+        }
+      ]
+    }
+  }
 }
