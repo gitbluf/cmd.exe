@@ -230,7 +230,20 @@ Install guest tools during the Gondolin image build with native `postBuild` comm
 }
 ```
 
-Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`.
+Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`. For GNU-only binaries such as the RTK release installer, use an OCI glibc rootfs instead of Alpine/musl:
+
+```json
+{
+  "distro": "alpine",
+  "oci": {
+    "image": "debian:bookworm-slim",
+    "runtime": "docker",
+    "platform": "linux/arm64"
+  }
+}
+```
+
+The OCI build requires Docker or Podman on the host.
 
 ---
 

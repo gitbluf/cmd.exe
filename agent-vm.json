@@ -1,29 +1,13 @@
 {
   "arch": "aarch64",
   "distro": "alpine",
+  "oci": {
+    "image": "debian:bookworm-slim",
+    "runtime": "docker",
+    "platform": "linux/arm64"
+  },
   "env": {
     "PATH": "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-  },
-  "alpine": {
-    "version": "3.23.0",
-    "kernelPackage": "linux-virt",
-    "kernelImage": "vmlinuz-virt",
-    "rootfsPackages": [
-      "linux-virt",
-      "bash",
-      "ca-certificates",
-      "curl",
-      "gcompat",
-      "git",
-      "openssh-client",
-      "nodejs",
-      "npm",
-      "python3",
-      "py3-pip",
-      "ripgrep",
-      "jq"
-    ],
-    "initramfsPackages": []
   },
   "rootfs": {
     "label": "cmd-exe-agent",
@@ -34,9 +18,12 @@
   },
   "postBuild": {
     "commands": [
+      "apt-get update",
+      "apt-get install -y --no-install-recommends ca-certificates curl",
       "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh",
       "test -x /root/.local/bin/rtk",
-      "install -m 0755 /root/.local/bin/rtk /usr/local/bin/rtk"
+      "install -m 0755 /root/.local/bin/rtk /usr/local/bin/rtk",
+      "rm -rf /var/lib/apt/lists/*"
     ]
   },
   "cmdExe": {
