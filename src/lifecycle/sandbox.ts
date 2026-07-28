@@ -23,8 +23,9 @@ const BUNDLED_ASSETS_PATH = path.resolve(
 	Bun.fileURLToPath(new URL("../sandbox/assets", import.meta.url)),
 );
 const DEFAULT_AGENT_VM_ASSETS = ".agents/sandbox-vm/agent-vm-assets";
-const isMacOS =
-	Bun.spawnSync(["uname", "-s"]).stdout.toString().trim() === "Darwin";
+// Bun exposes the host platform through the standard runtime process API;
+// avoid a synchronous `uname` subprocess during module initialization.
+const isMacOS = process.platform === "darwin";
 
 interface CmdExeConfig {
 	runtime?: Partial<SandboxConfig>;
@@ -501,16 +502,25 @@ async function runGondolinCli(command: string, args: string[]): Promise<void> {
 		stdout: "pipe",
 		stderr: "pipe",
 	});
-	const [stdout, stderr] = await Promise.all([
-		new Response(child.stdout).text(),
-		new Response(child.stderr).text(),
-	]);
-	const code = await child.exited;
-	if (code !== 0) {
-		const details = `${stdout}\n${stderr}`.trim().slice(-8_000);
-		throw new Error(
-			`Gondolin build failed (exit ${code})${details ? `: ${details}` : ""}`,
-		);
+	let exited = false;
+	try {
+		const [stdout, stderr] = await Promise.all([
+			new Response(child.stdout).text(),
+			new Response(child.stderr).text(),
+		]);
+		const code = await child.exited;
+		exited = true;
+		if (code !== 0) {
+			const details = `${stdout}\n${stderr}`.trim().slice(-8_000);
+			throw new Error(
+				`Gondolin build failed (exit ${code})${details ? `: ${details}` : ""}`,
+			);
+		}
+	} finally {
+		if (!exited) {
+			child.kill();
+			await child.exited.catch(() => undefined);
+		}
 	}
 }
 
@@ -532,7 +542,7 @@ async function rebuildSandboxAssets(root: string): Promise<string> {
 		.trim();
 	const temporaryConfig = path.join(
 		root,
-		`.agent-vm-build-${Bun.env.BUN_PID ?? "process"}-${Date.now()}.json`,
+		`.agent-vm-build-${Bun.randomUUIDv7()}.json`,
 	);
 	// Keep the temporary native config beside agent-vm.json so Gondolin
 	// resolves postBuild.copy.src relative to the original config directory.

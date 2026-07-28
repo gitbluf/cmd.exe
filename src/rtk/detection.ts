@@ -8,7 +8,7 @@ export interface RtkAvailability {
 }
 
 export function detectRtkInPath(
-	_platform: string = Bun.env.BUN_PLATFORM ?? "darwin",
+	_platform: string = process.platform,
 ): RtkAvailability {
 	try {
 		const binaryPath = Bun.which("rtk");

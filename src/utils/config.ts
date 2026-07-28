@@ -14,12 +14,9 @@ export async function loadConfigFile(
 	configPath: string,
 ): Promise<Partial<TemplateConfig> | null> {
 	try {
-		if (!(await Bun.file(configPath).exists())) {
-			return null;
-		}
-
-		const content = await Bun.file(configPath).text();
-		return JSON.parse(content);
+		const file = Bun.file(configPath);
+		if (!(await file.exists())) return null;
+		return JSON.parse(await file.text());
 	} catch (e) {
 		console.error(`[dispatch] Failed to load config from ${configPath}:`, e);
 		return null;

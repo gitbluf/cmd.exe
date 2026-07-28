@@ -36,16 +36,12 @@ export async function handleTodosSave(
 	const planFilename = `plan-${dateStr}-${timeStr}.md`;
 	const planPath = path.join(root, ".agents", planFilename);
 
-	// Ensure .agents directory exists
-	const agentsDir = path.join(root, ".agents");
-	await Bun.$`mkdir -p ${agentsDir}`.quiet();
-
 	// Generate markdown content
 	const markdown = generatePlanMarkdown(planState);
 
 	// Write to disk
 	try {
-		await Bun.write(planPath, markdown);
+		await Bun.write(planPath, markdown, { createPath: true });
 
 		const lines = markdown.split("\n").length;
 		const sizeKB = (markdown.length / 1024).toFixed(2);

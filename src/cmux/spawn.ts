@@ -62,7 +62,7 @@ function shQuote(value: string): string {
  * Prepends `cd -- <cwd>` so the child session starts in the correct directory.
  * When payloadFile is provided, prefixes the env var assignment before pi.
  */
-function buildChildCommand(
+export function buildChildCommand(
 	sessionFile: string,
 	cwd: string,
 	extraArgs: string[] = [],
@@ -84,7 +84,7 @@ function buildChildCommand(
  *   2. UUID-like token (8-4-4-4-12 hex)
  *   3. First non-empty token as last-resort fallback
  */
-function parseSurfaceRef(stdout: string): string | undefined {
+export function parseSurfaceRef(stdout: string): string | undefined {
 	const tokens = stdout.trim().split(/\s+/);
 
 	// Priority 1: surface:<n> ref
@@ -112,23 +112,26 @@ async function runCmux(args: string[], stage: string): Promise<string> {
 			stderr: "pipe",
 		});
 		const timeout = setTimeout(() => proc.kill(), CMUX_TIMEOUT_MS);
-		const [stdout, stderr] = await Promise.all([
-			new Response(proc.stdout).text(),
-			new Response(proc.stderr).text(),
-		]);
-		const exitCode = await proc.exited;
-		clearTimeout(timeout);
-		if (exitCode !== 0)
-			throw new Error(
-				`cmux exited with code ${exitCode}: ${stderr.trim() || stdout.trim()}`,
-			);
+		try {
+			const [stdout, stderr] = await Promise.all([
+				new Response(proc.stdout).text(),
+				new Response(proc.stderr).text(),
+			]);
+			const exitCode = await proc.exited;
+			if (exitCode !== 0)
+				throw new Error(
+					`cmux exited with code ${exitCode}: ${stderr.trim() || stdout.trim()}`,
+				);
 
-		if (stderr.trim()) {
-			// CMUX sometimes writes diagnostics to stderr even on success — log but don't fail.
-			console.warn(`[cmux/${stage}] stderr: ${stderr.trim()}`);
+			if (stderr.trim()) {
+				// CMUX sometimes writes diagnostics to stderr even on success — log but don't fail.
+				console.warn(`[cmux/${stage}] stderr: ${stderr.trim()}`);
+			}
+
+			return stdout;
+		} finally {
+			clearTimeout(timeout);
 		}
-
-		return stdout;
 	} catch (err) {
 		const e = err as Error & {
 			stdout?: string;

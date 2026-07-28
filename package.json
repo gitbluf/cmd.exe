@@ -20,6 +20,7 @@
 	"scripts": {
 		"build": "bunx --bun --no-install tsc",
 		"typecheck": "bunx --bun --no-install tsc --noEmit",
+		"test": "bun test",
 		"watch": "bunx --bun --no-install tsc --watch",
 		"clean": "rm -rf dist",
 		"lint": "bunx --bun --no-install biome lint .",

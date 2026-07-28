@@ -9,12 +9,14 @@ export async function writeForkPayloadTemp(
 	payload: ForkPayloadV2,
 ): Promise<string> {
 	const tmpDir = path.join(Bun.env.TMPDIR ?? "/tmp", "pi-fork-payload");
-	await Bun.$`mkdir -p ${tmpDir}`.quiet();
 	const filePath = path.join(
 		tmpDir,
-		`fork-${Date.now()}-${Math.random().toString(36).slice(2)}.json`,
+		`fork-${Bun.randomUUIDv7()}.json`,
 	);
-	await Bun.write(filePath, JSON.stringify(payload), { mode: 0o600 });
+	await Bun.write(filePath, JSON.stringify(payload), {
+		mode: 0o600,
+		createPath: true,
+	});
 	return filePath;
 }
 

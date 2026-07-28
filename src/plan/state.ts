@@ -28,15 +28,33 @@ export async function savePlanState(
 	workspaceRoot: string,
 	state: PlanState | null,
 ): Promise<void> {
-	const agentsDir = path.join(workspaceRoot, ".agents");
-	await Bun.$`mkdir -p ${agentsDir}`.quiet();
 	const statePath = getPlanStatePath(workspaceRoot);
 	if (state === null) {
 		if (await Bun.file(statePath).exists()) await Bun.file(statePath).delete();
 		return;
 	}
 	state.lastUpdated = new Date().toISOString();
-	await Bun.write(statePath, JSON.stringify(state, null, 2));
+	const temporaryPath = `${statePath}.tmp-${Bun.randomUUIDv7()}`;
+	try {
+		await Bun.write(temporaryPath, JSON.stringify(state, null, 2), {
+			mode: 0o600,
+			createPath: true,
+		});
+		const move = Bun.spawn(["mv", temporaryPath, statePath], {
+			stdout: "ignore",
+			stderr: "pipe",
+		});
+		const exitCode = await move.exited;
+		if (exitCode !== 0) {
+			const details = await new Response(move.stderr).text();
+			throw new Error(
+				`Could not atomically replace plan state (exit ${exitCode})${details.trim() ? `: ${details.trim()}` : ""}`,
+			);
+		}
+	} finally {
+		if (await Bun.file(temporaryPath).exists())
+			await Bun.file(temporaryPath).delete();
+	}
 }
 
 export function getPlan(): PlanState | null {

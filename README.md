@@ -247,6 +247,8 @@ What are the architectural trade-offs for adding real-time features?
 
 - **pi coding agent** v0.55.0+
 - **Bun** 1.3.14+ (the Pi host and this extension must run under Bun)
+
+The extension is Bun-only at runtime. It uses Bun file I/O, subprocess, environment, UUIDv7, and test APIs; running the compiled extension under Node.js is not supported. Gondolin sandbox execution currently supports macOS hosts only; platform detection uses the Bun host runtime rather than `BUN_PLATFORM`.
 - **LLM API access** (OpenAI, Anthropic, GitHub Copilot)
 
 ## 📚 Documentation
