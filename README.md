@@ -21,18 +21,18 @@
 Ensure you have [pi coding agent](https://github.com/earendil-works/pi) installed:
 
 ```bash
-npm install -g @earendil-works/pi-coding-agent
+bun add -g @earendil-works/pi-coding-agent
 # or
 bun add -g @earendil-works/pi-coding-agent
 ```
 
-### Option 1: Install from npm (Recommended)
+### Option 1: Install globally with Bun (Recommended)
 
 ```bash
-# Install globally via npm
-npm install -g cmd.exe
+# Install globally via Bun
+bun add -g cmd.exe
 
-# Or via bun
+# Bun is the only supported package manager
 bun add -g cmd.exe
 ```
 
@@ -41,7 +41,7 @@ bun add -g cmd.exe
 ```bash
 git clone https://github.com/yourusername/cmd.exe.git
 cd cmd.exe
-npm install && npm run build
+bun install --frozen-lockfile && bun run build
 
 # Link to pi extensions directory
 mkdir -p ~/.pi/extensions
@@ -246,7 +246,7 @@ What are the architectural trade-offs for adding real-time features?
 ## 🛠️ Requirements
 
 - **pi coding agent** v0.55.0+
-- **Node.js** 23.6.0+ or Bun compatible with the project dependencies
+- **Bun** 1.3.14+ (the Pi host and this extension must run under Bun)
 - **LLM API access** (OpenAI, Anthropic, GitHub Copilot)
 
 ## 📚 Documentation
@@ -269,7 +269,7 @@ What are the architectural trade-offs for adding real-time features?
 - **[@earendil-works/pi-tui](https://github.com/earendil-works/pi)** - Terminal UI components
 - **[@earendil-works/gondolin](https://github.com/earendil-works/gondolin)** - VM-backed sandboxed execution
 - **TypeScript** - Type-safe implementation
-- **Bun** - Fast runtime and package management
+- **Bun 1.3.14** - Runtime and package management
 
 ## ✅ Status
 

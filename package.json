@@ -4,8 +4,9 @@
 	"type": "module",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
+	"packageManager": "bun@1.3.14",
 	"engines": {
-		"node": ">=23.6.0"
+		"bun": ">=1.3.14"
 	},
 	"pi": {
 		"extensions": [
@@ -17,15 +18,15 @@
 		"pi-extension"
 	],
 	"scripts": {
-		"build": "npx --no-install tsc",
-		"watch": "npx --no-install tsc --watch",
+		"build": "bunx --bun --no-install tsc",
+		"typecheck": "bunx --bun --no-install tsc --noEmit",
+		"watch": "bunx --bun --no-install tsc --watch",
 		"clean": "rm -rf dist",
-		"lint": "npx --no-install biome lint .",
-		"format": "npx --no-install biome format .",
-		"check": "npx --no-install biome check .",
-		"check:docs": "node scripts/check-docs.mjs",
-		"fix": "npx --no-install biome check --write .",
-		"fix:unsafe": "npx --no-install biome check --write --unsafe ."
+		"lint": "bunx --bun --no-install biome lint .",
+		"format": "bunx --bun --no-install biome format .",
+		"check": "bunx --bun --no-install biome check .",
+		"fix": "bunx --bun --no-install biome check --write .",
+		"fix:unsafe": "bunx --bun --no-install biome check --write --unsafe ."
 	},
 	"dependencies": {
 		"@earendil-works/gondolin": "0.12.0",
@@ -36,6 +37,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.3",
+		"@types/bun": "1.3.14",
 		"typescript": "7.0.2"
 	}
 }

@@ -2,25 +2,23 @@
  * Config utilities - loading and merging configuration
  */
 
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import { DEFAULT_SLOTS, mergeSlots } from "../config/slots";
 import { getDefaultSandboxConfig, mergeSandboxConfig } from "../sandbox";
 import type { TemplateConfig } from "../templates/types";
+import path from "./path";
 
 /**
  * Load configuration from JSON file
  */
-export function loadConfigFile(
+export async function loadConfigFile(
 	configPath: string,
-): Partial<TemplateConfig> | null {
+): Promise<Partial<TemplateConfig> | null> {
 	try {
-		if (!fs.existsSync(configPath)) {
+		if (!(await Bun.file(configPath).exists())) {
 			return null;
 		}
 
-		const content = fs.readFileSync(configPath, "utf8");
+		const content = await Bun.file(configPath).text();
 		return JSON.parse(content);
 	} catch (e) {
 		console.error(`[dispatch] Failed to load config from ${configPath}:`, e);
@@ -31,7 +29,7 @@ export function loadConfigFile(
 /**
  * Load and merge configuration
  */
-export function loadConfig(configPath?: string): TemplateConfig {
+export async function loadConfig(configPath?: string): Promise<TemplateConfig> {
 	const defaultSandboxConfig = getDefaultSandboxConfig();
 
 	let config: TemplateConfig = {
@@ -41,7 +39,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
 
 	if (configPath) {
 		console.log(`[dispatch] Loading config from: ${configPath}`);
-		const userConfig = loadConfigFile(configPath);
+		const userConfig = await loadConfigFile(configPath);
 		if (userConfig) {
 			console.log(`[dispatch] Config loaded successfully`);
 			const mergedSandbox = mergeSandboxConfig(
@@ -113,7 +111,7 @@ export function loadConfig(configPath?: string): TemplateConfig {
  * Get config file path
  */
 export function getConfigPath(): string {
-	return path.join(os.homedir(), ".pi/agent/extensions/dispatch.json");
+	return path.join(Bun.env.HOME ?? ".", ".pi/agent/extensions/dispatch.json");
 }
 
 /**
@@ -124,5 +122,5 @@ export function getWorkspaceRoot(cwd?: string): string {
 		return path.join(cwd, ".agents", "dispatch");
 	}
 
-	return path.join(os.homedir(), ".agents/dispatch");
+	return path.join(Bun.env.HOME ?? ".", ".agents/dispatch");
 }

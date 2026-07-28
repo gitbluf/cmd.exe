@@ -2,7 +2,6 @@
  * Command registration - wires all commands to the pi extension API
  */
 
-import fs from "node:fs";
 import type {
 	ExtensionAPI,
 	ExtensionCommandContext,
@@ -22,9 +21,9 @@ import {
 /**
  * Resolve workspace root from context, ensuring directory exists
  */
-function getRoot(ctx: ExtensionCommandContext): string {
+async function getRoot(ctx: ExtensionCommandContext): Promise<string> {
 	const root = getWorkspaceRoot(ctx.cwd);
-	fs.mkdirSync(root, { recursive: true });
+	await Bun.$`mkdir -p ${root}`.quiet();
 	return root;
 }
 
@@ -53,7 +52,7 @@ export function registerAllCommands(
 	pi.registerCommand("todos:save", {
 		description: "Save active plan to .agents/plan-{timestamp}.md",
 		handler: async (args: string, ctx: ExtensionCommandContext) => {
-			await handleTodosSave(args, ctx, getRoot(ctx));
+			await handleTodosSave(args, ctx, await getRoot(ctx));
 		},
 	});
 

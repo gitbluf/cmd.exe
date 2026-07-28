@@ -6,7 +6,7 @@
 		"useIgnoreFile": false
 	},
 	"files": {
-		"includes": ["**", "!!**/dist"]
+		"includes": ["**", "!!**/dist", "!!.agents/sandbox-vm", "!!node_modules"]
 	},
 	"formatter": {
 		"enabled": true,

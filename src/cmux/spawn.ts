@@ -11,11 +11,7 @@
  *   4. cmux send-key --surface <ref> [--workspace <id>] Enter
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { FORK_PAYLOAD_ENV_KEY } from "../session/fork-payload-file";
-
-const execFileAsync = promisify(execFile);
 
 /** Timeout for each individual CMUX CLI call (ms). */
 const CMUX_TIMEOUT_MS = 10_000;
@@ -49,7 +45,7 @@ export interface SpawnPiForkResult {
  * Prefers CMUX_WORKSPACE_ID env var; omits the flag when absent.
  */
 function resolveWorkspaceArgs(): string[] {
-	const workspaceId = process.env.CMUX_WORKSPACE_ID;
+	const workspaceId = Bun.env.CMUX_WORKSPACE_ID;
 	return workspaceId ? ["--workspace", workspaceId] : [];
 }
 
@@ -111,19 +107,30 @@ function parseSurfaceRef(stdout: string): string | undefined {
  */
 async function runCmux(args: string[], stage: string): Promise<string> {
 	try {
-		const { stdout, stderr } = await execFileAsync("cmux", args, {
-			timeout: CMUX_TIMEOUT_MS,
-			encoding: "utf8",
+		const proc = Bun.spawn(["cmux", ...args], {
+			stdout: "pipe",
+			stderr: "pipe",
 		});
+		const timeout = setTimeout(() => proc.kill(), CMUX_TIMEOUT_MS);
+		const [stdout, stderr] = await Promise.all([
+			new Response(proc.stdout).text(),
+			new Response(proc.stderr).text(),
+		]);
+		const exitCode = await proc.exited;
+		clearTimeout(timeout);
+		if (exitCode !== 0)
+			throw new Error(
+				`cmux exited with code ${exitCode}: ${stderr.trim() || stdout.trim()}`,
+			);
 
-		if (stderr?.trim()) {
+		if (stderr.trim()) {
 			// CMUX sometimes writes diagnostics to stderr even on success — log but don't fail.
 			console.warn(`[cmux/${stage}] stderr: ${stderr.trim()}`);
 		}
 
-		return stdout ?? "";
+		return stdout;
 	} catch (err) {
-		const e = err as NodeJS.ErrnoException & {
+		const e = err as Error & {
 			stdout?: string;
 			stderr?: string;
 			code?: number;

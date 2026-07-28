@@ -2,12 +2,11 @@
  * /todos:save command handler - Save active plan to disk
  */
 
-import fs from "node:fs";
-import path from "node:path";
 import type { ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import { generatePlanMarkdown } from "../../plan/markdown";
 import { getPlan } from "../../plan/state";
 import { getIconRegistry } from "../../ui/icons";
+import path from "../../utils/path";
 import { notifyError, notifyWarning } from "../utils";
 
 /**
@@ -39,16 +38,14 @@ export async function handleTodosSave(
 
 	// Ensure .agents directory exists
 	const agentsDir = path.join(root, ".agents");
-	if (!fs.existsSync(agentsDir)) {
-		fs.mkdirSync(agentsDir, { recursive: true });
-	}
+	await Bun.$`mkdir -p ${agentsDir}`.quiet();
 
 	// Generate markdown content
 	const markdown = generatePlanMarkdown(planState);
 
 	// Write to disk
 	try {
-		fs.writeFileSync(planPath, markdown, "utf-8");
+		await Bun.write(planPath, markdown);
 
 		const lines = markdown.split("\n").length;
 		const sizeKB = (markdown.length / 1024).toFixed(2);

@@ -1,6 +1,5 @@
 /** Built-in tool renderers with Gondolin-backed filesystem operations. */
 
-import path from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import {
 	createEditTool,
@@ -37,6 +36,7 @@ import {
 	renderWriteCall,
 	renderWriteResult,
 } from "../ui/tool-renderers";
+import path from "../utils/path";
 import { registerToolWithDefaultRenderer } from "./register-with-default-renderer";
 
 function guestPath(value: string, cwd: string): string {
@@ -136,12 +136,14 @@ function findOps(cwd: string): FindOperations {
 				slashless: !ignore.includes("/"),
 			}));
 			const result: string[] = [];
-			const pending = [{
-				dir: root,
-				relativeDir: "",
-				entries: undefined as string[] | undefined,
-				index: -1,
-			}];
+			const pending = [
+				{
+					dir: root,
+					relativeDir: "",
+					entries: undefined as string[] | undefined,
+					index: -1,
+				},
+			];
 			while (pending.length && result.length < options.limit) {
 				const current = pending[pending.length - 1];
 				const ignored =
@@ -174,14 +176,14 @@ function findOps(cwd: string): FindOperations {
 					continue;
 				}
 				const entry = current.entries[current.index--];
-			pending.push({
+				pending.push({
 					dir: `${current.dir}/${entry}`,
-				relativeDir: current.relativeDir
+					relativeDir: current.relativeDir
 						? `${current.relativeDir}/${entry}`
 						: entry,
-				entries: undefined,
-				index: -1,
-			});
+					entries: undefined,
+					index: -1,
+				});
 			}
 			return result;
 		},

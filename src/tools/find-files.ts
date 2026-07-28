@@ -88,7 +88,7 @@ export function createFindFilesTool(opts: {
 		async execute(toolCallId, rawParams, _signal, onUpdate, _ctx) {
 			const params = rawParams as FindFilesInput;
 			// Defensive validation: ensure cwd is valid
-			const cwd = opts.cwd || process.cwd();
+			const cwd = opts.cwd || (Bun.env.PWD ?? ".");
 			if (!cwd || typeof cwd !== "string") {
 				throw new Error(
 					`Invalid working directory: expected string, got ${typeof cwd}`,
@@ -161,7 +161,7 @@ export function createFindFilesTool(opts: {
 
 			try {
 				// Debug logging: key parameters
-				if (process.env.DEBUG) {
+				if (Bun.env.DEBUG) {
 					console.error(
 						"[find_files] Spawning DATAWEAVER:",
 						JSON.stringify(

@@ -248,8 +248,10 @@ function seedFooterForSession(
 	setFooterContext(undefined);
 }
 
-function formatActivePlanForPrompt(root: string): string | undefined {
-	const plan = loadPlanState(root);
+async function formatActivePlanForPrompt(
+	root: string,
+): Promise<string | undefined> {
+	const plan = await loadPlanState(root);
 	if (!plan) return undefined;
 
 	const lines = plan.steps.map((s) => {
@@ -263,23 +265,23 @@ function getEffectiveMode(): "plan" | "build" {
 	return isApplyOnceActive() ? "build" : getCurrentMode();
 }
 
-function processPlanUpdatesFromContent(
+async function processPlanUpdatesFromContent(
 	root: string,
 	ctx: ExtensionContext,
 	content: string,
 	mode: "plan" | "build",
-): void {
-	const plan = loadPlanState(root);
+): Promise<void> {
+	const plan = await loadPlanState(root);
 
 	// Detect [DONE:n] markers if we have an active plan
 	if (plan) {
 		const doneMatches = content.matchAll(/\[DONE:(\d+)\]/g);
 		for (const match of doneMatches) {
 			const stepNumber = Number.parseInt(match[1], 10);
-			const wasCompleted = markStepDone(root, stepNumber);
+			const wasCompleted = await markStepDone(root, stepNumber);
 
 			if (wasCompleted) {
-				const updatedPlan = loadPlanState(root);
+				const updatedPlan = await loadPlanState(root);
 				if (updatedPlan) {
 					const stats = getPlanStats(updatedPlan);
 					const step = updatedPlan.steps.find((s) => s.number === stepNumber);
@@ -289,7 +291,7 @@ function processPlanUpdatesFromContent(
 					}
 
 					if (isPlanComplete(updatedPlan)) {
-						clearPlan(root);
+						await clearPlan(root);
 						const icons = getIconRegistry();
 						ctx.ui.notify(
 							`${icons.success} Plan completed and cleared.`,
@@ -305,7 +307,7 @@ function processPlanUpdatesFromContent(
 
 	// Auto-detect new plans in plan mode (only if no active plan)
 	if (mode === "plan") {
-		const currentPlan = loadPlanState(root);
+		const currentPlan = await loadPlanState(root);
 		if (!currentPlan) {
 			const detectedSteps = parsePlanFromText(content);
 			if (detectedSteps) {
@@ -315,7 +317,7 @@ function processPlanUpdatesFromContent(
 					source: "conversation" as const,
 					createdAt: new Date().toISOString(),
 				};
-				setPlan(root, newPlan);
+				await setPlan(root, newPlan);
 				updatePlanStatus(ctx, newPlan);
 				ctx.ui.notify(
 					`📋 Detected plan with ${detectedSteps.length} steps. Use /todos to view, /apply --build to execute.`,
@@ -395,11 +397,11 @@ async function ingestForkPayloadIfPresent(
 	pi: ExtensionAPI,
 	ctx: ExtensionContext,
 ): Promise<void> {
-	const payloadFilePath = process.env[FORK_PAYLOAD_ENV_KEY];
+	const payloadFilePath = Bun.env[FORK_PAYLOAD_ENV_KEY];
 	if (!payloadFilePath) return;
 
 	// Clear env marker immediately — prevents reprocessing on reload
-	delete process.env[FORK_PAYLOAD_ENV_KEY];
+	delete Bun.env[FORK_PAYLOAD_ENV_KEY];
 
 	try {
 		const payload = await readForkPayloadTemp(payloadFilePath);
@@ -504,7 +506,7 @@ export function setupLifecycleHooks(
 		await ingestForkPayloadIfPresent(pi, ctx);
 
 		const root = getWorkspaceRoot(ctx.cwd);
-		clearPlan(root);
+		await clearPlan(root);
 
 		if (ctx.hasUI) {
 			seedFooterForSession(ctx, pi, startMode);
@@ -588,7 +590,12 @@ export function setupLifecycleHooks(
 			if (ctx.hasUI && event.message) {
 				const content = extractMessageText(event.message);
 				if (content) {
-					processPlanUpdatesFromContent(root, ctx, content, effectiveMode);
+					await processPlanUpdatesFromContent(
+						root,
+						ctx,
+						content,
+						effectiveMode,
+					);
 				}
 			}
 		} finally {
@@ -607,7 +614,7 @@ export function setupLifecycleHooks(
 
 		const activePlanText =
 			mode === "build" && ctx.hasUI
-				? formatActivePlanForPrompt(getWorkspaceRoot(ctx.cwd))
+				? await formatActivePlanForPrompt(getWorkspaceRoot(ctx.cwd))
 				: undefined;
 
 		const modePrompt = getModeSystemPrompt(mode, tools, activePlanText);
@@ -649,9 +656,9 @@ export function setupLifecycleHooks(
 		// Save plan state
 		if (ctx.hasUI) {
 			const root = getWorkspaceRoot(ctx.cwd);
-			const plan = loadPlanState(root);
+			const plan = await loadPlanState(root);
 			if (plan) {
-				savePlanState(root, plan);
+				await savePlanState(root, plan);
 			}
 			clearPlanWidgets(ctx);
 		}

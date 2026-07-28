@@ -161,7 +161,7 @@ function planChip(
 // ── Telemetry formatters ──────────────────────────────────────────────────────
 
 function formatCwd(cwd: string): string {
-	const home = process.env.HOME ?? "";
+	const home = Bun.env.HOME ?? "";
 	const display =
 		home && cwd.startsWith(home) ? `~${cwd.slice(home.length)}` : cwd;
 	// Cap at 36 visible chars — keeps telemetry line stable on narrow terminals

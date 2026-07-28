@@ -117,7 +117,7 @@ function registerAskOutputShortcut(pi: ExtensionAPI): void {
  * when enabled, or falls back to the standard bash tool.
  */
 function registerSandboxedBash(pi: ExtensionAPI): void {
-	const localBash = createBashTool(process.cwd(), {});
+	const localBash = createBashTool(Bun.env.PWD ?? ".", {});
 
 	registerToolWithDefaultRenderer(pi, {
 		...localBash,
@@ -154,9 +154,9 @@ function registerSandboxedBash(pi: ExtensionAPI): void {
  * Main extension entry point.
  * Loads config, sets up lifecycle hooks, registers tools and commands.
  */
-export default function (pi: ExtensionAPI) {
+export default async function (pi: ExtensionAPI) {
 	const configPath = getConfigPath();
-	const config = loadConfig(configPath);
+	const config = await loadConfig(configPath);
 
 	// Initialize icon registry with user overrides
 	initIcons(config.icons);
@@ -187,11 +187,11 @@ export default function (pi: ExtensionAPI) {
 	registerSandboxedBash(pi);
 
 	// Register built-in tools with compact renderers
-	registerBuiltinToolRenderers(pi, process.cwd());
+	registerBuiltinToolRenderers(pi, Bun.env.PWD ?? ".");
 
 	// Register find_files tool
 	const findFilesTemplate = createFindFilesTool({
-		cwd: process.cwd(),
+		cwd: Bun.env.PWD ?? ".",
 		modelRegistry: null as unknown as never,
 		model: null as unknown as never,
 		ui: undefined,
@@ -218,7 +218,7 @@ export default function (pi: ExtensionAPI) {
 	const webSearchConfig = config.web_search;
 	if (webSearchConfig?.tools?.length) {
 		const webSearchTemplate = createWebSearchTool({
-			cwd: process.cwd(),
+			cwd: Bun.env.PWD ?? ".",
 			modelRegistry: null as unknown as never,
 			model: null as unknown as never,
 			ui: undefined,

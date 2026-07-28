@@ -38,8 +38,7 @@
 				"imagePath": {
 					"type": "string",
 					"description": "Path to a user-built Gondolin asset directory"
-				},
-
+				}
 			}
 		}
 	}

@@ -163,7 +163,7 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ## 4) Sandbox (`sandbox`)
 
-The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets are present, cmd.exe loads them automatically; otherwise Gondolin provisions its default guest image through the SDK when the VM starts.
+cmd.exe requires Pi to run under Bun 1.3.14 or newer. The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets are present, cmd.exe loads them automatically; otherwise Gondolin provisions its default guest image through the SDK when the VM starts.
 
 ### Schema
 
@@ -196,7 +196,7 @@ Create `agent-vm.json` at the workspace root using Gondolin's native build schem
   "arch": "aarch64",
   "distro": "alpine",
   "alpine": {
-    "rootfsPackages": ["linux-virt", "bash", "git", "nodejs", "npm"]
+    "rootfsPackages": ["linux-virt", "bash", "git", "curl"]
   },
   "rootfs": { "sizeMb": 4096 },
   "cmdExe": {
@@ -209,7 +209,7 @@ Create `agent-vm.json` at the workspace root using Gondolin's native build schem
 }
 ```
 
-The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `cmdExe.runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` is the explicit exception: it validates the native build fields, invokes the Gondolin CLI on a temporary native config, and atomically replaces `cmdExe.runtime.imagePath`. If the CLI is unavailable, it reports npm, Bun, and Deno installation commands.
+The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `cmdExe.runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` is the explicit exception: it validates the native build fields, invokes the Gondolin CLI on a temporary native config, and atomically replaces `cmdExe.runtime.imagePath`. If the CLI is unavailable, it reports Bun installation commands.
 
 `/init` starts the current VM on demand. `/init --rebuild` builds assets from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
 

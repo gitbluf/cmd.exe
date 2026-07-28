@@ -24,7 +24,7 @@ export interface CmuxDetectionResult {
  * from an outer shell without indicating an active managed session.
  */
 export function isCmuxSession(
-	env: NodeJS.ProcessEnv = process.env,
+	env: Record<string, string | undefined> = Bun.env,
 ): CmuxDetectionResult {
 	const matchedEnvKeys = Object.keys(env).filter((k) => k.startsWith("CMUX_"));
 
