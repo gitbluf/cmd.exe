@@ -395,9 +395,14 @@ export function createSandboxedBashOps(): BashOperations {
 							}, timeout * 1000)
 						: undefined;
 				try {
+					const commandEnv = Object.fromEntries(
+						Object.entries(env ?? {}).filter(
+							(entry): entry is [string, string] => entry[1] !== undefined,
+						),
+					);
 					const proc = activeVm.exec(["/bin/sh", "-lc", command], {
 						cwd: guestCwd,
-						env: { ...sandboxEnvironment, ...env },
+						env: { ...sandboxEnvironment, ...commandEnv },
 						signal: controller.signal,
 						stdout: "pipe",
 						stderr: "pipe",
