@@ -1,16 +1,14 @@
-/**
- * Sandbox module - tool sandboxing strategies and implementations
- */
+/** Gondolin sandbox configuration and lifecycle types. */
 
-export { adapters } from "./adapters";
-export type { SandboxConfig, SandboxPolicy } from "./tools";
+export type {
+	SandboxConfig,
+	SandboxFilesystemConfig,
+	SandboxSecretConfig,
+} from "./tools";
 export {
-	buildBwrapArgs,
-	buildSandboxExecProfile,
-	DEFAULT_SANDBOX_POLICY,
+	DEFAULT_SANDBOX_CONFIG,
 	getDefaultSandboxConfig,
-	getPlatformSandboxStrategy,
+	globMatches,
+	globToRegex,
 	mergeSandboxConfig,
-	resolveSandboxPolicy,
-	wrapBashCommand,
 } from "./tools";

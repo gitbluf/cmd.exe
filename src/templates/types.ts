@@ -3,7 +3,7 @@
  */
 
 import type { SlotsConfig, ThinkingLevel } from "../config/slots";
-import type { SandboxPolicy } from "../sandbox/tools";
+import type { SandboxConfig } from "../sandbox/tools";
 import type { IconSet } from "../ui/icons";
 
 export interface WebSearchConfig {
@@ -27,12 +27,6 @@ export interface TemplateConfig {
 	// Icons customization
 	icons?: Partial<IconSet>;
 
-	// Sandbox config
-	sandbox?: Partial<{
-		strategy: "none" | "sandboxExec" | "bwrap" | "custom";
-		profile: string;
-		args: string[];
-		template: string;
-		policy: SandboxPolicy;
-	}>;
+	// Gondolin-native sandbox config
+	sandbox?: Partial<SandboxConfig>;
 }

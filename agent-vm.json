@@ -1,0 +1,36 @@
+{
+  "arch": "aarch64",
+  "distro": "alpine",
+  "oci": {
+    "image": "debian:bookworm-slim",
+    "runtime": "docker",
+    "platform": "linux/arm64"
+  },
+  "env": {
+    "PATH": "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+  },
+  "rootfs": {
+    "label": "cmd-exe-agent",
+    "sizeMb": 4096
+  },
+  "runtimeDefaults": {
+    "rootfsMode": "cow"
+  },
+  "postBuild": {
+    "commands": [
+      "apt-get update",
+      "apt-get install -y --no-install-recommends ca-certificates curl",
+      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh",
+      "test -x /root/.local/bin/rtk",
+      "install -m 0755 /root/.local/bin/rtk /usr/local/bin/rtk",
+      "rm -rf /var/lib/apt/lists/*"
+    ]
+  },
+  "cmdExe": {
+    "runtime": {
+      "imagePath": ".agents/sandbox-vm/agent-vm-assets",
+      "memory": "4G",
+      "cpus": 4
+    }
+  }
+}

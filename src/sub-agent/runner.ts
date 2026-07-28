@@ -12,10 +12,20 @@ import type {
 } from "@earendil-works/pi-coding-agent";
 import {
 	createAgentSession,
+	createBashToolDefinition,
+	createEditToolDefinition,
+	createFindToolDefinition,
+	createGrepToolDefinition,
+	createLsToolDefinition,
+	createReadToolDefinition,
+	createWriteToolDefinition,
 	DefaultResourceLoader,
 	getAgentDir,
 	SessionManager,
 } from "@earendil-works/pi-coding-agent";
+import type { ThinkingLevel } from "../config/slots";
+import { createSandboxedBashOps, sandboxState } from "../lifecycle/sandbox";
+import { sandboxToolOptions } from "../tools/wrappers";
 import { getIconRegistry } from "../ui/icons";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
 import { storeSubAgentOutput } from "./store";
@@ -33,7 +43,7 @@ export interface RunSubAgentOptions {
 	ui?: ExtensionContext["ui"];
 	pi?: ExtensionAPI;
 	/** Thinking level for models that support reasoning */
-	thinkingLevel?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh";
+	thinkingLevel?: ThinkingLevel;
 	/** Keep widget visible after completion instead of clearing it */
 	keepWidget?: boolean;
 }
@@ -93,10 +103,28 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 	let session: Awaited<ReturnType<typeof createAgentSession>>["session"];
 	try {
+		const toolOptions = sandboxToolOptions(opts.cwd);
 		const result = await createAgentSession({
 			cwd: opts.cwd,
 			model: selectedModel,
 			tools,
+			...(!sandboxState.hostOptOut
+				? {
+						customTools: [
+							createBashToolDefinition(opts.cwd, {
+								operations: createSandboxedBashOps(),
+							}),
+							createEditToolDefinition(opts.cwd, toolOptions.edit),
+							createWriteToolDefinition(opts.cwd, toolOptions.write),
+							createReadToolDefinition(opts.cwd, toolOptions.read),
+							createLsToolDefinition(opts.cwd, toolOptions.ls),
+							createFindToolDefinition(opts.cwd, toolOptions.find),
+							createGrepToolDefinition(opts.cwd, toolOptions.grep),
+						] as unknown as NonNullable<
+							CreateAgentSessionOptions["customTools"]
+						>,
+					}
+				: {}),
 			resourceLoader: loader,
 			sessionManager: SessionManager.inMemory(),
 			modelRegistry: opts.modelRegistry,
@@ -114,17 +142,31 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 	let output = "";
 	let sawTextDeltaForCurrentAssistant = false;
-	// Helper to update widget with current output
+	let widgetUpdateTimer: ReturnType<typeof setTimeout> | undefined;
+	const renderWidget = (status: "streaming" | "complete") => {
+		if (!opts.widgetId || !opts.ui) return;
+		setSubAgentWidget({
+			ui: opts.ui,
+			widgetId: opts.widgetId,
+			widgetTitle: opts.widgetTitle,
+			output,
+			status,
+		});
+	};
+	// Token events can arrive many times per frame. Coalesce redraws to keep
+	// streaming output responsive without repeatedly splitting the full buffer.
 	const updateWidget = (status: "streaming" | "complete" = "streaming") => {
-		if (opts.widgetId && opts.ui) {
-			setSubAgentWidget({
-				ui: opts.ui,
-				widgetId: opts.widgetId,
-				widgetTitle: opts.widgetTitle,
-				output,
-				status,
-			});
+		if (status === "complete") {
+			if (widgetUpdateTimer) clearTimeout(widgetUpdateTimer);
+			widgetUpdateTimer = undefined;
+			renderWidget(status);
+			return;
 		}
+		if (widgetUpdateTimer || !opts.widgetId || !opts.ui) return;
+		widgetUpdateTimer = setTimeout(() => {
+			widgetUpdateTimer = undefined;
+			renderWidget("streaming");
+		}, 75);
 	};
 
 	// Initialize widget

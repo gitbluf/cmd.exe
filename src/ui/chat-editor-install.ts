@@ -71,7 +71,8 @@ class EditorDecorator implements EditorComponent {
 	// ── Visual decoration ─────────────────────────────────────────────────────
 
 	render(width: number): string[] {
-		const lines = this.inner.render(width);
+		// Decorate a copy so wrapped editors cannot retain our mutations.
+		const lines = [...this.inner.render(width)];
 		applyCurvedEditorFrame(lines);
 		return addEditorStatusBadge(lines, width, this.getStatus);
 	}

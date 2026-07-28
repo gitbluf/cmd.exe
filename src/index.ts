@@ -137,7 +137,7 @@ function registerSandboxedBash(pi: ExtensionAPI): void {
 			);
 		},
 		async execute(id, params, signal, onUpdate, ctx) {
-			if (!sandboxState.enabled || !sandboxState.initialized) {
+			if (sandboxState.hostOptOut) {
 				return localBash.execute(id, params, signal, onUpdate);
 			}
 			const sandboxedBash = createBashTool(ctx.cwd, {

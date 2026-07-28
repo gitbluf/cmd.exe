@@ -4,6 +4,9 @@
 	"type": "module",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
+	"engines": {
+		"node": ">=23.6.0"
+	},
 	"pi": {
 		"extensions": [
 			"./src"
@@ -14,17 +17,18 @@
 		"pi-extension"
 	],
 	"scripts": {
-		"build": "bun x tsc",
-		"watch": "bun x tsc --watch",
+		"build": "npx --no-install tsc",
+		"watch": "npx --no-install tsc --watch",
 		"clean": "rm -rf dist",
-		"lint": "bun x biome lint .",
-		"format": "bun x biome format .",
-		"check": "bun x biome check .",
-		"fix": "bun x biome check --write .",
-		"fix:unsafe": "bun x biome check --write --unsafe ."
+		"lint": "npx --no-install biome lint .",
+		"format": "npx --no-install biome format .",
+		"check": "npx --no-install biome check .",
+		"check:docs": "node scripts/check-docs.mjs",
+		"fix": "npx --no-install biome check --write .",
+		"fix:unsafe": "npx --no-install biome check --write --unsafe ."
 	},
 	"dependencies": {
-		"@anthropic-ai/sandbox-runtime": "0.0.65",
+		"@earendil-works/gondolin": "0.12.0",
 		"@earendil-works/pi-ai": "0.80.6",
 		"@earendil-works/pi-coding-agent": "0.80.6",
 		"@earendil-works/pi-tui": "0.80.6",

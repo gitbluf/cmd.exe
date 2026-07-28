@@ -74,7 +74,15 @@
 	},
 
 	"sandbox": {
-		"strategy": "sandboxExec",
-		"profile": "restricted"
+		"enabled": true,
+		"allowedHosts": ["github.com", "api.github.com", "*.github.com"],
+		"secrets": {
+			"GITHUB_TOKEN": { "env": "GITHUB_TOKEN", "hosts": ["api.github.com"] }
+		},
+		"filesystem": {
+			"denyRead": [".ssh", ".aws", ".gnupg"],
+			"readOnly": [],
+			"denyWrite": [".env", ".env.*", "*.pem", "*.key"]
+		}
 	}
 }

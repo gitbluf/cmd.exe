@@ -5,7 +5,6 @@
  * Performs non-intrusive exploration and analysis
  */
 
-import { getPlatformSandboxStrategy } from "../../sandbox";
 import type { AgentDefinition } from "./types";
 
 export const DATAWEAVER: AgentDefinition = {
@@ -45,7 +44,7 @@ You do not ask any questions.
 3. Provide a concise map of the codebase area.
 </workflow>`,
 
-	model: "github-copilot/gpt-5-mini",
+	model: "gpt-5.4-mini",
 	temperature: 0.1,
 	maxTokens: 3000,
 
@@ -54,8 +53,4 @@ You do not ask any questions.
 	canWrite: false,
 	canExecuteShell: true,
 	readOnlyBash: true,
-
-	sandbox: {
-		strategy: getPlatformSandboxStrategy(),
-	},
 };

@@ -32,7 +32,7 @@ import {
 	updatePlanStatus,
 } from "../plan/widget";
 import { getRtkStatusText, initializeRtkObserver } from "../rtk";
-import { DEFAULT_SANDBOX_POLICY } from "../sandbox";
+import type { SandboxConfig } from "../sandbox";
 import {
 	deleteForkPayloadTemp,
 	FORK_PAYLOAD_ENV_KEY,
@@ -59,7 +59,6 @@ import {
 	initializeSandbox,
 	resetSandbox,
 	sandboxState,
-	setSandboxPolicy,
 } from "./sandbox";
 
 export { sandboxState } from "./sandbox";
@@ -482,8 +481,6 @@ export function setupLifecycleHooks(
 		plan_mode: { model: "" },
 		build_mode: { model: "" },
 	};
-	const sandboxPolicy = config.sandbox?.policy || DEFAULT_SANDBOX_POLICY;
-	setSandboxPolicy(sandboxPolicy);
 
 	const getSlot = (mode: "plan" | "build") =>
 		mode === "plan" ? slots.plan_mode : slots.build_mode;
@@ -639,6 +636,8 @@ export function setupLifecycleHooks(
 				? (key, value) =>
 						ctx.ui.setStatus(key, ctx.ui.theme.fg("accent", value))
 				: undefined,
+			ctx.cwd,
+			config.sandbox as Partial<SandboxConfig> | undefined,
 		);
 	});
 
@@ -660,7 +659,7 @@ export function setupLifecycleHooks(
 
 	// Provide sandboxed bash operations for user bash
 	pi.on("user_bash", () => {
-		if (!sandboxState.enabled || !sandboxState.initialized) return;
+		if (sandboxState.hostOptOut) return;
 		return { operations: createSandboxedBashOps() };
 	});
 }

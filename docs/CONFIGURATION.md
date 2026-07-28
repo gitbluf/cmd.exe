@@ -31,10 +31,10 @@ Only these top-level keys are relevant for the extension:
     },
     "build_mode": {
       "model": "github-copilot/claude-sonnet-4.5",
-      "thinking": "high"
+      "thinking": "low"
     },
     "assistant": {
-      "model": "github-copilot/gpt-4o-mini"
+      "model": "github-copilot/gpt-5.4-mini"
     }
   }
 }
@@ -53,17 +53,17 @@ Controls model/tool behavior for Plan mode, Build mode, and assistant sub-agents
   "slots": {
     "plan_mode": {
       "model": string,
-      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh",
+      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max",
       "tools"?: string[]
     },
     "build_mode": {
       "model": string,
-      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh",
+      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max",
       "tools"?: string[]
     },
     "assistant": {
       "model": string,
-      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh"
+      "thinking"?: "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max"
     }
   }
 }
@@ -84,22 +84,11 @@ Controls model/tool behavior for Plan mode, Build mode, and assistant sub-agents
       "tools": ["read", "write", "edit", "bash", "find_files"]
     },
     "assistant": {
-      "model": "github-copilot/gpt-4o-mini"
+      "model": "github-copilot/gpt-5.4-mini"
     }
   }
 }
 ```
-
-### Notes
-
-- `/plan` toggles between `plan_mode` and `build_mode`.
-- `/ask` uses the current mode slot.
-- `find_files` uses the `assistant` slot.
-- `web_search` must be added to a mode's `tools` list before the main agent can call it.
-- Model matching supports exact, provider/id, and suffix matching.
-- If a slot omits `thinking`, cmd.exe falls back to that slot's default thinking behavior.
-- If a provider does not support the requested thinking level, or applying it fails, cmd.exe warns instead of failing silently.
-
 ---
 
 ## 2) Web Search (`web_search`)
@@ -174,46 +163,87 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ## 4) Sandbox (`sandbox`)
 
-Controls sandbox strategy/policy used by extension workflows.
+The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets are present, cmd.exe loads them automatically; otherwise Gondolin provisions its default guest image through the SDK when the VM starts.
 
 ### Schema
 
 ```ts
 {
   "sandbox"?: {
-    "strategy"?: "none" | "sandboxExec" | "bwrap" | "custom",
-    "profile"?: string,
-    "args"?: string[],
-    "template"?: string,
-    "policy"?: {
-      "enabled"?: boolean,
-      "network"?: {
-        "allowedDomains"?: string[],
-        "deniedDomains"?: string[]
-      },
-      "filesystem"?: {
-        "allowWrite"?: string[],
-        "denyRead"?: string[],
-        "denyWrite"?: string[]
-      }
+    "enabled"?: boolean,
+    "allowedHosts"?: string[],
+    "secrets"?: Record<string, { "env": string, "hosts": string[] }>,
+    "filesystem"?: {
+      "denyRead"?: string[],
+      "readOnly"?: string[],
+      "denyWrite"?: string[]
+    },
+    "memory"?: string,
+    "cpus"?: number,
+    "imagePath"?: string
+  }
+}
+```
+
+The workspace is mounted read/write at `/workspace`, including hidden files by default. Paths outside the workspace are rejected. Network access is mediated by Gondolin with internal-range blocking enabled. Secret values stay on the host and are exposed to the guest only as placeholders.
+
+If `sandbox.imagePath` is omitted, cmd.exe first loads the optional `agent-vm.json` from the workspace root. Its `cmdExe.runtime.imagePath`, `cmdExe.runtime.memory`, and `cmdExe.runtime.cpus` values are used automatically; explicit `sandbox` settings in `dispatch.json` take precedence. If neither specifies an image, packaged assets in `src/sandbox/assets/` or `dist/sandbox/assets/` are detected when present. Invalid explicit paths fail during VM startup instead of silently using the default image.
+
+Create `agent-vm.json` at the workspace root using Gondolin's native build schema. cmd.exe-specific runtime policy lives under `cmdExe`:
+
+```json
+{
+  "arch": "aarch64",
+  "distro": "alpine",
+  "alpine": {
+    "rootfsPackages": ["linux-virt", "bash", "git", "nodejs", "npm"]
+  },
+  "rootfs": { "sizeMb": 4096 },
+  "cmdExe": {
+    "runtime": {
+      "imagePath": ".agents/sandbox-vm/agent-vm-assets",
+      "memory": "4G",
+      "cpus": 4
     }
   }
 }
 ```
 
-### Default policy
+The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `cmdExe.runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` is the explicit exception: it validates the native build fields, invokes the Gondolin CLI on a temporary native config, and atomically replaces `cmdExe.runtime.imagePath`. If the CLI is unavailable, it reports npm, Bun, and Deno installation commands.
 
-- Network allowlist includes GitHub domains, including `api.github.com` for REST and GraphQL calls.
-- Network allowlist also includes common macOS/GitHub TLS certificate validation hosts such as DigiCert OCSP/CRL endpoints and Apple trust validation endpoints. These are required by tools like `gh` when verifying `https://api.github.com/graphql` certificates inside the sandbox.
-- Sensitive paths like `~/.ssh`, `~/.aws`, `~/.gnupg` are denied for reads.
+`/init` starts the current VM on demand. `/init --rebuild` builds assets from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
 
----
+### Image tools
 
-## RTK Extension Detection
+Install guest tools during the Gondolin image build with native `postBuild` commands. This keeps the image reproducible and avoids consuming the small runtime rootfs:
 
-cmd.exe automatically detects whether the official RTK pi extension (`rtk.ts`) is loaded in the session. When detected, an RTK status indicator appears in the footer.
+```json
+{
+  "alpine": {
+    "rootfsPackages": ["curl", "ca-certificates"]
+  },
+  "postBuild": {
+    "commands": [
+      "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/tags/v0.44.0/install.sh | sh"
+    ]
+  }
+}
+```
 
-Command rewriting is handled entirely by the RTK extension — no configuration is required in `dispatch.json`.
+Run `/init --rebuild` after changing image packages or post-build commands. Tools installed this way are available through the normal guest `PATH`. For GNU-only binaries such as the RTK release installer, use an OCI glibc rootfs instead of Alpine/musl:
+
+```json
+{
+  "distro": "alpine",
+  "oci": {
+    "image": "debian:bookworm-slim",
+    "runtime": "docker",
+    "platform": "linux/arm64"
+  }
+}
+```
+
+The OCI build requires Docker or Podman on the host.
 
 ---
 
@@ -245,19 +275,11 @@ Command rewriting is handled entirely by the RTK extension — no configuration 
     "modeBuild": "🚀"
   },
   "sandbox": {
-    "policy": {
-      "network": {
-        "allowedDomains": [
-          "github.com",
-          "api.github.com",
-          "ocsp.digicert.com",
-          "crl3.digicert.com",
-          "crl4.digicert.com",
-          "cacerts.digicert.com",
-          "ocsp.apple.com",
-          "valid.apple.com"
-        ]
-      }
+    "enabled": true,
+    "allowedHosts": ["github.com", "api.github.com"],
+    "filesystem": {
+      "denyRead": [".ssh", ".aws", ".gnupg"],
+      "denyWrite": [".env", ".env.*", "*.pem", "*.key"]
     }
   }
 }

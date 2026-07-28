@@ -1,144 +1,246 @@
-/**
- * Tool sandbox - configuration and wrapper utilities
- *
- * Note: Pi SDK tools already scope to workspace (cwd), providing
- * basic sandboxing. This module provides additional strategies
- * that can be configured per agent.
- */
+/** Gondolin-native sandbox configuration. */
 
-import { adapters } from "./adapters";
-
-export interface SandboxNetworkRules {
-	allowedDomains: string[];
-	deniedDomains: string[];
+export interface SandboxSecretConfig {
+	env: string;
+	hosts: string[];
 }
 
-export interface SandboxFilesystemRules {
+export interface SandboxFilesystemConfig {
+	/** Paths relative to the workspace that must not be readable. */
 	denyRead: string[];
-	allowWrite: string[];
+	/** Paths relative to the workspace that must be read-only. */
+	readOnly: string[];
+	/** Paths relative to the workspace that must not be writable. */
 	denyWrite: string[];
 }
 
-export interface SandboxPolicy {
-	enabled: boolean;
-	network: SandboxNetworkRules;
-	filesystem: SandboxFilesystemRules;
-}
-
 export interface SandboxConfig {
-	strategy: "none" | "sandboxExec" | "bwrap" | "custom";
-	profile?: string; // for sandboxExec
-	args?: string[]; // for bwrap
-	template?: string; // for custom
-	policy?: SandboxPolicy;
+	/** Optional Gondolin asset directory containing manifest.json and guest images. */
+	imagePath?: string;
+	enabled: boolean;
+	allowedHosts: string[];
+	secrets: Record<string, SandboxSecretConfig>;
+	filesystem: SandboxFilesystemConfig;
+	memory?: string;
+	cpus?: number;
 }
 
-/**
- * Wrap a bash command with sandbox strategy
- */
-export function wrapBashCommand(cmd: string, config: SandboxConfig): string {
-	const adapter = adapters[config.strategy] as
-		// biome-ignore lint/suspicious/noExplicitAny: sandbox adapter wrap args vary by strategy
-		{ wrap: (args: any) => string } | undefined;
-	if (!adapter) {
-		console.warn(`Unknown sandbox strategy: ${config.strategy}, using none`);
-		return cmd;
-	}
+export const DEFAULT_DEVELOPER_ALLOWED_HOSTS = [
+	"gitlab.com",
+	"*.gitlab.com",
+	"github.com",
+	"*.github.com",
+	"api.github.com",
+	"raw.githubusercontent.com",
+	"npmjs.com",
+	"*.npmjs.com",
+	"registry.npmjs.org",
+	"yarnpkg.com",
+	"*.yarnpkg.com",
+	"pnpm.io",
+	"*.pnpm.io",
+	"pypi.org",
+	"*.pypi.org",
+	"pythonhosted.org",
+	"*.pythonhosted.org",
+	"crates.io",
+	"*.crates.io",
+	"static.crates.io",
+	"crates.io-index",
+	"golang.org",
+	"*.golang.org",
+	"proxy.golang.org",
+	"sum.golang.org",
+	"goproxy.io",
+	"rubygems.org",
+	"*.rubygems.org",
+	"packagist.org",
+	"repo.packagist.org",
+	"repo.maven.apache.org",
+	"repo1.maven.org",
+	"plugins.gradle.org",
+	"services.gradle.org",
+	"docker.io",
+	"*.docker.io",
+	"docker.com",
+	"*.docker.com",
+	"registry-1.docker.io",
+	"auth.docker.io",
+	"ghcr.io",
+	"quay.io",
+	"brew.sh",
+	"*.brew.sh",
+	"formulae.brew.sh",
+	"cdn.jsdelivr.net",
+	"unpkg.com",
+	"esm.sh",
+	"skypack.dev",
+	"cloudflare.com",
+	"*.cloudflare.com",
+	"vercel.com",
+	"*.vercel.com",
+	"netlify.com",
+	"*.netlify.com",
+	"sentry.io",
+	"*.sentry.io",
+	"rollbar.com",
+	"*.rollbar.com",
+	"datadoghq.com",
+	"*.datadoghq.com",
+	"readthedocs.io",
+	"*.readthedocs.io",
+	"developer.mozilla.org",
+	"stackoverflow.com",
+	"*.stackoverflow.com",
+	"nodejs.org",
+	"*.nodejs.org",
+	"deno.land",
+	"*.deno.land",
+	"bun.sh",
+	"*.bun.sh",
+	"typescriptlang.org",
+	"*.typescriptlang.org",
+	"python.org",
+	"*.python.org",
+	"rust-lang.org",
+	"*.rust-lang.org",
+	"go.dev",
+	"*.go.dev",
+	"kotlinlang.org",
+	"*.kotlinlang.org",
+	"oracle.com",
+	"*.oracle.com",
+	"learn.microsoft.com",
+	"*.microsoft.com",
+	"googleapis.com",
+	"*.googleapis.com",
+	"amazonaws.com",
+	"*.amazonaws.com",
+	"azure.com",
+	"*.azure.com",
+	"ocsp.digicert.com",
+	"crl3.digicert.com",
+	"crl4.digicert.com",
+	"cacerts.digicert.com",
+	"ocsp.apple.com",
+	"valid.apple.com",
+	"dl-cdn.alpinelinux.org",
+	"repo.alpinelinux.org",
+	"pkgs.alpinelinux.org",
+	"alpinelinux.org",
+	"*.alpinelinux.org",
+	"deb.debian.org",
+	"security.debian.org",
+	"ftp.debian.org",
+	"snapshot.debian.org",
+	"archive.ubuntu.com",
+	"security.ubuntu.com",
+	"ports.ubuntu.com",
+	"old-releases.ubuntu.com",
+	"download.fedoraproject.org",
+	"dl.fedoraproject.org",
+	"mirrors.fedoraproject.org",
+	"registry.fedoraproject.org",
+	"dl.rockylinux.org",
+	"repo.almalinux.org",
+	"geo.mirror.pkgbuild.com",
+	"mirror.pkgbuild.com",
+	"archlinux.org",
+	"download.opensuse.org",
+	"mirrors.opensuse.org",
+	"distfiles.gentoo.org",
+	"packages.gentoo.org",
+	"registry.yarnpkg.com",
+	"files.pythonhosted.org",
+	"index.crates.io",
+	"api.nuget.org",
+	"globalcdn.nuget.org",
+	"nuget.org",
+	"downloads.gradle.org",
+	"repo1.maven.org",
+	"objects.githubusercontent.com",
+	"release-assets.githubusercontent.com",
+	"github-releases.githubusercontent.com",
+	"production.cloudflare.docker.com",
+	"ziglang.org",
+	"*.ziglang.org",
+	"zig.pm",
+	"*.zig.pm",
+	"storage.googleapis.com",
+	"dl.google.com",
+	"releases.hashicorp.com",
+	"registry.terraform.io",
+	"*.terraform.io",
+	"api.releases.hashicorp.com",
+	"checkpoint-api.hashicorp.com",
+	"*.hashicorp.com",
+	"static.rust-lang.org",
+	"sh.rustup.rs",
+	"rustup.rs",
+] as const;
 
-	switch (config.strategy) {
-		case "sandboxExec":
-			return adapter.wrap({
-				cmd,
-				profile: config.profile || "default",
-			});
-
-		case "bwrap":
-			return adapter.wrap({
-				cmd,
-				args: config.args || [],
-			});
-
-		case "custom":
-			if (!config.template) {
-				return cmd;
-			}
-			return adapter.wrap({
-				cmd,
-				template: config.template,
-			});
-		default:
-			return adapter.wrap({ cmd });
-	}
-}
-
-/**
- * Default sandbox policy
- */
-export const DEFAULT_SANDBOX_POLICY: SandboxPolicy = {
+export const DEFAULT_SANDBOX_CONFIG: SandboxConfig = {
 	enabled: true,
-	network: {
-		allowedDomains: [
-			"gitlab.com",
-			"github.com",
-			"*.github.com",
-			"api.github.com",
-			"raw.githubusercontent.com",
-			// macOS certificate trust/revocation checks required by GitHub TLS.
-			"ocsp.digicert.com",
-			"crl3.digicert.com",
-			"crl4.digicert.com",
-			"cacerts.digicert.com",
-			"ocsp.apple.com",
-			"valid.apple.com",
-		],
-		deniedDomains: [],
-	},
+	allowedHosts: [...DEFAULT_DEVELOPER_ALLOWED_HOSTS],
+	secrets: {},
 	filesystem: {
-		denyRead: ["~/.ssh", "~/.aws", "~/.gnupg"],
-		allowWrite: ["./", "/tmp"],
+		denyRead: [".ssh", ".aws", ".gnupg"],
+		readOnly: [],
 		denyWrite: [".env", ".env.*", "*.pem", "*.key"],
 	},
 };
 
-function mergeUnique(base: string[], additions?: string[]): string[] {
-	if (!additions || additions.length === 0) {
-		return [...base];
+export function globToRegex(glob: string): string {
+	let result = "";
+	for (let i = 0; i < glob.length; i++) {
+		const char = glob[i];
+		if (char === "*" && glob[i + 1] === "*") {
+			if (glob[i + 2] === "/") {
+				result += "(?:.*/)?";
+				i += 2;
+			} else {
+				result += ".*";
+				i++;
+			}
+		} else if (char === "*") result += "[^/]*";
+		else if (char === "?") result += "[^/]";
+		else result += char.replace(/[.+^${}()|[\\]\\\\]/g, "\\$&");
 	}
-	const set = new Set(base);
-	for (const value of additions) {
-		set.add(value);
-	}
-	return Array.from(set);
+	return result;
 }
 
-export function resolveSandboxPolicy(
-	base: SandboxPolicy,
-	override?: Partial<SandboxPolicy>,
-): SandboxPolicy {
-	if (!override) {
-		return base;
-	}
+export function globMatches(value: string, pattern: string): boolean {
+	return new RegExp(`^${globToRegex(pattern)}$`).test(value);
+}
 
+function mergeUnique(base: string[], additions?: string[]): string[] {
+	return [...new Set([...base, ...(additions ?? [])])];
+}
+
+export function getDefaultSandboxConfig(): SandboxConfig {
+	return structuredClone(DEFAULT_SANDBOX_CONFIG);
+}
+
+export function mergeSandboxConfig(
+	base: SandboxConfig,
+	override?: Partial<SandboxConfig>,
+): SandboxConfig {
+	if (!override) return base;
 	return {
-		enabled: override.enabled ?? base.enabled,
-		network: {
-			allowedDomains: mergeUnique(
-				base.network.allowedDomains,
-				override.network?.allowedDomains,
-			),
-			deniedDomains: mergeUnique(
-				base.network.deniedDomains,
-				override.network?.deniedDomains,
-			),
-		},
+		...base,
+		...override,
+		allowedHosts: mergeUnique(base.allowedHosts, override.allowedHosts),
+		secrets: { ...base.secrets, ...(override.secrets ?? {}) },
 		filesystem: {
-			allowWrite: mergeUnique(
-				base.filesystem.allowWrite,
-				override.filesystem?.allowWrite,
-			),
+			...base.filesystem,
+			...(override.filesystem ?? {}),
 			denyRead: mergeUnique(
 				base.filesystem.denyRead,
 				override.filesystem?.denyRead,
+			),
+			readOnly: mergeUnique(
+				base.filesystem.readOnly,
+				override.filesystem?.readOnly,
 			),
 			denyWrite: mergeUnique(
 				base.filesystem.denyWrite,
@@ -146,123 +248,4 @@ export function resolveSandboxPolicy(
 			),
 		},
 	};
-}
-
-export function mergeSandboxConfig(
-	base: SandboxConfig,
-	override?: Partial<SandboxConfig>,
-): SandboxConfig {
-	if (!override) {
-		return base;
-	}
-
-	return {
-		strategy: override.strategy ?? base.strategy,
-		profile: override.profile ?? base.profile,
-		args: override.args ?? base.args,
-		template: override.template ?? base.template,
-		policy: resolveSandboxPolicy(
-			base.policy || DEFAULT_SANDBOX_POLICY,
-			override.policy,
-		),
-	};
-}
-
-/**
- * Get the platform-specific sandbox strategy
- * Returns the same strategy as the main pi session based on OS
- *
- * - Darwin (macOS): sandboxExec
- * - Linux: bwrap
- * - Other: none
- *
- * All agents inherit the same sandbox protection as the main pi session
- */
-export function getPlatformSandboxStrategy(): SandboxConfig["strategy"] {
-	if (process.platform === "darwin") {
-		return "sandboxExec";
-	} else if (process.platform === "linux") {
-		return "bwrap";
-	}
-	return "none";
-}
-
-/**
- * Get default sandbox config matching the main pi session
- * All agents inherit the same sandbox protection as the main session
- */
-export function getDefaultSandboxConfig(): SandboxConfig {
-	return {
-		strategy: getPlatformSandboxStrategy(),
-		policy: DEFAULT_SANDBOX_POLICY,
-	};
-}
-
-/**
- * Build a sandbox-exec profile based on policy
- */
-export function buildSandboxExecProfile(
-	policy: SandboxPolicy,
-	cwd: string,
-): string {
-	const allowWrites = policy.filesystem.allowWrite
-		.map((entry) => `(subpath "${entry === "." ? cwd : entry}")`)
-		.join(" ");
-
-	const denyReads = policy.filesystem.denyRead
-		.map((entry) => `(subpath "${entry}")`)
-		.join(" ");
-
-	const allowedDomains = policy.network.allowedDomains
-		.map((domain) => `(remote domain "${domain}")`)
-		.join(" ");
-
-	const deniedDomains = policy.network.deniedDomains
-		.map((domain) => `(remote domain "${domain}")`)
-		.join(" ");
-
-	return `
-(version 1)
-(deny default)
-
-(allow file-read*)
-(allow file-write*
-  ${allowWrites}
-)
-
-${denyReads ? `(deny file-read* ${denyReads})` : ""}
-
-${allowedDomains ? `(allow network* ${allowedDomains})` : ""}
-${deniedDomains ? `(deny network* ${deniedDomains})` : ""}
-
-(allow process*)
-(allow sysctl*)
-(allow mach-lookup*)
-(allow signal*)
-(allow ipc*)
-`;
-}
-
-/**
- * Build bubblewrap args based on policy (best-effort)
- */
-export function buildBwrapArgs(policy: SandboxPolicy, cwd: string): string[] {
-	const args: string[] = [
-		"--unshare-all",
-		"--share-net",
-		"--proc",
-		"/proc",
-		"--dev",
-		"/dev",
-		"--ro-bind",
-		"/",
-		"/",
-	];
-
-	for (const entry of policy.filesystem.allowWrite) {
-		const target = entry === "." ? cwd : entry;
-		args.push("--bind", target, target);
-	}
-
-	return args;
 }

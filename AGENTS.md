@@ -53,7 +53,7 @@ Plan progress is also always visible in the footer status bar when a plan is act
 
 ### /ask
 
-Ask a one-off question to an LLM without polluting the main conversation context. The session is ephemeral and discarded after the answer.
+Ask a one-off question to an LLM without polluting the main conversation context. The session is ephemeral and discarded after the answer. It uses the current Plan/Build slot model and thinking level, and grants the temporary sub-agent read access only.
 
 **Usage:**
 
@@ -66,10 +66,9 @@ Ask a one-off question to an LLM without polluting the main conversation context
 **Features:**
 - Ephemeral session (no memory after answer)
 - Does not pollute main conversation history
-- Default model: `github-copilot/haiku-4.5`
-- High thinking level for deeper reasoning
-- Falls back to current session model if unavailable
+- Uses the current mode's configured slot model and thinking level
 - Read-only file access for context
+- Errors are reported in the command UI without modifying the main session
 - Real-time streaming answer in widget
 - Widget stays visible after completion
 - Automatically dismissed when you send next prompt
