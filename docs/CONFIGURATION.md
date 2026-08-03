@@ -187,15 +187,23 @@ The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets a
 
 The workspace is mounted read/write at `/workspace`, including hidden files by default. Paths outside the workspace are rejected. Network access is mediated by Gondolin with internal-range blocking enabled. Secret values stay on the host and are exposed to the guest only as placeholders.
 
-If `sandbox.imagePath` is omitted, cmd.exe first loads the optional `agent-vm.json` from the workspace root. Its `cmdExe.runtime.imagePath`, `cmdExe.runtime.memory`, and `cmdExe.runtime.cpus` values are used automatically; explicit `sandbox` settings in `dispatch.json` take precedence. If neither specifies an image, packaged assets in `src/sandbox/assets/` or `dist/sandbox/assets/` are detected when present. Invalid explicit paths fail during VM startup instead of silently using the default image.
+If `sandbox.imagePath` is omitted, cmd.exe loads VM runtime settings from these optional files:
 
-Create `agent-vm.json` at the workspace root using Gondolin's native build schema. cmd.exe-specific runtime policy lives under `cmdExe`:
+- Global: `~/.pi/agent/extensions/agent-vm.json` (beside the plugin's `dispatch.json` configuration)
+- Project: `<project-root>/agent-vm.json`
+
+The effective precedence is **project VM config → global VM config → default VM settings**. In other words, project `cmdExe.runtime` values override global values, and global values override defaults. Explicit `sandbox` settings in `dispatch.json` remain the highest-priority overrides. The supported runtime values are `cmdExe.runtime.imagePath`, `cmdExe.runtime.memory`, and `cmdExe.runtime.cpus`.
+
+Relative asset paths from the project VM config resolve from the project root. If no configuration specifies an image, packaged assets in `src/sandbox/assets/` or `dist/sandbox/assets/` are detected when present. Invalid paths fail during VM startup instead of silently using the default image.
+
+Create `agent-vm.json` at either location using Gondolin's native build schema. cmd.exe-specific runtime policy lives under `cmdExe`:
 
 ```json
 {
   "arch": "aarch64",
   "distro": "alpine",
   "alpine": {
+    "version": "3.23.0",
     "rootfsPackages": ["linux-virt", "bash", "git", "nodejs", "npm"]
   },
   "rootfs": { "sizeMb": 4096 },
@@ -209,7 +217,7 @@ Create `agent-vm.json` at the workspace root using Gondolin's native build schem
 }
 ```
 
-The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `cmdExe.runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` is the explicit exception: it validates the native build fields, invokes the Gondolin CLI on a temporary native config, and atomically replaces `cmdExe.runtime.imagePath`. If the CLI is unavailable, it reports npm, Bun, and Deno installation commands.
+The current Gondolin SDK consumes generated assets but does not expose an image-builder API. When `cmdExe.runtime.imagePath` points to missing assets, normal execution fails rather than silently using a smaller default image. `/init --rebuild` is the explicit exception: it validates the project-native build fields from `<project-root>/agent-vm.json`, invokes the Gondolin CLI on a temporary native config, and atomically replaces the project `cmdExe.runtime.imagePath`. If the CLI is unavailable, it reports npm, Bun, and Deno installation commands.
 
 `/init` starts the current VM on demand. `/init --rebuild` builds assets from `agent-vm.json`, `/init --shutdown` stops it, and `/init --destroy` removes the transient VM state. Use `/init --destroy --assets` to additionally delete the configured workspace-local image assets; `agent-vm.json` is preserved. `--no-sandbox` is the only direct-host execution path.
 
