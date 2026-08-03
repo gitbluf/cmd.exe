@@ -111,7 +111,10 @@ function loadAgentVmConfig(
 		);
 	}
 	if (runtime.imagePath !== undefined)
-		runtime.imagePath = path.resolve(path.dirname(configPath), runtime.imagePath);
+		runtime.imagePath = path.resolve(
+			path.dirname(configPath),
+			runtime.imagePath,
+		);
 	return runtime;
 }
 
