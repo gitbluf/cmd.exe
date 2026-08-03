@@ -28,8 +28,8 @@ import { createSandboxedBashOps, sandboxState } from "../lifecycle/sandbox";
 import { sandboxToolOptions } from "../tools/wrappers";
 import { getIconRegistry } from "../ui/icons";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
-import { storeSubAgentOutput } from "./store";
 import { clearSubAgentWidget, setSubAgentWidget } from "./widget";
+import { createWidgetUpdateScheduler } from "./widget-scheduler";
 
 export interface RunSubAgentOptions {
 	systemPrompt: string;
@@ -142,7 +142,6 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 
 	let output = "";
 	let sawTextDeltaForCurrentAssistant = false;
-	let widgetUpdateTimer: ReturnType<typeof setTimeout> | undefined;
 	const renderWidget = (status: "streaming" | "complete") => {
 		if (!opts.widgetId || !opts.ui) return;
 		setSubAgentWidget({
@@ -155,18 +154,10 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 	};
 	// Token events can arrive many times per frame. Coalesce redraws to keep
 	// streaming output responsive without repeatedly splitting the full buffer.
+	const widgetScheduler = createWidgetUpdateScheduler(renderWidget);
 	const updateWidget = (status: "streaming" | "complete" = "streaming") => {
-		if (status === "complete") {
-			if (widgetUpdateTimer) clearTimeout(widgetUpdateTimer);
-			widgetUpdateTimer = undefined;
-			renderWidget(status);
-			return;
-		}
-		if (widgetUpdateTimer || !opts.widgetId || !opts.ui) return;
-		widgetUpdateTimer = setTimeout(() => {
-			widgetUpdateTimer = undefined;
-			renderWidget("streaming");
-		}, 75);
+		if (!opts.widgetId || !opts.ui) return;
+		widgetScheduler.update(status);
 	};
 
 	// Initialize widget
@@ -305,13 +296,13 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 		unsubscribe();
 		session.dispose();
 
-		// Keep widget visible with final output, or clear it
-		if (opts.widgetId && opts.ui) {
-			if (opts.keepWidget) {
-				// Show final output in "complete" state
-				updateWidget("complete");
-			} else {
-				// Clear the streaming widget
+		// Stop queued streaming redraws before either clearing or completing the widget.
+		if (opts.keepWidget && opts.widgetId && opts.ui) {
+			// Show final output in "complete" state; this also cancels stale streaming work.
+			updateWidget("complete");
+		} else {
+			widgetScheduler.dispose();
+			if (opts.widgetId && opts.ui) {
 				clearSubAgentWidget(opts.ui, opts.widgetId);
 			}
 		}
@@ -329,15 +320,6 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 		}
 
 		const hasOutput = output.trim().length > 0;
-
-		// Store output for /synth:output overlay viewer (only on success with content)
-		if (!failed && hasOutput) {
-			const iconsStore = getIconRegistry();
-			storeSubAgentOutput(
-				opts.widgetTitle || `${iconsStore.agentDefault} Sub-Agent`,
-				output,
-			);
-		}
 
 		// Inject final output into chat history so it scrolls with messages
 		if (opts.pi) {

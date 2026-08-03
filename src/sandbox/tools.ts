@@ -209,10 +209,6 @@ export function globToRegex(glob: string): string {
 	return result;
 }
 
-export function globMatches(value: string, pattern: string): boolean {
-	return new RegExp(`^${globToRegex(pattern)}$`).test(value);
-}
-
 function mergeUnique(base: string[], additions?: string[]): string[] {
 	return [...new Set([...base, ...(additions ?? [])])];
 }

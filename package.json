@@ -23,6 +23,7 @@
 		"lint": "npx --no-install biome lint .",
 		"format": "npx --no-install biome format .",
 		"check": "npx --no-install biome check .",
+		"test": "node --experimental-strip-types --test test/*.test.ts",
 		"check:docs": "node scripts/check-docs.mjs",
 		"fix": "npx --no-install biome check --write .",
 		"fix:unsafe": "npx --no-install biome check --write --unsafe ."

@@ -2,13 +2,14 @@
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
 	createHttpHooks,
 	RealFSProvider,
-	validateBuildConfig,
 	VM,
+	validateBuildConfig,
 } from "@earendil-works/gondolin";
 import type { BashOperations } from "@earendil-works/pi-coding-agent";
 import {
@@ -20,7 +21,8 @@ import {
 import { getIconRegistry } from "../ui/icons";
 
 const GUEST_WORKSPACE = "/workspace";
-const DEFAULT_GUEST_PATH = "/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
+const DEFAULT_GUEST_PATH =
+	"/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 const BUNDLED_ASSETS_PATH = path.resolve(
 	path.dirname(fileURLToPath(import.meta.url)),
 	"../sandbox/assets",
@@ -36,6 +38,12 @@ interface AgentVmFile {
 	cmdExe?: CmdExeConfig;
 }
 
+interface AgentVmResolution {
+	config: AgentVmFile;
+	configPath: string;
+	basePath: string;
+}
+
 function hasGuestAssets(assetPath: string): boolean {
 	return (
 		fs.existsSync(path.join(assetPath, "manifest.json")) &&
@@ -43,11 +51,19 @@ function hasGuestAssets(assetPath: string): boolean {
 	);
 }
 
-function readAgentVmFile(root: string): AgentVmFile | undefined {
-	const configPath = path.join(root, "agent-vm.json");
+function getGlobalAgentVmConfigPath(): string {
+	return path.join(os.homedir(), ".pi/agent/extensions/agent-vm.json");
+}
+
+function readAgentVmFile(configPath: string): AgentVmFile | undefined {
 	if (!fs.existsSync(configPath)) return undefined;
 
-	const parsed: unknown = JSON.parse(fs.readFileSync(configPath, "utf8"));
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(fs.readFileSync(configPath, "utf8"));
+	} catch {
+		throw new Error(`Invalid agent VM configuration: ${configPath}`);
+	}
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
 		throw new Error(`Invalid agent VM configuration: ${configPath}`);
 	}
@@ -63,7 +79,9 @@ function readAgentVmFile(root: string): AgentVmFile | undefined {
 	const policy = cmdExe as Record<string, unknown> | undefined;
 	if (
 		policy?.runtime !== undefined &&
-		(!policy.runtime || typeof policy.runtime !== "object" || Array.isArray(policy.runtime))
+		(!policy.runtime ||
+			typeof policy.runtime !== "object" ||
+			Array.isArray(policy.runtime))
 	) {
 		throw new Error(`Invalid cmdExe.runtime configuration: ${configPath}`);
 	}
@@ -73,8 +91,10 @@ function readAgentVmFile(root: string): AgentVmFile | undefined {
 	};
 }
 
-function loadAgentVmConfig(root: string): Partial<SandboxConfig> | undefined {
-	const file = readAgentVmFile(root);
+function loadAgentVmConfig(
+	configPath: string,
+): Partial<SandboxConfig> | undefined {
+	const file = readAgentVmFile(configPath);
 	if (!file) return undefined;
 	const runtime = { ...(file.cmdExe?.runtime ?? {}) };
 	if (
@@ -87,10 +107,41 @@ function loadAgentVmConfig(root: string): Partial<SandboxConfig> | undefined {
 				runtime.cpus < 1))
 	) {
 		throw new Error(
-			`Invalid agent VM runtime values in ${path.join(root, "agent-vm.json")}; expected imagePath:string, memory:string, cpus:positive integer`,
+			`Invalid agent VM runtime values in ${configPath}; expected imagePath:string, memory:string, cpus:positive integer`,
 		);
 	}
+	if (runtime.imagePath !== undefined)
+		runtime.imagePath = path.resolve(
+			path.dirname(configPath),
+			runtime.imagePath,
+		);
 	return runtime;
+}
+
+function resolveAgentVmConfig(root: string): {
+	global?: AgentVmResolution;
+	project?: AgentVmResolution;
+	selected?: AgentVmResolution;
+} {
+	const globalPath = getGlobalAgentVmConfigPath();
+	const projectPath = path.join(path.resolve(root), "agent-vm.json");
+	const globalFile = readAgentVmFile(globalPath);
+	const projectFile = readAgentVmFile(projectPath);
+	const global = globalFile
+		? {
+				config: globalFile,
+				configPath: globalPath,
+				basePath: path.dirname(globalPath),
+			}
+		: undefined;
+	const project = projectFile
+		? {
+				config: projectFile,
+				configPath: projectPath,
+				basePath: path.dirname(projectPath),
+			}
+		: undefined;
+	return { global, project, selected: project ?? global };
 }
 
 /**
@@ -113,10 +164,21 @@ export function resolveSandboxImagePath(
 	return hasGuestAssets(BUNDLED_ASSETS_PATH) ? BUNDLED_ASSETS_PATH : undefined;
 }
 
+export type SandboxVmStatus =
+	| "lazy"
+	| "creating"
+	| "up"
+	| "down"
+	| "failed"
+	| "disabled"
+	| "unsupported";
+
 export interface SandboxState {
 	enabled: boolean;
 	initialized: boolean;
 	hostOptOut: boolean;
+	status: SandboxVmStatus;
+	lastFailureMessage?: string;
 	vmId?: string;
 }
 
@@ -124,7 +186,33 @@ export const sandboxState: SandboxState = {
 	enabled: false,
 	initialized: false,
 	hostOptOut: false,
+	status: "down",
 };
+
+let statusUpdater: ((status: string) => void) | undefined;
+
+export function getSandboxStatus(): SandboxVmStatus {
+	return sandboxState.status;
+}
+
+export function formatSandboxStatus(
+	status: SandboxVmStatus = sandboxState.status,
+	failureMessage = sandboxState.lastFailureMessage,
+): string {
+	if (status === "failed" && failureMessage)
+		return `VM failed: ${failureMessage}`;
+	return `VM ${status}`;
+}
+
+function updateSandboxStatus(
+	status: SandboxVmStatus,
+	failureMessage?: string,
+): void {
+	sandboxState.status = status;
+	sandboxState.lastFailureMessage =
+		status === "failed" ? failureMessage : undefined;
+	statusUpdater?.(formatSandboxStatus(status, sandboxState.lastFailureMessage));
+}
 
 let workspaceRoot = process.cwd();
 let sandboxConfig: SandboxConfig = DEFAULT_SANDBOX_CONFIG;
@@ -323,14 +411,19 @@ async function startVm(): Promise<VM> {
 }
 
 async function ensureVm(): Promise<VM> {
-	if (process.platform !== "darwin")
+	if (process.platform !== "darwin") {
+		updateSandboxStatus("unsupported");
 		throw new Error("Gondolin sandbox currently supports macOS only.");
-	if (!sandboxState.enabled)
+	}
+	if (!sandboxState.enabled) {
+		updateSandboxStatus("disabled");
 		throw new Error(
 			"Sandbox is disabled; use --no-sandbox for direct host execution.",
 		);
+	}
 	if (vm) return vm;
 	if (!vmStarting) {
+		updateSandboxStatus("creating");
 		vmStarting = startVm().finally(() => {
 			vmStarting = undefined;
 		});
@@ -338,9 +431,14 @@ async function ensureVm(): Promise<VM> {
 	try {
 		vm = await vmStarting;
 		sandboxState.initialized = true;
+		updateSandboxStatus("up");
 		return vm;
 	} catch (error) {
 		sandboxState.initialized = false;
+		updateSandboxStatus(
+			"failed",
+			error instanceof Error ? error.message : String(error),
+		);
 		throw error;
 	}
 }
@@ -350,14 +448,30 @@ export function configureSandbox(
 	config?: Partial<SandboxConfig>,
 ): void {
 	workspaceRoot = path.resolve(root);
-	const fileConfig = loadAgentVmConfig(workspaceRoot);
+	const vmConfigs = resolveAgentVmConfig(workspaceRoot);
+	const globalConfig = vmConfigs.global
+		? loadAgentVmConfig(vmConfigs.global.configPath)
+		: undefined;
+	const projectConfig = vmConfigs.project
+		? loadAgentVmConfig(vmConfigs.project.configPath)
+		: undefined;
 	const mergedConfig = mergeSandboxConfig(
-		mergeSandboxConfig(DEFAULT_SANDBOX_CONFIG, fileConfig),
+		mergeSandboxConfig(
+			mergeSandboxConfig(DEFAULT_SANDBOX_CONFIG, globalConfig),
+			projectConfig,
+		),
 		config,
 	);
 	sandboxConfig = mergedConfig;
 	filesystemRules = compileFilesystemRules(sandboxConfig.filesystem);
 	sandboxEnvironment = { PATH: DEFAULT_GUEST_PATH };
+}
+
+export function setSandboxStatusUpdater(
+	updater: ((status: string) => void) | undefined,
+): void {
+	statusUpdater = updater;
+	if (updater) updater(formatSandboxStatus());
 }
 
 export async function getSandboxVm(): Promise<VM> {
@@ -422,6 +536,26 @@ export async function initializeSandbox(
 	sandboxState.enabled = !noSandbox && sandboxConfig.enabled;
 	sandboxState.hostOptOut = noSandbox;
 	sandboxState.initialized = false;
+	sandboxState.vmId = undefined;
+	const initialStatus: SandboxVmStatus = noSandbox
+		? "disabled"
+		: !sandboxConfig.enabled
+			? "disabled"
+			: process.platform !== "darwin"
+				? "unsupported"
+				: "lazy";
+	sandboxState.status = initialStatus;
+	sandboxState.lastFailureMessage = undefined;
+	setSandboxStatusUpdater(
+		hasUI && setStatusFn
+			? (status) =>
+					setStatusFn(
+						"sandbox",
+						`${getIconRegistry().sandbox} Gondolin: ${status}`,
+					)
+			: undefined,
+	);
+	updateSandboxStatus(initialStatus);
 	if (noSandbox) {
 		if (hasUI) notifyFn?.("Sandbox disabled via --no-sandbox", "warning");
 		return;
@@ -443,10 +577,6 @@ export async function initializeSandbox(
 		return;
 	}
 	if (hasUI) {
-		setStatusFn?.(
-			"sandbox",
-			`${getIconRegistry().sandbox} Gondolin: lazy (${sandboxConfig.allowedHosts.length} hosts)`,
-		);
 		notifyFn?.(
 			"Gondolin sandbox ready; VM starts on first tool execution",
 			"info",
@@ -468,6 +598,7 @@ export async function shutdownSandbox(): Promise<void> {
 	vmStarting = undefined;
 	sandboxState.initialized = false;
 	sandboxState.vmId = undefined;
+	updateSandboxStatus("down");
 	if (active) await active.close();
 }
 
@@ -523,23 +654,25 @@ function runGondolinCli(command: string, args: string[]): Promise<void> {
 }
 
 async function rebuildSandboxAssets(root: string): Promise<string> {
-	const agentVm = readAgentVmFile(root);
-	if (!agentVm?.build)
-		throw new Error("agent-vm.json must contain a valid Gondolin build configuration");
-
+	const selected = resolveAgentVmConfig(root).selected;
+	if (!selected)
+		throw new Error(
+			"No agent-vm.json found. Create one globally at ~/.pi/agent/extensions/agent-vm.json or in the project root.",
+		);
+	const { config: agentVm, basePath } = selected;
 	const outputPath = path.resolve(
-		root,
+		basePath,
 		agentVm.cmdExe?.runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
 	);
 	const outputParent = path.dirname(outputPath);
 	fs.mkdirSync(outputParent, { recursive: true });
 	const temporaryOutput = fs.mkdtempSync(`${outputPath}.tmp-`);
 	const temporaryConfig = path.join(
-		root,
+		basePath,
 		`.agent-vm-build-${process.pid}-${Date.now()}.json`,
 	);
-	// Keep the temporary native config beside agent-vm.json so Gondolin
-	// resolves postBuild.copy.src relative to the original config directory.
+	// Keep the temporary native config beside the selected agent-vm.json so
+	// Gondolin resolves postBuild.copy.src relative to that config directory.
 	fs.writeFileSync(
 		temporaryConfig,
 		`${JSON.stringify(agentVm.build, null, 2)}\n`,
@@ -577,15 +710,19 @@ async function rebuildSandboxAssets(root: string): Promise<string> {
 }
 
 function deleteSandboxAssets(root: string): string {
-	const runtime = readAgentVmFile(root)?.cmdExe?.runtime;
+	const selected = resolveAgentVmConfig(root).selected;
+	if (!selected)
+		throw new Error(
+			"No agent-vm.json found. Create one globally at ~/.pi/agent/extensions/agent-vm.json or in the project root.",
+		);
 	const configuredPath = path.resolve(
-		root,
-		runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
+		selected.basePath,
+		selected.config.cmdExe?.runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
 	);
-	const relative = path.relative(root, configuredPath);
+	const relative = path.relative(selected.basePath, configuredPath);
 	if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
 		throw new Error(
-			`Refusing to delete sandbox assets outside the workspace: ${configuredPath}`,
+			`Refusing to delete sandbox assets outside the agent-vm.json directory: ${configuredPath}`,
 		);
 	}
 	if (fs.existsSync(configuredPath))
@@ -618,9 +755,7 @@ export async function handleSandboxInit(
 		return "Gondolin VM destroyed (transient session state removed)";
 	}
 	if (value || deleteAssets)
-		throw new Error(
-			"Usage: /init [--rebuild|--shutdown|--destroy [--assets]]",
-		);
+		throw new Error("Usage: /init [--rebuild|--shutdown|--destroy [--assets]]");
 	const active = await ensureVm();
 	return `Gondolin VM initialized (${active.id})`;
 }
