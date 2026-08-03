@@ -65,11 +65,6 @@ export function addFooterCostDelta(delta: number): void {
 	telemetry.costTotal = (telemetry.costTotal ?? 0) + delta;
 }
 
-/** Reset cost accumulator on session start. */
-export function resetFooterCost(): void {
-	telemetry.costTotal = undefined;
-}
-
 /** Set cost directly (e.g. seeded from branch history on session start). */
 export function setFooterCostTotal(total: number | undefined): void {
 	telemetry.costTotal = total;
@@ -82,12 +77,6 @@ export function setFooterCwd(cwd: string): void {
 export function addFooterCacheDelta(read: number, write: number): void {
 	if (read > 0) telemetry.cacheRead = (telemetry.cacheRead ?? 0) + read;
 	if (write > 0) telemetry.cacheWrite = (telemetry.cacheWrite ?? 0) + write;
-}
-
-/** Reset cache accumulator on session start. */
-export function resetFooterCache(): void {
-	telemetry.cacheRead = undefined;
-	telemetry.cacheWrite = undefined;
 }
 
 /** Set cache totals directly (e.g. seeded from branch history on session start). */

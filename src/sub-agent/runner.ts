@@ -28,7 +28,6 @@ import { createSandboxedBashOps, sandboxState } from "../lifecycle/sandbox";
 import { sandboxToolOptions } from "../tools/wrappers";
 import { getIconRegistry } from "../ui/icons";
 import { clearAskWidgetActive, setAskWidgetActive } from "./ask-state";
-import { storeSubAgentOutput } from "./store";
 import { clearSubAgentWidget, setSubAgentWidget } from "./widget";
 import { createWidgetUpdateScheduler } from "./widget-scheduler";
 
@@ -321,15 +320,6 @@ export async function runSubAgent(opts: RunSubAgentOptions): Promise<string> {
 		}
 
 		const hasOutput = output.trim().length > 0;
-
-		// Store output for /synth:output overlay viewer (only on success with content)
-		if (!failed && hasOutput) {
-			const iconsStore = getIconRegistry();
-			storeSubAgentOutput(
-				opts.widgetTitle || `${iconsStore.agentDefault} Sub-Agent`,
-				output,
-			);
-		}
 
 		// Inject final output into chat history so it scrolls with messages
 		if (opts.pi) {
