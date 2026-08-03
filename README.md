@@ -156,7 +156,7 @@ The main session in Plan mode can create implementation plans:
 
 ### 🔒 Gondolin VM Sandbox
 
-Sandboxed commands run in a Gondolin VM with mediated networking, secret placeholders, and workspace filesystem policy. The footer continuously reports the VM state (`VM lazy`, `VM creating`, `VM up`, `VM down`, or `VM failed`). Configure session policy in `dispatch.json`; configure a workspace image in root `agent-vm.json` using Gondolin's native build fields plus cmd.exe runtime settings under `cmdExe`. Normal VM control uses the SDK. Use `/init --rebuild` after changing native image packages or `postBuild` commands; custom image builds may require Docker or Podman on macOS. See [docs/CONFIGURATION.md](docs/CONFIGURATION.md#4-sandbox-sandbox) for precedence, lifecycle commands, and image configuration.
+Sandboxed commands run in a Gondolin VM with mediated networking, secret placeholders, and workspace filesystem policy. The footer continuously reports the VM state (`VM lazy`, `VM creating`, `VM up`, `VM down`, or `VM failed`). Configure session policy in `dispatch.json`; configure an image in either the global `~/.pi/agent/extensions/agent-vm.json` or the project-root `agent-vm.json`, using Gondolin's native build fields plus cmd.exe runtime settings under `cmdExe`. The project file takes precedence. Normal VM control uses the SDK. Use `/init --rebuild` after changing native image packages or `postBuild` commands; it rebuilds the project config when present, otherwise the global config. Custom image builds may require Docker or Podman on macOS. See [docs/CONFIGURATION.md](docs/CONFIGURATION.md#4-sandbox-sandbox) for precedence, lifecycle commands, and image configuration.
 
 ### 🔍 Smart File Discovery
 

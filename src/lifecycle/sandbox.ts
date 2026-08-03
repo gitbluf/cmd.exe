@@ -38,6 +38,12 @@ interface AgentVmFile {
 	cmdExe?: CmdExeConfig;
 }
 
+interface AgentVmResolution {
+	config: AgentVmFile;
+	configPath: string;
+	basePath: string;
+}
+
 function hasGuestAssets(assetPath: string): boolean {
 	return (
 		fs.existsSync(path.join(assetPath, "manifest.json")) &&
@@ -104,7 +110,35 @@ function loadAgentVmConfig(
 			`Invalid agent VM runtime values in ${configPath}; expected imagePath:string, memory:string, cpus:positive integer`,
 		);
 	}
+	if (runtime.imagePath !== undefined)
+		runtime.imagePath = path.resolve(path.dirname(configPath), runtime.imagePath);
 	return runtime;
+}
+
+function resolveAgentVmConfig(root: string): {
+	global?: AgentVmResolution;
+	project?: AgentVmResolution;
+	selected?: AgentVmResolution;
+} {
+	const globalPath = getGlobalAgentVmConfigPath();
+	const projectPath = path.join(path.resolve(root), "agent-vm.json");
+	const globalFile = readAgentVmFile(globalPath);
+	const projectFile = readAgentVmFile(projectPath);
+	const global = globalFile
+		? {
+				config: globalFile,
+				configPath: globalPath,
+				basePath: path.dirname(globalPath),
+			}
+		: undefined;
+	const project = projectFile
+		? {
+				config: projectFile,
+				configPath: projectPath,
+				basePath: path.dirname(projectPath),
+			}
+		: undefined;
+	return { global, project, selected: project ?? global };
 }
 
 /**
@@ -411,10 +445,13 @@ export function configureSandbox(
 	config?: Partial<SandboxConfig>,
 ): void {
 	workspaceRoot = path.resolve(root);
-	const globalConfig = loadAgentVmConfig(getGlobalAgentVmConfigPath());
-	const projectConfig = loadAgentVmConfig(
-		path.join(workspaceRoot, "agent-vm.json"),
-	);
+	const vmConfigs = resolveAgentVmConfig(workspaceRoot);
+	const globalConfig = vmConfigs.global
+		? loadAgentVmConfig(vmConfigs.global.configPath)
+		: undefined;
+	const projectConfig = vmConfigs.project
+		? loadAgentVmConfig(vmConfigs.project.configPath)
+		: undefined;
 	const mergedConfig = mergeSandboxConfig(
 		mergeSandboxConfig(
 			mergeSandboxConfig(DEFAULT_SANDBOX_CONFIG, globalConfig),
@@ -614,25 +651,25 @@ function runGondolinCli(command: string, args: string[]): Promise<void> {
 }
 
 async function rebuildSandboxAssets(root: string): Promise<string> {
-	const agentVm = readAgentVmFile(path.join(root, "agent-vm.json"));
-	if (!agentVm?.build)
+	const selected = resolveAgentVmConfig(root).selected;
+	if (!selected)
 		throw new Error(
-			"agent-vm.json must contain a valid Gondolin build configuration",
+			"No agent-vm.json found. Create one globally at ~/.pi/agent/extensions/agent-vm.json or in the project root.",
 		);
-
+	const { config: agentVm, basePath } = selected;
 	const outputPath = path.resolve(
-		root,
+		basePath,
 		agentVm.cmdExe?.runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
 	);
 	const outputParent = path.dirname(outputPath);
 	fs.mkdirSync(outputParent, { recursive: true });
 	const temporaryOutput = fs.mkdtempSync(`${outputPath}.tmp-`);
 	const temporaryConfig = path.join(
-		root,
+		basePath,
 		`.agent-vm-build-${process.pid}-${Date.now()}.json`,
 	);
-	// Keep the temporary native config beside agent-vm.json so Gondolin
-	// resolves postBuild.copy.src relative to the original config directory.
+	// Keep the temporary native config beside the selected agent-vm.json so
+	// Gondolin resolves postBuild.copy.src relative to that config directory.
 	fs.writeFileSync(
 		temporaryConfig,
 		`${JSON.stringify(agentVm.build, null, 2)}\n`,
@@ -670,16 +707,19 @@ async function rebuildSandboxAssets(root: string): Promise<string> {
 }
 
 function deleteSandboxAssets(root: string): string {
-	const runtime = readAgentVmFile(path.join(root, "agent-vm.json"))?.cmdExe
-		?.runtime;
+	const selected = resolveAgentVmConfig(root).selected;
+	if (!selected)
+		throw new Error(
+			"No agent-vm.json found. Create one globally at ~/.pi/agent/extensions/agent-vm.json or in the project root.",
+		);
 	const configuredPath = path.resolve(
-		root,
-		runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
+		selected.basePath,
+		selected.config.cmdExe?.runtime?.imagePath ?? DEFAULT_AGENT_VM_ASSETS,
 	);
-	const relative = path.relative(root, configuredPath);
+	const relative = path.relative(selected.basePath, configuredPath);
 	if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
 		throw new Error(
-			`Refusing to delete sandbox assets outside the workspace: ${configuredPath}`,
+			`Refusing to delete sandbox assets outside the agent-vm.json directory: ${configuredPath}`,
 		);
 	}
 	if (fs.existsSync(configuredPath))
