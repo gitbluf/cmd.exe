@@ -35,7 +35,7 @@
 		"@sinclair/typebox": "0.34.52"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "2.5.3",
+		"@biomejs/biome": "2.5.6",
 		"typescript": "7.0.2"
 	}
 }
