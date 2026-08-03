@@ -127,10 +127,21 @@ export function resolveSandboxImagePath(
 	return hasGuestAssets(BUNDLED_ASSETS_PATH) ? BUNDLED_ASSETS_PATH : undefined;
 }
 
+export type SandboxVmStatus =
+	| "lazy"
+	| "creating"
+	| "up"
+	| "down"
+	| "failed"
+	| "disabled"
+	| "unsupported";
+
 export interface SandboxState {
 	enabled: boolean;
 	initialized: boolean;
 	hostOptOut: boolean;
+	status: SandboxVmStatus;
+	lastFailureMessage?: string;
 	vmId?: string;
 }
 
@@ -138,7 +149,33 @@ export const sandboxState: SandboxState = {
 	enabled: false,
 	initialized: false,
 	hostOptOut: false,
+	status: "down",
 };
+
+let statusUpdater: ((status: string) => void) | undefined;
+
+export function getSandboxStatus(): SandboxVmStatus {
+	return sandboxState.status;
+}
+
+export function formatSandboxStatus(
+	status: SandboxVmStatus = sandboxState.status,
+	failureMessage = sandboxState.lastFailureMessage,
+): string {
+	if (status === "failed" && failureMessage)
+		return `VM failed: ${failureMessage}`;
+	return `VM ${status}`;
+}
+
+function updateSandboxStatus(
+	status: SandboxVmStatus,
+	failureMessage?: string,
+): void {
+	sandboxState.status = status;
+	sandboxState.lastFailureMessage =
+		status === "failed" ? failureMessage : undefined;
+	statusUpdater?.(formatSandboxStatus(status, sandboxState.lastFailureMessage));
+}
 
 let workspaceRoot = process.cwd();
 let sandboxConfig: SandboxConfig = DEFAULT_SANDBOX_CONFIG;
@@ -337,14 +374,19 @@ async function startVm(): Promise<VM> {
 }
 
 async function ensureVm(): Promise<VM> {
-	if (process.platform !== "darwin")
+	if (process.platform !== "darwin") {
+		updateSandboxStatus("unsupported");
 		throw new Error("Gondolin sandbox currently supports macOS only.");
-	if (!sandboxState.enabled)
+	}
+	if (!sandboxState.enabled) {
+		updateSandboxStatus("disabled");
 		throw new Error(
 			"Sandbox is disabled; use --no-sandbox for direct host execution.",
 		);
+	}
 	if (vm) return vm;
 	if (!vmStarting) {
+		updateSandboxStatus("creating");
 		vmStarting = startVm().finally(() => {
 			vmStarting = undefined;
 		});
@@ -352,9 +394,14 @@ async function ensureVm(): Promise<VM> {
 	try {
 		vm = await vmStarting;
 		sandboxState.initialized = true;
+		updateSandboxStatus("up");
 		return vm;
 	} catch (error) {
 		sandboxState.initialized = false;
+		updateSandboxStatus(
+			"failed",
+			error instanceof Error ? error.message : String(error),
+		);
 		throw error;
 	}
 }
@@ -378,6 +425,13 @@ export function configureSandbox(
 	sandboxConfig = mergedConfig;
 	filesystemRules = compileFilesystemRules(sandboxConfig.filesystem);
 	sandboxEnvironment = { PATH: DEFAULT_GUEST_PATH };
+}
+
+export function setSandboxStatusUpdater(
+	updater: ((status: string) => void) | undefined,
+): void {
+	statusUpdater = updater;
+	if (updater) updater(formatSandboxStatus());
 }
 
 export async function getSandboxVm(): Promise<VM> {
@@ -442,6 +496,26 @@ export async function initializeSandbox(
 	sandboxState.enabled = !noSandbox && sandboxConfig.enabled;
 	sandboxState.hostOptOut = noSandbox;
 	sandboxState.initialized = false;
+	sandboxState.vmId = undefined;
+	const initialStatus: SandboxVmStatus = noSandbox
+		? "disabled"
+		: !sandboxConfig.enabled
+			? "disabled"
+			: process.platform !== "darwin"
+				? "unsupported"
+				: "lazy";
+	sandboxState.status = initialStatus;
+	sandboxState.lastFailureMessage = undefined;
+	setSandboxStatusUpdater(
+		hasUI && setStatusFn
+			? (status) =>
+					setStatusFn(
+						"sandbox",
+						`${getIconRegistry().sandbox} Gondolin: ${status}`,
+					)
+			: undefined,
+	);
+	updateSandboxStatus(initialStatus);
 	if (noSandbox) {
 		if (hasUI) notifyFn?.("Sandbox disabled via --no-sandbox", "warning");
 		return;
@@ -463,10 +537,6 @@ export async function initializeSandbox(
 		return;
 	}
 	if (hasUI) {
-		setStatusFn?.(
-			"sandbox",
-			`${getIconRegistry().sandbox} Gondolin: lazy (${sandboxConfig.allowedHosts.length} hosts)`,
-		);
 		notifyFn?.(
 			"Gondolin sandbox ready; VM starts on first tool execution",
 			"info",
@@ -488,6 +558,7 @@ export async function shutdownSandbox(): Promise<void> {
 	vmStarting = undefined;
 	sandboxState.initialized = false;
 	sandboxState.vmId = undefined;
+	updateSandboxStatus("down");
 	if (active) await active.close();
 }
 

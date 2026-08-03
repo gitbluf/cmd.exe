@@ -4,14 +4,14 @@
  * Layout (responsive, based on terminal width):
  *
  *   Wide (≥ 90):
- *     BUILD │ RTK │ SBX 2/4 ─────────── • 3/7 • Implement auth service ─── main
+ *     BUILD │ RTK │ VM creating ─────────── • 3/7 • Implement auth service ─── main
  *
  *   Narrow (< 90):
- *     BUILD │ RTK │ SBX 2/4 ──────────────────────────── • 3/7 ─── main
+ *     BUILD │ RTK │ V… ──────────────────────────────── • 3/7 ─── main
  *
  * Data sources: reads raw module state directly so the renderer always has
- * the latest values. The existing setStatus() calls in lifecycle/index.ts
- * continue to serve as re-render triggers.
+ * the latest values. VM lifecycle transitions call setStatus() to invalidate
+ * the footer immediately.
  *
  * V2 hook: swap buildFooterLine() for a richer version that adds model +
  * token stats without touching the install/render wiring.
@@ -22,7 +22,7 @@ import type {
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
-import { getSandboxStats } from "../lifecycle/sandbox";
+import { getSandboxStatus } from "../lifecycle/sandbox";
 import { getCurrentMode } from "../modes";
 import { getCurrentStep, getPlan, getPlanStats } from "../plan/state";
 import { getRtkActive } from "../rtk";
@@ -131,12 +131,21 @@ function rtkChip(theme: Theme, wide: boolean): string | null {
 }
 
 function sandboxChip(theme: Theme, wide: boolean): string | null {
-	const stats = getSandboxStats();
-	if (!stats) return null;
+	const status = getSandboxStatus();
 	const label = wide
-		? `SBX ${stats.domains}/${stats.writes}`
-		: `S${stats.domains}/${stats.writes}`;
-	return theme.fg("muted", label);
+		? `VM ${status}`
+		: `V${status === "creating" ? "…" : status[0]}`;
+	const color =
+		status === "up"
+			? "success"
+			: status === "failed"
+				? "error"
+				: status === "creating"
+					? "warning"
+					: status === "lazy"
+						? "accent"
+						: "muted";
+	return theme.fg(color, label);
 }
 
 function planChip(

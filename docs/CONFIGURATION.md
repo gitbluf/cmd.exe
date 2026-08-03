@@ -163,7 +163,7 @@ See [`docs/ICONS.md`](./ICONS.md) for all supported icon keys.
 
 ## 4) Sandbox (`sandbox`)
 
-The sandbox uses one lazy Gondolin VM per Pi session. If bundled custom assets are present, cmd.exe loads them automatically; otherwise Gondolin provisions its default guest image through the SDK when the VM starts.
+The sandbox uses one lazy Gondolin VM per Pi session. The footer reports the current lifecycle state: `VM lazy` before first use, `VM creating` during `VM.create()`, `VM up` after successful creation, `VM down` after shutdown/reset, and `VM failed` when creation fails. A failure remains visible until the next successful startup. Disabled configuration and `--no-sandbox` are shown as `VM disabled`; unsupported platforms are shown as `VM unsupported`. If bundled custom assets are present, cmd.exe loads them automatically; otherwise Gondolin provisions its default guest image through the SDK when the VM starts.
 
 ### Schema
 
